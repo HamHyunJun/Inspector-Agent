@@ -53,3 +53,25 @@ body {
   padding-left: 18px;
   overflow-wrap: anywhere;
 }
+
+.popup__option {
+  margin: 12px 0;
+  padding: 8px 12px;
+  border: 1px solid #2a2f3a;
+  border-radius: 8px;
+}
+
+.popup__check {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.popup__hint {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: #9aa4b2;
+}
+
+.popup__check input {
+  margin-right: 6px;
+}

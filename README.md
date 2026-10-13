@@ -267,7 +267,7 @@ pnpm dev:dashboard                      # http://localhost:3000
 | 대시보드 폼 | 메인 화면의 **스캔 실행** (URL, 뷰포트 입력) | 가장 간단. 결과가 바로 저장됨 | URL 만 연다 (아래 참고) |
 | MCP `scan_page` | 에이전트에게 "스캔해줘" | 에이전트가 스캔→패치를 한 번에 진행 | 대시보드 폼과 같음 |
 | CLI | `node packages/verifier/dist/cli.js <url> [--viewports 375,768x1024] [--report http://localhost:3000] [--fail-on high] [--summary 파일] [--scenario 파일.json]` | 종료 코드·마크다운 요약. `--report` 로 대시보드에도 저장 | 같음 |
-| Chrome 확장 | `pnpm build` 후 `packages/extension/dist` 를 `chrome://extensions` → **압축해제된 확장 프로그램 로드**. 확장 팝업에 대시보드 주소 입력 | **지금 보고 있는 탭 그대로** 탐지 (로그인, 시드 데이터, 인터랙션 후 상태 포함) | `localhost`/`127.0.0.1` 만, 탭의 실제 너비 1개만, **모달 포커스 이탈 검사는 하지 않음** |
+| Chrome 확장 | `pnpm build` 후 `packages/extension/dist` 를 `chrome://extensions` → **압축해제된 확장 프로그램 로드**. 확장 팝업에 대시보드 주소 입력 | **지금 보고 있는 탭 그대로** 탐지 (로그인, 시드 데이터, 인터랙션 후 상태 포함) | `localhost`/`127.0.0.1` 만, 한 번에 폭 하나(기본은 탭의 실제 너비, 팝업의 **뷰포트 에뮬레이션**(`chrome.debugger`)으로 375px 등으로 바꿔 검사), **모달 포커스 이탈 검사는 하지 않음**. 로드 절차와 자동 E2E 는 [`docs/extension-testing.md`](docs/extension-testing.md) |
 
 **상태에 의존하는 화면은 시나리오로 스캔하세요.** 헤드리스 스캔은 URL 만 열기 때문에 데이터가 있어야 그려지는 화면은 빈 상태로 검사되고, 이때 "결함 0건"은 **안전하다는 뜻이 아닙니다.** 실제 앱(Camping-Joy)에서 데이터 없이 스캔했을 때 13개 URL 이 전부 0건이었습니다. 또 스캔 시점에 **이미 열려 있는** 모달·드롭다운만 가려짐·포커스 검사 대상입니다. **시나리오**는 스캔 전에 `localStorage`/`sessionStorage`/쿠키 시드를 심고 클릭·입력·대기 단계를 실행하는 JSON 이며, 위 네 가지 경로(대시보드, MCP, CLI, 패치 후 재측정)가 같은 파일을 그대로 씁니다.
 
@@ -278,7 +278,7 @@ node packages/verifier/dist/cli.js http://localhost:5174/camps/c1/distribute --v
 - 형식, 한도, 경로별 사용법, 내 앱의 시나리오 만드는 법은 [`docs/scenarios/README.md`](docs/scenarios/README.md), Camping-Joy 예시(캠핑 3개, 멤버 4명, 긴 이름 포함)는 `docs/scenarios/` 에 있습니다.
 - 시나리오 스캔의 결함은 시나리오 키가 id 에 섞여 같은 URL 의 일반 스캔과 별개로 기록됩니다(서로를 `resolved` 로 바꾸지 않음). 패치 후 재측정은 저장된 같은 시나리오로 합니다. 시나리오 없이 재측정하면 닫힌 메뉴를 재서 고치기 전에도 "통과"가 나오기 때문입니다.
 - **비밀번호, 토큰, 실제 세션 쿠키는 넣지 마세요.** 시나리오는 대시보드 저장소에 평문으로 저장됩니다.
-- 확장은 시나리오를 쓰지 않습니다(지금 보는 탭 그대로 검사).
+- 확장은 시나리오를 쓰지 않습니다(지금 보는 탭 그대로 검사). 폭만 바꾸려면 확장의 뷰포트 에뮬레이션 옵션을 쓰세요.
 
 ### 5.7 CI 운영
 
@@ -342,6 +342,7 @@ node packages/verifier/dist/cli.js http://localhost:5174/camps/c1/distribute --v
 | 포트 충돌(`strictPort`, `EADDRINUSE`) | 5173/3000 이미 사용 중 | 다른 포트로 띄우고 스캔 URL, `INSPECTOR_DASHBOARD_URL` 을 맞춤 |
 | `시나리오 steps[N] (click …) 실패` (CLI 종료 코드 2, 대시보드 422) | 셀렉터가 5초 안에 화면에 나타나지 않음(오타, 앱이 아직 안 뜸, 다른 URL) | 시나리오의 URL 과 셀렉터를 개발자 도구로 확인. 열린 뒤에만 생기는 요소는 `wait selector` 로 기다리기 |
 | 적용이 409 `…시나리오(s_…)를 찾을 수 없어 재측정할 수 없습니다` | 시나리오가 저장되지 않은 채 시나리오 키만 가진 결함 기록(예: 저장소를 지웠거나 다른 곳에서 가져옴) | 같은 시나리오로 다시 스캔한 뒤 새 결함으로 패치 제안 |
+| 확장: `실패: Failed to fetch` | 대시보드에 연결하지 못함. Nuxt 개발 서버가 환경에 따라 IPv6(`::1`)로만 떠서 `http://127.0.0.1:3000` 이 거부됨 | 팝업의 대시보드 URL 을 `http://localhost:3000` 으로 입력 |
 | 확장: `탐지기를 실행하지 못했습니다` | 탭을 확장이 열기 전에 로드했거나 `localhost`/`127.0.0.1` 이 아님 | 페이지 새로고침 후 재시도, 로컬 주소로만 사용 |
 | `pnpm bench` 가 토큰 계측에서 실패 | `ANTHROPIC_API_KEY`(또는 `ant auth login`) 없음 | 키 설정 또는 `INSPECTOR_BENCH_ESTIMATE=1` |
 
@@ -433,7 +434,7 @@ PromoBanner.vue  +109px  fixed-width ✓
 - [ ] 실제 서비스 페이지 벤치마크와 실제 토크나이저 기반 토큰 측정, LLM 패치 성공률 리포트
 - [x] CI용 `inspector-scan --fail-on` 과 job summary
 - [ ] PR 코멘트 게시, 기존 결함 기준선(허용 목록) 파일
-- [ ] 확장에서 뷰포트 에뮬레이션(chrome.debugger) 지원. 현재 확장은 탭의 실제 너비로만 검사합니다.
+- [x] 확장에서 뷰포트 에뮬레이션(chrome.debugger) 지원, 실제 Chromium E2E 테스트 (`docs/extension-testing.md`)
 - 컴포넌트 태그(`<ItemCard>`)에는 속성을 주입하지 않습니다. fallthrough 속성이 자식 컴포넌트 루트의 위치를 덮어쓰기 때문입니다. 따라서 매핑은 각 컴포넌트 안의 일반 요소 기준입니다.
 
 ---

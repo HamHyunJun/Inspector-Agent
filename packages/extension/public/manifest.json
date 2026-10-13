@@ -7,6 +7,6 @@
     "default_title": "Inspector-Agent",
     "default_popup": "popup.html"
   },
-  "permissions": ["activeTab", "scripting", "storage"],
+  "permissions": ["activeTab", "scripting", "storage", "debugger"],
   "host_permissions": ["http://localhost/*", "http://127.0.0.1/*"]
 }

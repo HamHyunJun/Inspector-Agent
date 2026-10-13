@@ -31,13 +31,14 @@ jobs:
 
       - run: pnpm -r typecheck
 
+      # 확장 E2E(packages/extension)가 실제 Chromium 에 확장을 로드하므로 테스트 전에 설치한다
+      - run: pnpm dlx playwright@1.56.1 install --with-deps chromium
+
       - run: pnpm test
 
       - run: pnpm --filter dashboard test
 
       - run: pnpm --filter @inspector-agent/benchmarks test
-
-      - run: pnpm dlx playwright@1.56.1 install --with-deps chromium
 
       - name: 탐지 회귀 벤치마크
         run: pnpm bench
