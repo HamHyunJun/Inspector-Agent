@@ -159,14 +159,24 @@
       <p v-if="patches.length === 0" class="defect-detail__muted">
         아직 제안된 패치가 없습니다. Claude Code 에서 MCP 도구 <code>propose_patch</code> 를 호출하거나 위의 규칙 기반 제안을 사용하세요.
       </p>
-      <PatchCard v-for="patch in patches" :key="patch.id" :patch="patch" @changed="handlePatchChanged" />
+      <PatchCard
+        v-for="patch in patches"
+        :id="`patch-${patch.id}`"
+        :key="patch.id"
+        :patch="patch"
+        :class="{ 'defect-detail__patch--flash': patch.id === flashPatchId }"
+        @changed="handlePatchChanged"
+      />
     </section>
+    <Transition name="toast">
+      <p v-if="toastMessage" class="defect-detail__toast" role="status">{{ toastMessage }}</p>
+    </Transition>
   </article>
   <p v-else class="defect-detail__muted">결함 정보를 불러오는 중입니다.</p>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref } from 'vue'
 import type { DefectContext, DefectGroupMember, Patch, StoredDefect } from '~~/shared/types/inspector'
 import { OCCLUSION_CAUSE_LABEL, TARGET_LABEL, formatPercent, formatPx, formatSourceRef, formatUrlPath } from '~/utils/format'
 
@@ -180,6 +190,9 @@ const { data: detail, refresh: refreshDetail } = await useFetch<{ defect: Stored
 
 const isProposing = ref<boolean>(false)
 const proposeError = ref<string>('')
+const toastMessage = ref<string>('')
+const flashPatchId = ref<string>('')
+let toastTimer: ReturnType<typeof setTimeout> | undefined
 
 const defectId = computed((): string => String(route.params.id))
 const patches = computed((): Patch[] => detail.value?.patches ?? [])
@@ -191,12 +204,35 @@ const formatDeclarations = (declarations: Record<string, string>): string =>
     .map(([property, value]): string => `${property}: ${value};`)
     .join(' ')
 
+const showToast = (message: string): void => {
+  toastMessage.value = message
+  clearTimeout(toastTimer)
+  toastTimer = setTimeout((): void => {
+    toastMessage.value = ''
+    flashPatchId.value = ''
+  }, 3500)
+}
+
+/** 이미 있는 패치 카드로 스크롤하고 잠깐 강조한다 (모션 줄이기 설정이면 즉시 이동) */
+const scrollToPatch = async (patchId: string): Promise<void> => {
+  flashPatchId.value = patchId
+  await nextTick()
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  document.getElementById(`patch-${patchId}`)?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'center' })
+}
+
+onBeforeUnmount((): void => clearTimeout(toastTimer))
+
 const handleRulePatch = async (suggestionIndex: number): Promise<void> => {
   isProposing.value = true
   proposeError.value = ''
   try {
-    await $fetch(`/api/defects/${defectId.value}/rule-patch`, { method: 'POST', body: { suggestionIndex } })
+    const patch = await $fetch<{ id: string; duplicated: boolean }>(`/api/defects/${defectId.value}/rule-patch`, { method: 'POST', body: { suggestionIndex } })
     await refreshDetail()
+    if (patch.duplicated) {
+      showToast('이미 같은 패치가 제안되어 있습니다. 아래 패치 목록에서 확인하세요.')
+      await scrollToPatch(patch.id)
+    }
   } catch (error) {
     const data = (error as { data?: { statusMessage?: string } }).data
     proposeError.value = data?.statusMessage ?? (error as Error).message
@@ -360,6 +396,60 @@ useHead({ title: computed((): string => `결함 ${defectId.value} · Inspector-A
   &__error {
     margin: 0;
     color: var(--color-danger);
+  }
+}
+
+.defect-detail__patch--flash {
+  animation: patch-flash 1.4s ease-out;
+}
+
+@keyframes patch-flash {
+  0% {
+    box-shadow: 0 0 0 3px var(--color-accent, #0969da);
+  }
+
+  100% {
+    box-shadow: 0 0 0 3px transparent;
+  }
+}
+
+.defect-detail__toast {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 10;
+  margin: 0;
+  padding: 12px 16px;
+  max-width: min(360px, calc(100vw - 48px));
+  font-size: 14px;
+  color: var(--color-text);
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 20%);
+}
+
+.toast-enter-active,
+.toast-leave-active {
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+
+.toast-enter-from,
+.toast-leave-to {
+  opacity: 0;
+  transform: translateY(8px) scale(0.96);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .defect-detail__patch--flash {
+    animation: none;
+  }
+
+  .toast-enter-active,
+  .toast-leave-active {
+    transition: opacity 0.01s;
   }
 }
 </style>
