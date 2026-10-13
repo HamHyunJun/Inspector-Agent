@@ -488,7 +488,202 @@ git diff
 
 ---
 
-## 10. 잘 안 될 때
+## 10. 모달·툴팁·드롭다운처럼 "열어야 보이는" 화면 검사하기
+
+스캔은 페이지를 **처음 연 상태 그대로** 검사합니다. 버튼을 눌러야 열리는 모달, 마우스를 올려야 나타나는 툴팁, 클릭해야 펼쳐지는 드롭다운은 처음 상태에서는 화면에 없으니 **결함이 있어도 0건**으로 나옵니다.
+
+이런 화면은 **시나리오**로 검사합니다. 시나리오는 "스캔 전에 이 버튼을 누르고, 이 요소가 보일 때까지 기다려라"를 적은 JSON 파일입니다. 열린 상태에서 찾는 결함은 세 가지입니다.
+
+- 가로 넘침
+- 가려짐: 모달·툴팁·드롭다운이 다른 요소 밑에 깔림
+- 포커스 이탈: 모달이 열려 있는데 Tab 키가 모달 밖으로 나감
+
+시나리오 단계는 네 가지입니다.
+
+| 단계 | 하는 일 | 예 |
+| --- | --- | --- |
+| `click` | 클릭 | `{ "action": "click", "selector": ".open-modal" }` |
+| `hover` | 마우스 올리기 (툴팁) | `{ "action": "hover", "selector": ".help__icon" }` |
+| `fill` | 입력칸에 글자 넣기 | `{ "action": "fill", "selector": "input[name=q]", "value": "부가세" }` |
+| `wait` | 요소가 보일 때까지, 또는 ms 만큼 기다리기 | `{ "action": "wait", "selector": "[role=dialog]" }` |
+
+`selector` 는 CSS 선택자입니다(클래스는 `.이름`, 속성은 `[role=dialog]`).
+
+> `hover` 단계는 이번에 추가했습니다. 대시보드와 Claude Code 로 쓰려면 Inspector-Agent 프로젝트에서 `git pull` 후 `pnpm install` 을 한 번 실행하세요. 터미널 명령 `inspector-scan` 으로 쓰려면 npm 의 다음 버전(0.2.1 이상)이 필요합니다.
+
+### 10-1. 실제 프로젝트(예: TaxKit)에서: Claude Code 에게 시나리오를 맡기기
+
+선택자를 직접 찾지 않아도 됩니다. 테스트 프로젝트 폴더에서 실행한 Claude Code(터미널 C)에 아래 문장을 그대로 붙여 넣으세요. Claude Code 가 코드를 읽고 모달·툴팁을 여는 버튼을 찾아 시나리오 파일을 만든 뒤, 그 상태로 스캔합니다.
+
+```
+이 프로젝트에서 버튼을 눌러야 열리는 모달, 마우스를 올려야 나오는 툴팁, 클릭해야 펼쳐지는 드롭다운을 모두 찾아줘. 각각을 연 상태로 만드는 inspector-agent 시나리오 JSON 을 scenarios/ 폴더에 하나씩 만들어줘(단계는 click, hover, fill, wait 만 쓰고, 마지막에 열린 요소가 보일 때까지 wait 를 넣어줘). 그다음 inspector-agent 의 scan_page 를 각 시나리오 파일(scenarioFile)로 http://localhost:5173 의 해당 페이지에 실행하고, 찾은 결함마다 컨텍스트를 읽어 propose_patch 로만 패치를 제안해줘.
+```
+
+시나리오로 찾은 결함은 대시보드가 시나리오를 함께 저장해 둡니다. 그래서 8단계에서 **적용하고 검증**을 누르면 같은 모달·툴팁을 다시 연 상태로 재측정합니다.
+
+### 10-2. 연습: my-app 에 모달과 툴팁 결함 심어 보기 (3-A 를 따라 한 경우)
+
+**① 툴팁 컴포넌트**: `~/work/my-app/src/components/HelpTooltip.vue` 를 새로 만들고 붙여 넣습니다. `?` 에 마우스를 올리면 툴팁이 나오지만, 카드가 `z-index: 1` 상자에 갇혀 있어 아래 안내 바(`z-index: 2`)에 깔립니다.
+
+```vue
+<template>
+  <section class="help">
+    <div class="help__card">
+      <button type="button" class="help__icon" @mouseenter="isOpen = true" @mouseleave="isOpen = false">?</button>
+      <p v-if="isOpen" role="tooltip" class="help__tooltip">부가세는 결제 금액의 10%이며 연말정산 시 공제됩니다.</p>
+    </div>
+    <div class="help__bar">하단 고정 안내</div>
+  </section>
+</template>
+
+<script setup lang="ts">
+import { ref } from 'vue'
+
+const isOpen = ref(false)
+</script>
+
+<style lang="scss" scoped>
+.help {
+  margin-top: 16px;
+
+  &__card {
+    position: relative;
+    z-index: 1;
+    padding: 8px;
+  }
+
+  &__tooltip {
+    position: absolute;
+    top: 40px;
+    left: 8px;
+    z-index: 999;
+    width: 220px;
+    margin: 0;
+    padding: 8px;
+    background: #333;
+    color: #fff;
+  }
+
+  &__bar {
+    position: relative;
+    z-index: 2;
+    height: 80px;
+    background: #eef;
+  }
+}
+</style>
+```
+
+**② 모달 컴포넌트**: `~/work/my-app/src/components/ConfirmModal.vue` 를 새로 만들고 붙여 넣습니다. 버튼을 누르면 모달이 열립니다. 긴 링크가 줄바꿈되지 않아 넘치고, Tab 키를 누르면 포커스가 모달 밖으로 나갑니다.
+
+```vue
+<template>
+  <section>
+    <button type="button" class="open-modal" @click="isOpen = true">공유 링크 보기</button>
+    <div v-if="isOpen" class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <div class="modal__panel">
+        <h2 id="modal-title" class="modal__title">공유 링크</h2>
+        <p class="modal__url">https://taxkit.example.com/share/2026/receipts/a8f3c9d2e7b14f6a9c0d3e5f7a1b2c4d</p>
+        <button type="button" class="modal__close" @click="isOpen = false">닫기</button>
+      </div>
+    </div>
+  </section>
+</template>
+
+<script setup lang="ts">
+import { ref } from 'vue'
+
+const isOpen = ref(false)
+</script>
+
+<style lang="scss" scoped>
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(0 0 0 / 40%);
+
+  &__panel {
+    width: 300px;
+    padding: 16px;
+    background: #fff;
+  }
+
+  &__url {
+    margin: 0 0 12px;
+  }
+}
+</style>
+```
+
+**③ 화면에 넣기**: `~/work/my-app/src/App.vue` 의 **내용 전체를** 아래로 바꿉니다.
+
+```vue
+<template>
+  <main class="app">
+    <PriceCard />
+    <HelpTooltip />
+    <ConfirmModal />
+  </main>
+</template>
+
+<script setup lang="ts">
+import ConfirmModal from './components/ConfirmModal.vue'
+import HelpTooltip from './components/HelpTooltip.vue'
+import PriceCard from './components/PriceCard.vue'
+</script>
+```
+
+**④ 시나리오 파일 두 개 만들기**: 터미널에서 테스트 프로젝트로 이동합니다.
+
+```bash
+cd ~/work/my-app
+```
+
+```bash
+mkdir -p scenarios
+```
+
+아래 한 줄을 통째로 복사하면 `scenarios/tooltip.json` 이 만들어집니다.
+
+```bash
+echo '{"name":"툴팁 열기","steps":[{"action":"hover","selector":".help__icon"},{"action":"wait","selector":"[role=tooltip]"}]}' > scenarios/tooltip.json
+```
+
+아래 한 줄을 통째로 복사하면 `scenarios/modal.json` 이 만들어집니다.
+
+```bash
+echo '{"name":"모달 열기","steps":[{"action":"click","selector":".open-modal"},{"action":"wait","selector":"[role=dialog]"}]}' > scenarios/modal.json
+```
+
+**⑤ Claude Code 로 열린 상태 스캔하기**: 터미널 C 의 Claude Code 에 붙여 넣습니다.
+
+```
+inspector-agent 의 scan_page 를 http://localhost:5173 에 375px 로, scenarioFile 을 scenarios/tooltip.json 으로 한 번, scenarios/modal.json 으로 한 번 실행해줘. 찾은 결함마다 컨텍스트를 읽어 propose_patch 로만 패치를 제안해줘.
+```
+
+실제로 돌려 본 결과는 이렇습니다(375px).
+
+| 스캔 | 찾은 결함 |
+| --- | --- |
+| 시나리오 없이 | `PriceCard.vue:3` 가로 넘침 1건만 (툴팁·모달은 닫혀 있어 못 봄) |
+| `tooltip.json` | 위 1건 + **`HelpTooltip.vue:5` 가려짐 100% (stacking-context)** |
+| `modal.json` | 위 1건 + **`ConfirmModal.vue:7` 긴 링크 넘침 +303px**, **`ConfirmModal.vue:4` 포커스 이탈 (Tab 1번째, Shift+Tab)** |
+
+가려짐(`stacking-context`)과 포커스 이탈은 CSS 한 줄로 고쳐지지 않는 경우가 많습니다. 툴팁은 부모의 `z-index` 를 없애거나 `<Teleport to="body">` 로 옮겨야 하고, 포커스 이탈은 Tab 키를 모달 안에서 순환시키는 코드가 필요합니다. Claude Code 가 이 방향으로 제안합니다.
+
+### 10-3. 아직 못 잡는 것
+
+- **화면 오른쪽 끝에서 잘리는 툴팁**: 툴팁처럼 `position: absolute/fixed` 인 요소가 화면 밖으로 나가는 것은 아직 검사하지 않습니다.
+- **`pointer-events: none` 인 툴팁의 가려짐**: 이런 툴팁은 가려짐 검사 대상에서 빠집니다.
+- **애니메이션 중인 화면**: 열리는 애니메이션이 길면 `wait` 에 `ms` 를 더 주세요. 예: `{ "action": "wait", "ms": 500 }`
+
+---
+
+## 11. 잘 안 될 때
 
 | 증상 | 해결 |
 | --- | --- |
@@ -501,8 +696,12 @@ git diff
 | 대시보드 결함 상세에 소스 코드가 비어 있음 | 5단계의 `INSPECTOR_PROJECT_ROOT` 가 테스트 프로젝트 폴더와 다릅니다. 터미널 B 를 끄고 맞는 명령으로 다시 띄우세요 |
 | 적용 시 "제안 이후 파일이 바뀌었습니다" | 제안 후에 그 파일을 직접 고친 경우입니다. Claude Code 에 다시 스캔하고 제안해 달라고 하세요 |
 | 터미널 A 에 `Sourcemap ... points to missing source files` 경고 (Nuxt) | 동작에는 영향이 없습니다. 무시하세요 |
+| 모달·툴팁이 있는데 결함 0건 | 처음 상태로만 스캔한 경우입니다. 10단계의 시나리오로 연 상태에서 스캔하세요 |
+| `시나리오 steps[0] (click .xxx) 실패` | 그 선택자의 요소를 5초 안에 찾지 못했습니다. 선택자 오타이거나 다른 페이지 URL 입니다 |
+| `steps[0].action: "click", "fill", "wait" 중 하나여야 합니다` | `hover` 를 모르는 이전 버전입니다. Inspector-Agent 프로젝트에서 `git pull` 후 `pnpm install` 을 실행하고 대시보드를 다시 띄우세요 |
 
 ## 다음에 읽을 것
 
-- 로그인이나 모달처럼 특정 상태의 화면을 스캔하는 방법, CI 연동, 에이전트에게 적용까지 맡기는 자율 모드: [README 5. 운영 가이드](../README.md#5-운영-가이드)
+- 시나리오의 시드 데이터(localStorage·쿠키)로 로그인 상태나 데이터가 있는 화면 만들기: [`scenarios/README.md`](scenarios/README.md)
+- CI 연동, 에이전트에게 적용까지 맡기는 자율 모드: [README 5. 운영 가이드](../README.md#5-운영-가이드)
 - 로그인된 화면을 지금 보는 탭 그대로 스캔하기(Chrome 확장): [`extension-testing.md`](extension-testing.md)

@@ -52,13 +52,14 @@ const fakePage = (failOn?: string): { page: Page; calls: string[] } => {
       calls.push(label)
       if (failOn === label) throw new Error(`Timeout 5000ms exceeded.\n  - waiting for locator`)
     }
-  const page = { click: record('click'), fill: record('fill'), waitForSelector: record('waitForSelector'), waitForTimeout: record('waitForTimeout') } as unknown as Page
+  const page = { click: record('click'), hover: record('hover'), fill: record('fill'), waitForSelector: record('waitForSelector'), waitForTimeout: record('waitForTimeout') } as unknown as Page
   return { page, calls }
 }
 
 describe('runScenarioSteps', () => {
   const steps: NonNullable<Scenario['steps']> = [
     { action: 'click', selector: '.trigger' },
+    { action: 'hover', selector: '.tip' },
     { action: 'fill', selector: 'input', value: 'v' },
     { action: 'wait', selector: '.menu' },
     { action: 'wait', ms: 200 }
@@ -67,12 +68,12 @@ describe('runScenarioSteps', () => {
   it('단계를 적은 순서대로 실행한다', async () => {
     const { page, calls } = fakePage()
     await runScenarioSteps(page, steps)
-    expect(calls).toEqual(['click .trigger', 'fill input', 'waitForSelector .menu', 'waitForTimeout 200'])
+    expect(calls).toEqual(['click .trigger', 'hover .tip', 'fill input', 'waitForSelector .menu', 'waitForTimeout 200'])
   })
 
   it('실패하면 몇 번째 단계인지와 원인 첫 줄을 담은 오류를 던지고 이후 단계는 실행하지 않는다', async () => {
     const { page, calls } = fakePage('fill input')
-    await expect(runScenarioSteps(page, steps)).rejects.toThrow('시나리오 steps[1] (fill input) 실패: Timeout 5000ms exceeded.')
-    expect(calls).toEqual(['click .trigger', 'fill input'])
+    await expect(runScenarioSteps(page, steps)).rejects.toThrow('시나리오 steps[2] (fill input) 실패: Timeout 5000ms exceeded.')
+    expect(calls).toEqual(['click .trigger', 'hover .tip', 'fill input'])
   })
 })

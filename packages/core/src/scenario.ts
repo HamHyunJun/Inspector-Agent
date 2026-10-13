@@ -12,7 +12,7 @@ const MAX_SELECTOR_LENGTH = 300
 const MAX_STORAGE_KEYS = 100
 const MAX_COOKIES = 20
 const MAX_SEED_BYTES = 512 * 1024
-const STEP_ACTIONS = ['click', 'fill', 'wait'] as const
+const STEP_ACTIONS = ['click', 'hover', 'fill', 'wait'] as const
 
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value)
 
@@ -57,7 +57,7 @@ const parseStep = (value: unknown, index: number): ScenarioStep => {
   const where = `steps[${index}]`
   if (!isRecord(value)) throw new Error(`${where}: 객체여야 합니다`)
   const action = value.action
-  if (action === 'click') {
+  if (action === 'click' || action === 'hover') {
     rejectUnknown(value, ['action', 'selector'], where)
     return { action, selector: text(value.selector, `${where}.selector`) }
   }

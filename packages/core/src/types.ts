@@ -197,6 +197,8 @@ export interface ScenarioSeed {
 
 export type ScenarioStep =
   | { action: 'click'; selector: string }
+  /** 마우스를 올린다. 툴팁처럼 hover 해야 나타나는 UI 를 연다 */
+  | { action: 'hover'; selector: string }
   | { action: 'fill'; selector: string; value: string }
   /** ms 만큼 기다리거나, selector 가 화면에 나타날 때까지 기다린다 (둘 중 하나) */
   | { action: 'wait'; ms?: number; selector?: string }

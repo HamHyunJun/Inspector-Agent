@@ -54,6 +54,7 @@ export const runScenarioSteps = async (page: Page, steps: ScenarioStep[]): Promi
   for (const [index, step] of steps.entries()) {
     try {
       if (step.action === 'click') await page.click(step.selector, { timeout: STEP_TIMEOUT_MS })
+      else if (step.action === 'hover') await page.hover(step.selector, { timeout: STEP_TIMEOUT_MS })
       else if (step.action === 'fill') await page.fill(step.selector, step.value, { timeout: STEP_TIMEOUT_MS })
       else if (step.selector !== undefined) await page.waitForSelector(step.selector, { state: 'visible', timeout: STEP_TIMEOUT_MS })
       else await page.waitForTimeout(step.ms ?? 0)

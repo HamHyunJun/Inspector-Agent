@@ -46,7 +46,7 @@ server.registerTool(
       scenario: z
         .record(z.string(), z.unknown())
         .optional()
-        .describe('시나리오 JSON: { seed: { localStorage, sessionStorage, cookies }, steps: [{ action: "click"|"fill"|"wait", ... }] }. 비밀번호나 토큰은 넣지 마세요'),
+        .describe('시나리오 JSON: { seed: { localStorage, sessionStorage, cookies }, steps: [{ action: "click"|"hover"|"fill"|"wait", ... }] }. 비밀번호나 토큰은 넣지 마세요'),
       scenarioFile: z.string().optional().describe('시나리오 JSON 파일 경로(.json, 작업 폴더 기준). 예: docs/scenarios/camping-joy.json. scenario 와 함께 줄 수 없습니다')
     }
   },

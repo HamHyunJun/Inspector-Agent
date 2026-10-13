@@ -15,6 +15,7 @@
   },
   "steps": [
     { "action": "click", "selector": ".trigger" },
+    { "action": "hover", "selector": ".help-icon" },
     { "action": "fill", "selector": "input[name=q]", "value": "텐트" },
     { "action": "wait", "ms": 300 },
     { "action": "wait", "selector": ".menu" }
@@ -25,7 +26,7 @@
 - `seed` 와 `steps` 중 하나 이상이 있어야 합니다.
 - **seed**: 페이지가 뜨기 **전에** 심습니다(앱 코드가 읽기 전에 값이 있어야 하므로). 매 로드마다 시드 값으로 덮어써서 앱이 저장한 이전 상태가 결과를 흔들지 못합니다. 쿠키는 스캔하는 URL 의 호스트에만 설정되고 다른 도메인은 지정할 수 없습니다.
 - **steps**: 페이지를 열고 안정화한 뒤 **탐지 전에** 순서대로 실행합니다. 단계 하나가 5초 안에 끝나지 않으면(셀렉터 오타 등) `시나리오 steps[N] (click .xxx) 실패` 로 스캔이 실패합니다.
-  - `click` / `fill`: Playwright 셀렉터(CSS)
+  - `click` / `hover` / `fill`: Playwright 셀렉터(CSS). `hover` 는 마우스를 올려 툴팁처럼 hover 해야 나타나는 UI 를 엽니다
   - `wait`: `ms`(0~10000) 또는 `selector`(화면에 보일 때까지) 중 **하나**
 - 한도: 단계 50개, 시드 합계 512KB, 셀렉터 300자. 알 수 없는 필드는 오타로 보고 거부합니다.
 - **비밀번호, 토큰, 실제 세션 쿠키는 넣지 마세요.** 시나리오는 대시보드 저장소(`store.json`)에 평문으로 저장됩니다. 개발용 가짜 데이터만 쓰세요.
