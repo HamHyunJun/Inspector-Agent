@@ -28,8 +28,10 @@ const INTERACTIVE_SELECTOR = 'a[href], button, input, select, textarea, [tabinde
 /** 표본점 5개 중 이 비율 이상 가려져야 결함으로 본다 (모서리 몇 px 겹침은 무시) */
 export const DEFAULT_MIN_COVERED_RATIO = 0.6
 const MIN_SAMPLED_POINTS = 3
-// shortcut: 후보가 많은 페이지에서 elementFromPoint 로 레이아웃을 강제하지 않도록 20개까지만 본다, 더 필요하면 뷰포트 안 요소 우선 정렬로 업그레이드
+/** 후보가 많은 페이지에서 elementFromPoint 로 레이아웃을 강제하지 않도록 이 개수까지만 본다. 의미(role 등)가 있는 후보를 먼저 채운다 */
 const MAX_OCCLUSION_CANDIDATES = 20
+/** 위치(absolute/fixed + z-index)만 근거인 후보는 이보다 작으면 장식(배지, 점, 아이콘)으로 보고 제외한다 */
+const MIN_POSITIONED_CANDIDATE_PX = 24
 
 const SKIPPED_TAGS = new Set(['script', 'style', 'link', 'meta', 'noscript', 'template', 'br', 'wbr'])
 
@@ -352,14 +354,15 @@ export const detect = (options: DetectOptions = {}): ScanResult => {
     }
   }
 
-  const isPopupCandidate = (element: HTMLElement, style: CSSStyleDeclaration): boolean => {
-    if (style.display === 'none' || style.visibility !== 'visible' || style.pointerEvents === 'none') return false
-    if (Number(style.opacity) === 0 || element.closest('[data-ia-ignore]') || SKIPPED_TAGS.has(element.tagName.toLowerCase())) return false
-    if (element.closest('svg') !== null) return false
+  /** 0: role/aria-modal/popover 로 팝업임을 밝힌 요소, 1: 위치와 z-index 만 근거인 요소, undefined: 후보 아님 */
+  const popupRank = (element: HTMLElement, style: CSSStyleDeclaration): 0 | 1 | undefined => {
+    if (style.display === 'none' || style.visibility !== 'visible' || style.pointerEvents === 'none') return undefined
+    if (Number(style.opacity) === 0 || element.closest('[data-ia-ignore]') || SKIPPED_TAGS.has(element.tagName.toLowerCase())) return undefined
+    if (element.closest('svg') !== null) return undefined
     const role = element.getAttribute('role') ?? ''
-    if (element.matches(POPUP_SELECTOR) || POPUP_ROLES.has(role)) return true
+    if (element.matches(POPUP_SELECTOR) || POPUP_ROLES.has(role)) return 0
     // z-index 가 음수이면 부모 뒤에 두려는 장식이므로 가려져도 결함이 아니다
-    return (style.position === 'absolute' || style.position === 'fixed') && style.zIndex !== 'auto' && Number(style.zIndex) >= 0
+    return (style.position === 'absolute' || style.position === 'fixed') && style.zIndex !== 'auto' && Number(style.zIndex) >= 0 ? 1 : undefined
   }
 
   /** 모달 레이어(dialog, aria-modal, 뷰포트를 덮는 fixed 백드롭) 안의 요소인지. 있으면 그 최상위를 반환한다 */
@@ -419,15 +422,22 @@ export const detect = (options: DetectOptions = {}): ScanResult => {
 
   const collectOcclusions = (): OcclusionDefect[] => {
     const found: Array<{ element: HTMLElement; defect: OcclusionDefect }> = []
-    let inspected = 0
-    for (const element of elements) {
-      if (inspected >= MAX_OCCLUSION_CANDIDATES) break
+    // 팝업 포털은 문서 끝에 붙는 일이 많으므로, 앞쪽 장식이 상한을 채우지 못하게 의미 있는 후보를 먼저 둔다 (같은 순위는 문서 순서 유지)
+    const candidates = elements
+      .flatMap((element): Array<{ element: HTMLElement; rank: 0 | 1 }> => {
+        const rank = element.parentElement ? popupRank(element, styleOf(element)) : undefined
+        if (rank === undefined) return []
+        const box = element.getBoundingClientRect()
+        if (box.width < 1 || box.height < 1) return []
+        if (rank === 1 && (box.width < MIN_POSITIONED_CANDIDATE_PX || box.height < MIN_POSITIONED_CANDIDATE_PX)) return []
+        return [{ element, rank }]
+      })
+      .sort((a, b): number => a.rank - b.rank)
+      .slice(0, MAX_OCCLUSION_CANDIDATES)
+    for (const { element } of candidates) {
       const parent = element.parentElement
-      const style = styleOf(element)
-      if (!parent || !isPopupCandidate(element, style)) continue
+      if (!parent) continue
       let rect = element.getBoundingClientRect()
-      if (rect.width < 1 || rect.height < 1) continue
-      inspected++
 
       let points = samplePoints(rect)
       if (points.length < MIN_SAMPLED_POINTS) {

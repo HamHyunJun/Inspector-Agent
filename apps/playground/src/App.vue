@@ -4,6 +4,7 @@
     <p class="app-header__desc">375px 뷰포트에서 레이아웃 오버플로우가 발생하도록 결함을 심어 둔 화면입니다.</p>
   </header>
   <main class="app-main">
+    <DecorDots />
     <ProductCard
       title="초경량 듀얼 레이어 방수 트레킹 재킷 2026 FW 한정판 컬러 에디션"
       :price="189000"
@@ -27,6 +28,7 @@ import OrderTable from './components/OrderTable.vue'
 import BadgeCard from './components/BadgeCard.vue'
 import ClippedMenu from './components/ClippedMenu.vue'
 import ConfirmDialog from './components/ConfirmDialog.vue'
+import DecorDots from './components/DecorDots.vue'
 import FilterDropdown from './components/FilterDropdown.vue'
 import ModalControl from './components/ModalControl.vue'
 import ShareSheet from './components/ShareSheet.vue'

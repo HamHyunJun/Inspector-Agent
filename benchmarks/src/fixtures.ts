@@ -67,7 +67,8 @@ export const NEGATIVE_CONTROLS: string[] = [
   'src/components/OrderTable.vue',
   'src/components/SortMenu.vue',
   'src/components/BadgeCard.vue',
-  'src/components/ModalControl.vue'
+  'src/components/ModalControl.vue',
+  'src/components/DecorDots.vue'
 ]
 
 export const MOBILE_VIEWPORT = { width: 375, height: 812 }
