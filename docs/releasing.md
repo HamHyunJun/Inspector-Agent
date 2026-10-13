@@ -121,6 +121,28 @@ npx inspector-scan                # 사용법이 출력되면 bin 이 연결된 
 | 릴리스 워크플로가 `태그가 main 에 병합되지 않은 커밋` 으로 실패 | 태그를 지우고(`git tag -d v0.1.0 && git push origin :refs/tags/v0.1.0`) main 에 병합된 커밋에 다시 붙임 |
 | `release:check` 가 `…가 없습니다 (pnpm build …)` | 먼저 `pnpm build` |
 
+### 실제로 겪은 문제 (0.1.0 → 0.2.0 배포)
+
+| 증상 | 원인과 해결 |
+| --- | --- |
+| 로컬 `pnpm release` 가 `E403` (2FA 요구) 로 실패 | 계정에 2FA 가 켜져 있어 OTP 없이는 올릴 수 없음. 로컬은 `pnpm exec changeset publish --otp <코드>` 로 올리거나, 권장 경로인 **태그 push → GitHub Actions** 를 쓴다. 이때 토큰은 Granular Access Token 에서 **Bypass two-factor authentication** 을 켜야 한다 |
+| `gh secret list` 에 `NPM_TOKEN` 대신 토큰처럼 생긴 이름이 보임 | `gh secret set` 의 **이름 칸**에 토큰 값을 넣은 것. 이름은 반드시 `NPM_TOKEN`, 값은 프롬프트(숨김 입력)에 붙여 넣는다. 이름으로 노출된 토큰은 **npm 에서 폐기하고 새로 발급**한 뒤 `gh secret delete <잘못된 이름>` 으로 지운다 |
+| 태그를 push 했는데 `release` 가 `NPM_TOKEN 시크릿 확인` 에서 실패 | 위와 같은 이유(시크릿 이름 불일치). `gh secret list` 에서 이름이 정확히 `NPM_TOKEN` 인지 확인하고, 등록 후 태그를 지워 다시 붙이거나 Actions 에서 실패한 실행을 re-run |
+| 워크플로가 성공(`Successfully published`)인데 `npm view` 는 **이전 버전**을 보여 줌 | **레지스트리 반영 지연**. 0.2.0 은 패키지마다 몇 분씩 달리 반영됐다(`core`, `verifier` 가 먼저, `vite-plugin`, `mcp-server` 가 나중). 워크플로 로그의 `Successfully published` 를 먼저 확인하고, 아래 명령으로 몇 분 기다리며 확인한다. 이 동안 재배포하지 않는다 |
+| 레지스트리 JSON 에 `0.0.0-stage` 버전이 보임 | 패키지 `versions` 목록에 보이는 이름이다. 배포한 버전은 `dist-tags.latest` 로 판단한다 |
+
+반영 확인은 `npm view` 가 캐시된 값을 줄 수 있어 레지스트리 API 로 직접 본다.
+
+```bash
+for p in core vite-plugin verifier mcp-server; do
+  echo -n "$p "; curl -s https://registry.npmjs.org/@inspector-agent%2f$p | python3 -c "import sys,json;print(json.load(sys.stdin)['dist-tags']['latest'])"
+done
+```
+
+배포 직후 모두 새 버전이 될 때까지 몇 분 걸릴 수 있다. 워크플로 로그의 `Successfully published` 에 4개 패키지가 모두 있으면 배포는 끝난 것이다.
+
+**버전 올리기 순서 요약** (이번에 쓴 순서): changeset 작성 → 기능 브랜치 병합 → `pnpm version-packages` 로 버전·CHANGELOG 생성 → `release:check`·`release:smoke` 통과 확인 → 병합 → `git tag vX.Y.Z && git push origin vX.Y.Z` → Actions 성공 확인 → 레지스트리 반영 확인.
+
 ### 잘못 올렸을 때
 
 ```bash
