@@ -6,9 +6,11 @@
   "type": "module",
   "scripts": {
     "bench": "tsx src/bench.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "devDependencies": {
+    "@anthropic-ai/sdk": "^0.133.0",
     "@inspector-agent/core": "workspace:*",
     "@inspector-agent/source-locator": "workspace:*",
     "@inspector-agent/verifier": "workspace:*",
