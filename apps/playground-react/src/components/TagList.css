@@ -1,0 +1,27 @@
+/* [심어 둔 결함] 줄바꿈 없는 flex 컨테이너 + 줄어들지 않는 태그 (일반 .css) */
+.tag-section {
+  padding: 16px;
+  background: #fff;
+  border-radius: 12px;
+}
+
+.tag-section__heading {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+
+.tag-list {
+  display: flex;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tag-list__item {
+  flex-shrink: 0;
+  padding: 4px 12px;
+  font-size: 14px;
+  background: #ddf4ff;
+  border-radius: 999px;
+}

@@ -5,12 +5,14 @@ import type { DefectContextResponse, DefectListItem, PatchResponse } from './das
 
 type Rule = DefectContextResponse['nodeRules'][number]
 
-const formatRules = (title: string, rules: Rule[]): string => {
-  if (rules.length === 0) return `${title}: (같은 파일에 없음)`
+const formatRules = (title: string, rules: Rule[], baseFile?: string): string => {
+  if (rules.length === 0) return `${title}: (없음)`
   const lines = rules.map((rule): string => {
     const media = rule.atRules.length > 0 ? `${rule.atRules.join(' ')} ` : ''
     const body = rule.declarations.map((declaration): string => `${declaration.property}: ${declaration.value};`).join(' ')
-    return `  L${rule.line} ${media}${rule.selector} { ${body} }`
+    // 별도 스타일시트(.css/.scss/CSS Modules)의 규칙이면 patch 대상 파일을 알 수 있게 파일을 앞에 붙인다
+    const where = rule.file === baseFile ? '' : `${rule.file} `
+    return `  ${where}L${rule.line} ${media}${rule.selector} { ${body} }`
   })
   return `${title}:\n${lines.join('\n')}`
 }
@@ -48,9 +50,9 @@ export const formatContext = (context: DefectContextResponse): string => {
     sections.push(`블록 위치: template L${context.outline.templateRange?.startLine}-${context.outline.templateRange?.endLine}, ${styles}`)
   }
   sections.push(
-    formatRules('노드 규칙', context.nodeRules),
-    formatRules('부모 규칙', context.parentRules),
-    formatRules('자식 규칙', context.childRules),
+    formatRules('노드 규칙', context.nodeRules, context.file),
+    formatRules('부모 규칙', context.parentRules, context.file),
+    formatRules('자식 규칙', context.childRules, context.file),
     '',
     '## 패치 작성 지침',
     '- propose_patch 의 edits 는 파일 안에서 정확히 한 번 등장하는 oldText 와 바꿀 newText 쌍입니다.',

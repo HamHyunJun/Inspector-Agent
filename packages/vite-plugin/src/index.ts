@@ -2,6 +2,10 @@ import { existsSync } from 'node:fs'
 import { dirname, join, relative } from 'node:path'
 import type { Plugin } from 'vite'
 import { injectSourceAttributes } from './inject'
+import { injectReactSourceAttributes } from './inject-react'
+
+const REACT_FILE = /\.(jsx|tsx)$/
+const SPECIAL_QUERY = /[?&](raw|url|worker|sharedworker|inline|no-inline)(&|$)/
 
 export interface InspectorAgentPluginOptions {
   /** 주입할 속성 이름. 기본 data-ia-src (탐지기 기본값과 동일해야 한다) */
@@ -40,13 +44,22 @@ const inspectorAgent = (options: InspectorAgentPluginOptions = {}): Plugin => {
     },
     transform: (code, id) => {
       const [filepath = ''] = id.split('?')
-      if (!filepath.endsWith('.vue') || id.includes('?vue&') || filepath.includes('/node_modules/')) return undefined
-      if (options.exclude?.(filepath)) return undefined
-      const result = injectSourceAttributes(code, relative(root, filepath), attribute)
-      return result ? { code: result.code, map: result.map } : undefined
+      if (filepath.includes('/node_modules/') || options.exclude?.(filepath)) return undefined
+      const relativePath = relative(root, filepath)
+      if (filepath.endsWith('.vue')) {
+        if (id.includes('?vue&')) return undefined
+        const result = injectSourceAttributes(code, relativePath, attribute)
+        return result ? { code: result.code, map: result.map } : undefined
+      }
+      // React: .jsx/.tsx 만. ?raw, ?url, ?worker 같은 특수 요청은 소스 그대로 쓰이므로 건드리지 않는다
+      if (REACT_FILE.test(filepath) && !SPECIAL_QUERY.test(id)) {
+        const result = injectReactSourceAttributes(code, relativePath, attribute)
+        return result ? { code: result.code, map: result.map } : undefined
+      }
+      return undefined
     }
   }
 }
 
 export default inspectorAgent
-export { inspectorAgent, injectSourceAttributes }
+export { inspectorAgent, injectSourceAttributes, injectReactSourceAttributes }

@@ -1,0 +1,23 @@
+.app-header {
+  padding: 24px 16px 8px;
+
+  &__title {
+    margin: 0;
+    font-size: 20px;
+  }
+
+  &__desc {
+    margin: 4px 0 0;
+    font-size: 13px;
+    color: #57606a;
+  }
+}
+
+.app-main {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  max-width: 720px;
+  margin: 0 auto;
+}

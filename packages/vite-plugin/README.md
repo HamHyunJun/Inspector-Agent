@@ -1,6 +1,6 @@
 # @inspector-agent/vite-plugin
 
-개발 서버에서 `.vue` 템플릿의 모든 HTML 요소에 `data-ia-src="파일:라인:컬럼"` 속성을 주입하는 Vite 플러그인입니다. [Inspector-Agent](https://github.com/HamHyunJun/Inspector-Agent) 가 렌더링된 DOM 노드를 **소스의 정확한 파일과 라인**에 연결하는 데 씁니다.
+개발 서버에서 `.vue` 템플릿과 `.jsx/.tsx` 의 모든 HTML 요소(소문자 태그)에 `data-ia-src="파일:라인:컬럼"` 속성을 주입하는 Vite 플러그인입니다. [Inspector-Agent](https://github.com/HamHyunJun/Inspector-Agent) 가 렌더링된 DOM 노드를 **소스의 정확한 파일과 라인**에 연결하는 데 씁니다.
 
 ## 설치
 
@@ -8,7 +8,7 @@
 npm install -D @inspector-agent/vite-plugin
 ```
 
-Vite 5 이상(peer), Node 20 이상, Vue 3 SFC 대상입니다.
+Vite 5 이상(peer), Node 20 이상, Vue 3 SFC 와 React(JSX/TSX) 가 대상입니다. React 는 `plugins: [inspectorAgent(), react()]` 처럼 react 플러그인보다 앞에 둡니다 (Babel/oxc 어느 쪽이든 동작).
 
 ## 사용
 

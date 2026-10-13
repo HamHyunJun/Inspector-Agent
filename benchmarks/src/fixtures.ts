@@ -18,6 +18,8 @@ export interface ExpectedDefect {
   referenceEdits?: PatchEdit[]
   /** 이 결함에 연쇄 결함으로 묶여야 하는 같은 줄 형제 수. 형제가 별개 결함으로 따로 나오면 정답표 위반이다 */
   cascadedCount?: number
+  /** React 대상: 규칙 기반 패치가 수정해야 하는 스타일시트(CSS Modules/.css/.scss). 소스 매핑이 JSX 가 아니라 이 파일의 규칙을 찾았는지 검증한다 */
+  styleFile?: string
   /** 다른 URL(SECOND_PAGE_QUERY)에도 같은 컴포넌트가 나오는 결함. 대시보드에서는 URL 이 달라도 한 그룹으로 묶여야 한다 */
   alsoOnSecondPage?: boolean
 }
@@ -121,3 +123,16 @@ export const NEGATIVE_CONTROLS: string[] = [
 
 export const MOBILE_VIEWPORT = { width: 375, height: 812 }
 export const DESKTOP_VIEWPORT = { width: 1280, height: 800 }
+
+/**
+ * apps/playground-react 의 정답표. Vue playground 와 같은 가로 오버플로우 4건을 심고, 스타일 방식은 일부러 섞었다
+ * (CSS Modules .module.scss / 일반 .css / 일반 .scss / CSS Modules .module.css).
+ */
+export const REACT_EXPECTED_AT_MOBILE: ExpectedDefect[] = [
+  { file: 'src/components/ProductCard.tsx', kind: 'overflow-x', primaryHint: 'flex-item-min-width', styleFile: 'src/components/ProductCard.module.scss', description: 'flex item min-width:auto + nowrap 제목 (CSS Modules .module.scss)' },
+  { file: 'src/components/TagList.tsx', kind: 'overflow-x', primaryHint: 'flex-shrink-disabled', styleFile: 'src/components/TagList.css', description: '줄바꿈 없는 flex + flex-shrink:0 태그 (일반 .css)' },
+  { file: 'src/components/PromoBanner.tsx', kind: 'overflow-x', primaryHint: 'fixed-width', styleFile: 'src/components/PromoBanner.scss', description: '데스크톱 기준 고정 너비 420px (일반 .scss)' },
+  { file: 'src/components/ShareLink.tsx', kind: 'overflow-x', primaryHint: 'unbreakable-text', styleFile: 'src/components/ShareLink.module.css', description: '공백 없는 긴 URL (CSS Modules .module.css)' }
+]
+
+export const REACT_NEGATIVE_CONTROLS: string[] = ['src/components/OrderTable.tsx', 'src/components/BadgeCard.tsx']

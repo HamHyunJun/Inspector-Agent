@@ -33,4 +33,9 @@ describe('findDetectionRegressions', () => {
     expect(findDetectionRegressions({ ...healthy, cascadeMismatches: 1 })[0]).toContain('연쇄 결함')
     expect(findDetectionRegressions({ ...healthy, groupingMismatches: 2 })[0]).toContain('한 그룹')
   })
+
+  it('React 대상에서 정답 스타일시트를 못 찾아 고치지 못하면 실패 사유를 낸다', () => {
+    expect(findDetectionRegressions({ ...healthy, styleLocationMismatches: 0 })).toEqual([])
+    expect(findDetectionRegressions({ ...healthy, styleLocationMismatches: 2 })[0]).toContain('정답 스타일시트')
+  })
 })

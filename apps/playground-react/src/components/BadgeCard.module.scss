@@ -1,0 +1,39 @@
+// [정상 대조군] 의도된 겹침. 배지는 맨 위에 있고 장식 힌트는 pointer-events:none 이다. 탐지되면 오탐이다
+.card {
+  position: relative;
+  padding: 16px;
+  background: #fff;
+  border-radius: 12px;
+}
+
+.title {
+  margin: 0;
+  font-size: 16px;
+}
+
+.desc {
+  margin: 8px 0 0;
+  font-size: 14px;
+}
+
+.hint {
+  position: absolute;
+  right: 16px;
+  bottom: 8px;
+  z-index: 3;
+  pointer-events: none;
+  color: #57606a;
+}
+
+.badge {
+  position: absolute;
+  top: -8px;
+  right: 12px;
+  z-index: 2;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #cf222e;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}

@@ -1,11 +1,11 @@
 <template>
   <section class="style-rules" :aria-label="title">
     <h4 class="style-rules__heading">{{ title }}</h4>
-    <p v-if="rules.length === 0" class="style-rules__empty">같은 파일에서 대상 클래스를 스타일링하는 규칙을 찾지 못했습니다.</p>
-    <article v-for="rule in rules" :key="`${rule.selector}-${rule.line}`" class="style-rules__rule">
+    <p v-if="rules.length === 0" class="style-rules__empty">소스 파일(또는 import 한 스타일시트)에서 대상 클래스를 스타일링하는 규칙을 찾지 못했습니다.</p>
+    <article v-for="rule in rules" :key="`${rule.file}-${rule.selector}-${rule.line}`" class="style-rules__rule">
       <header class="style-rules__rule-header">
         <code class="style-rules__selector">{{ rule.selector }}</code>
-        <span class="style-rules__line">L{{ rule.line }}–{{ rule.endLine }}</span>
+        <span class="style-rules__line">{{ rule.file }} L{{ rule.line }}–{{ rule.endLine }}</span>
         <span v-for="atRule in rule.atRules" :key="atRule" class="style-rules__at">{{ atRule }}</span>
       </header>
       <p v-for="declaration in rule.declarations" :key="declaration.line" class="style-rules__declaration">

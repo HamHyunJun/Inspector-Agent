@@ -1,0 +1,30 @@
+// [심어 둔 결함] flex item(.product-card__info)의 min-width 기본값 auto + 줄바꿈 없는 제목 (CSS Modules)
+.product-card {
+  display: flex;
+  gap: 12px;
+  padding: 16px;
+  background: #fff;
+  border-radius: 12px;
+
+  &__thumb {
+    flex-shrink: 0;
+    width: 56px;
+    height: 56px;
+    font-size: 32px;
+    line-height: 56px;
+    text-align: center;
+    background: #eef1f4;
+    border-radius: 8px;
+  }
+
+  &__title {
+    margin: 0;
+    font-size: 16px;
+    white-space: nowrap;
+  }
+
+  &__price {
+    margin: 4px 0 0;
+    font-weight: 700;
+  }
+}

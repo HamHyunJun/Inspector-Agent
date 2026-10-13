@@ -4,12 +4,22 @@ import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { applyEdits, defectMagnitude, groupDefects, toAgentPayload } from '@inspector-agent/core'
 import type { Defect, DefectKind, PatchEdit } from '@inspector-agent/core'
-import { buildDeclarationPatch, formatRulesCompact, locateStyleRules, readSnippet } from '@inspector-agent/source-locator'
+import { buildDeclarationPatch, formatRulesCompact, locateSourceRules, readSnippet } from '@inspector-agent/source-locator'
 import { measureDefect, scanPage } from '@inspector-agent/verifier'
 import { chromium } from 'playwright-core'
 import { createServer } from 'vite'
 import type { ViteDevServer } from 'vite'
-import { DESKTOP_VIEWPORT, EXPECTED_AT_MOBILE, MOBILE_VIEWPORT, NEGATIVE_CONTROLS, PLAYGROUND_SCENARIO, SCENARIO_ONLY, SECOND_PAGE_QUERY } from './fixtures'
+import {
+  DESKTOP_VIEWPORT,
+  EXPECTED_AT_MOBILE,
+  MOBILE_VIEWPORT,
+  NEGATIVE_CONTROLS,
+  PLAYGROUND_SCENARIO,
+  REACT_EXPECTED_AT_MOBILE,
+  REACT_NEGATIVE_CONTROLS,
+  SCENARIO_ONLY,
+  SECOND_PAGE_QUERY
+} from './fixtures'
 import type { ExpectedDefect } from './fixtures'
 import { findDetectionRegressions } from './gate'
 import { createTokenCounter } from './tokens'
@@ -33,6 +43,8 @@ interface HealingAttempt {
 interface HealingRecord {
   file: string
   unit: 'px' | 'ratio' | 'count'
+  /** 규칙 기반 패치가 처음 수정을 시도한 파일 (React 는 JSX 가 아니라 스타일시트). 치유 성공 여부와는 별개다 */
+  patchedFile?: string
   /** 진단 제안이 전부 조상/구조 변경이 필요해 규칙 기반 자동 패치 대상이 아닌 경우 */
   manualOnly: boolean
   beforePx: number
@@ -43,8 +55,10 @@ interface HealingRecord {
 const here = dirname(fileURLToPath(import.meta.url))
 const repoRoot = resolve(here, '../..')
 const playgroundRoot = join(repoRoot, 'apps/playground')
+const reactPlaygroundRoot = join(repoRoot, 'apps/playground-react')
 const executablePath = process.env.INSPECTOR_CHROMIUM_PATH || undefined
 const PORT = 5199
+const REACT_PORT = 5198
 
 const LAYOUT_PROPERTIES = [
   'display', 'position', 'box-sizing', 'width', 'min-width', 'max-width', 'flex-direction', 'flex-wrap',
@@ -55,7 +69,7 @@ const LAYOUT_PROPERTIES = [
 
 const percent = (value: number): string => `${(value * 100).toFixed(1)}%`
 
-const preparePlayground = async (): Promise<string> => {
+const preparePlayground = async (playgroundRoot: string): Promise<string> => {
   // macOS 의 /var → /private/var 심볼릭 링크 때문에 Vite 모듈 id 와 root 의 상대 경로가 어긋나지 않도록 실제 경로를 쓴다
   const workdir = await realpath(await mkdtemp(join(tmpdir(), 'inspector-bench-')))
   await cp(playgroundRoot, workdir, {
@@ -73,8 +87,8 @@ const preparePlayground = async (): Promise<string> => {
   return workdir
 }
 
-const startServer = async (root: string): Promise<ViteDevServer> => {
-  const server = await createServer({ root, configFile: join(root, 'vite.config.ts'), logLevel: 'error', server: { port: PORT, strictPort: true } })
+const startServer = async (root: string, port: number): Promise<ViteDevServer> => {
+  const server = await createServer({ root, configFile: join(root, 'vite.config.ts'), logLevel: 'error', server: { port, strictPort: true } })
   await server.listen()
   return server
 }
@@ -123,10 +137,11 @@ const buildContextTokens = async (root: string, defect: Defect, counter: TokenCo
   const file = defect.node.source?.file
   if (!file) return counter.count(JSON.stringify(payload))
   const content = await readFile(join(root, file), 'utf8')
+  const read = (path: string): Promise<string> => readFile(join(root, path), 'utf8')
   const rules = [
-    ...locateStyleRules(content, defect.node.classes, file),
-    ...locateStyleRules(content, defect.parent.classes, file),
-    ...locateStyleRules(content, defect.node.childClasses, file)
+    ...(await locateSourceRules(file, content, defect.node.classes, read)),
+    ...(await locateSourceRules(file, content, defect.parent.classes, read)),
+    ...(await locateSourceRules(file, content, defect.node.childClasses, read))
   ]
   return counter.count([JSON.stringify(payload), readSnippet(content, defect.node.source?.line ?? 1).text, formatRulesCompact(rules)].join('\n'))
 }
@@ -150,18 +165,24 @@ const healDefect = async (root: string, defect: Defect, baseline: Defect[], refe
   const original = await readFile(path, 'utf8')
 
   // 조상 요소나 구조 변경(Teleport 등)이 필요한 제안은 선언 패치로 고칠 수 없다
+  const read = (relativePath: string): Promise<string> => readFile(join(root, relativePath), 'utf8')
   for (const suggestion of autoPatchable) {
     const isNode = suggestion.target === 'node'
     const snapshot = isNode ? defect.node : defect.parent
-    const rules = locateStyleRules(original, snapshot.classes, file)
-    const patch = buildDeclarationPatch(original, rules, snapshot.classes, suggestion.declarations)
+    const rules = await locateSourceRules(file, original, snapshot.classes, read)
+    // 규칙이 별도 스타일시트(React)에 있으면 그 파일이 패치 대상이다
+    const targetFile = rules[0]?.file ?? file
+    const targetPath = join(root, targetFile)
+    const targetOriginal = await readFile(targetPath, 'utf8')
+    const patch = buildDeclarationPatch(targetOriginal, rules.filter((rule): boolean => rule.file === targetFile), snapshot.classes, suggestion.declarations)
     if (!patch.ok) {
       record.attempts.push({ hint: suggestion.hint, passed: false, verdict: patch.error, afterPx: defectMagnitude(defect), regressions: 0 })
       continue
     }
-    const applied = applyEdits(original, patch.edits)
+    const applied = applyEdits(targetOriginal, patch.edits)
     if (!applied.ok) continue
-    await writeFile(path, applied.content, 'utf8')
+    record.patchedFile ??= targetFile
+    await writeFile(targetPath, applied.content, 'utf8')
     await new Promise((done): void => {
       setTimeout(done, 500)
     })
@@ -173,11 +194,12 @@ const healDefect = async (root: string, defect: Defect, baseline: Defect[], refe
       afterPx: result.afterPx,
       regressions: result.regressions.length
     })
+    // 다음 결함 측정에 영향을 주지 않도록 성공·실패와 무관하게 원본으로 되돌린다
+    await writeFile(targetPath, targetOriginal, 'utf8')
     if (result.passed) {
       record.healed = true
       break
     }
-    await writeFile(path, original, 'utf8')
   }
 
   // 규칙 기반 패치가 불가능한 결함은 참조 패치(사람이 고치는 방식)가 검증 루프를 통과하는지만 확인한다
@@ -201,11 +223,74 @@ const healDefect = async (root: string, defect: Defect, baseline: Defect[], refe
   return record
 }
 
+interface ReactSummary {
+  expected: number
+  detected: number
+  recall: number
+  precision: number
+  negativeControlHits: number
+  desktopDefects: number
+  primaryHintAccuracy: number
+  sourceMapping: { exact: number; total: number }
+  /** 규칙 기반 패치가 정답 스타일시트를 수정 대상으로 잡지 못한 결함 수 (치유 성공 여부와는 별개) */
+  styleLocationMismatches: number
+  healing: HealingRecord[]
+}
+
+/**
+ * React(Vite) 대상: JSX 소스 매핑(data-ia-src)과 CSS Modules/.css/.scss 규칙 탐색이 되는지 검증한다.
+ * 정답표(REACT_EXPECTED_AT_MOBILE)의 styleFile 은 규칙 기반 패치가 수정해야 하는 스타일시트다.
+ */
+const benchReact = async (): Promise<ReactSummary> => {
+  const workdir = await preparePlayground(reactPlaygroundRoot)
+  const server = await startServer(workdir, REACT_PORT)
+  try {
+    const url = `http://localhost:${REACT_PORT}/`
+    const [mobile, desktop] = await scanPage(url, [MOBILE_VIEWPORT, DESKTOP_VIEWPORT], { executablePath })
+    if (!mobile || !desktop) throw new Error('React 스캔 결과가 비어 있습니다.')
+    if (mobile.stats.scannedNodes < 10) throw new Error('playground-react 가 렌더링되지 않았습니다. 개발 서버 로그를 확인하세요.')
+    const isExpected = (defect: Defect, expected: ExpectedDefect): boolean => defect.node.source?.file === expected.file && defect.kind === expected.kind
+    const truePositives = REACT_EXPECTED_AT_MOBILE.filter((expected): boolean => mobile.defects.some((defect): boolean => isExpected(defect, expected)))
+    const falsePositives = mobile.defects.filter((defect): boolean => !REACT_EXPECTED_AT_MOBILE.some((expected): boolean => isExpected(defect, expected)))
+    const hintMatches = REACT_EXPECTED_AT_MOBILE.filter((expected): boolean =>
+      mobile.defects.some((defect): boolean => isExpected(defect, expected) && defect.suggestions[0]?.hint === expected.primaryHint)
+    )
+    let exact = 0
+    for (const defect of mobile.defects) {
+      const source = defect.node.source
+      if (!source?.exact) continue
+      const line = (await readFile(join(workdir, source.file), 'utf8')).split('\n')[source.line - 1] ?? ''
+      if (line.slice(source.column - 1).startsWith(`<${defect.node.tag}`)) exact++
+    }
+    const healing: HealingRecord[] = []
+    for (const defect of mobile.defects) healing.push(await healDefect(workdir, defect, mobile.defects))
+    const styleLocationMismatches = REACT_EXPECTED_AT_MOBILE.filter((expected): boolean => {
+      const record = healing.find((item): boolean => item.file === expected.file)
+      return record?.patchedFile !== expected.styleFile
+    }).length
+    return {
+      expected: REACT_EXPECTED_AT_MOBILE.length,
+      detected: mobile.defects.length,
+      recall: truePositives.length / REACT_EXPECTED_AT_MOBILE.length,
+      precision: mobile.defects.length === 0 ? 1 : (mobile.defects.length - falsePositives.length) / mobile.defects.length,
+      negativeControlHits: mobile.defects.filter((defect): boolean => REACT_NEGATIVE_CONTROLS.includes(defect.node.source?.file ?? '')).length,
+      desktopDefects: desktop.defects.length,
+      primaryHintAccuracy: hintMatches.length / REACT_EXPECTED_AT_MOBILE.length,
+      sourceMapping: { exact, total: mobile.defects.length },
+      styleLocationMismatches,
+      healing
+    }
+  } finally {
+    await server.close()
+    await rm(workdir, { recursive: true, force: true })
+  }
+}
+
 const main = async (): Promise<void> => {
   // 브라우저와 서버를 띄우기 전에 토큰 계측 자격 증명부터 확인한다
   const counter = await createTokenCounter()
-  const workdir = await preparePlayground()
-  const server = await startServer(workdir)
+  const workdir = await preparePlayground(playgroundRoot)
+  const server = await startServer(workdir, PORT)
   const url = `http://localhost:${PORT}/`
   console.log(`playground 복사본: ${workdir}`)
 
@@ -310,6 +395,8 @@ const main = async (): Promise<void> => {
       0
     )
 
+    const react = await benchReact()
+
     const summary = {
       measuredAt: new Date().toISOString(),
       detection: {
@@ -349,6 +436,7 @@ const main = async (): Promise<void> => {
         reductionVsLayoutDump: 1 - totalContext / raw.domLayoutStyles,
         reductionVsFullDump: 1 - totalContext / raw.domFullStyles
       },
+      react,
       healing: {
         defects: healing.length,
         patchable: patchable.length,
@@ -389,10 +477,24 @@ const main = async (): Promise<void> => {
       console.log(`- ${record.file} (${size}): ${record.manualOnly ? `구조 변경 필요 → 참조 패치 ${record.healed ? '검증 통과' : '검증 실패'}` : record.healed ? '치유' : '실패'} [${trail}]`)
     }
     console.log(`성공 ${healed}/${patchable.length} (첫 시도 성공 ${firstTry}) · 구조 변경 필요 ${manualOnly}건 중 참조 패치 검증 통과 ${referenceVerified}건 · 재측정으로 잡아낸 회귀 ${caughtRegressions}건`)
+    console.log('\n## React(Vite) 대상 (apps/playground-react)')
+    console.log(`재현율 ${percent(react.recall)} · 정밀도 ${percent(react.precision)} · 대조군 오탐 ${react.negativeControlHits}건 · 1280px 결함 ${react.desktopDefects}건 · 1순위 원인 진단 일치 ${percent(react.primaryHintAccuracy)}`)
+    console.log(`JSX 소스 매핑 ${react.sourceMapping.exact}/${react.sourceMapping.total} · 정답 스타일시트를 수정 대상으로 찾음 ${react.healing.length - react.styleLocationMismatches}/${react.healing.length} · 치유 ${react.healing.filter((record): boolean => record.healed).length}/${react.healing.length}`)
+    for (const record of react.healing) console.log(`- ${record.file} → ${record.patchedFile ?? '수정 대상 없음'} (${record.healed ? '치유' : '규칙 기반 단독 치유 실패 — Vue ProductCard 와 같은 복합 원인'})`)
     console.log('\n결과 파일: benchmarks/results/latest.json')
 
     // 탐지 규칙 회귀 게이트: CI 가 규칙 변경 PR 을 막을 수 있도록 불변 조건이 깨지면 종료 코드 1
-    const regressions = findDetectionRegressions(summary.detection)
+    const regressions = [
+      ...findDetectionRegressions(summary.detection),
+      ...findDetectionRegressions({
+        ...react,
+        cascadeMismatches: 0,
+        groupingMismatches: 0,
+        scenarioMismatches: 0,
+        scenarioRemeasureMismatches: 0
+      }).map((problem): string => `[React] ${problem}`),
+      ...(react.sourceMapping.exact < react.sourceMapping.total ? [`[React] JSX 소스 매핑이 정확하지 않은 결함 ${react.sourceMapping.total - react.sourceMapping.exact}건`] : [])
+    ]
     if (regressions.length > 0) {
       console.error(`\n탐지 회귀 ${regressions.length}건:\n${regressions.map((problem): string => `- ${problem}`).join('\n')}`)
       process.exitCode = 1

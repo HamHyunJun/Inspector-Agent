@@ -48,7 +48,7 @@ Chrome DevTools MCP나 Playwright MCP를 붙이면 에이전트도 DOM과 스크
 ```mermaid
 flowchart LR
   subgraph Browser["관측 (브라우저)"]
-    VP["Vite 플러그인<br/>data-ia-src 주입"] --> PAGE["개발 중인 Vue/Nuxt 앱"]
+    VP["Vite 플러그인<br/>data-ia-src 주입"] --> PAGE["개발 중인 Vue/Nuxt/React 앱"]
     EXT["Chrome 확장<br/>현재 탭 탐지"] --> PAGE
     VER["Verifier (Playwright)<br/>다중 뷰포트 스캔·재측정"] --> PAGE
   end
@@ -92,6 +92,7 @@ flowchart LR
 | `packages/extension` | Chrome 확장 (MV3). 현재 탭의 실제 뷰포트에서 탐지해 대시보드로 전송 |
 | `apps/dashboard` | Nuxt 4 대시보드. 결함 현황, 소스 매핑, 에이전트 컨텍스트, Diff 검토, 적용/롤백 |
 | `apps/playground` | 정답 결함 11건(가로 오버플로우 5, 세로 오버플로우 1, 텍스트 잘림 1, 가려짐 3, 포커스 이탈 1), 시나리오로만 보이는 정답 2건(클릭해야 열리는 메뉴, 시드가 있어야 그려지는 요소), 정상 대조군 8건을 심어 둔 Vue 3 데모 앱 (벤치마크 대상) |
+| `apps/playground-react` | React(Vite) 에서 JSX 소스 매핑과 CSS Modules·일반 `.css`/`.scss` 규칙 탐색을 검증하는 앱. 가로 오버플로우 정답 4건 + 정상 대조군 2건 (벤치마크 대상, `docs/react-source-mapping.md`) |
 | `apps/playground-nuxt` | Nuxt 4(`app/`, layouts, 자동 import 컴포넌트)에서 `data-ia-src` 매핑이 맞는지 확인하는 최소 앱 |
 | `benchmarks` | 탐지·매핑·토큰·자가 치유 벤치마크 |
 
@@ -186,6 +187,9 @@ pnpm add -D link:../Inspector-Agent/packages/vite-plugin   # 경로는 실제 �
 ```ts
 // Vite + Vue: vite.config.ts  (vue 플러그인보다 앞에)
 plugins: [inspectorAgent(), vue()]
+
+// Vite + React: .jsx/.tsx 의 소문자 요소에 주입 (react 플러그인보다 앞에)
+plugins: [inspectorAgent(), react()]
 
 // Nuxt 4: nuxt.config.ts
 import inspectorAgent from '@inspector-agent/vite-plugin'
@@ -384,6 +388,8 @@ PromoBanner.vue  +109px  fixed-width ✓
 
 `ProductCard`는 **flex item의 `min-width: auto`와 자식 제목의 `white-space: nowrap`이 함께 원인**입니다. `min-width: 0`만 넣으면 박스 오버플로우는 사라지지만 제목 텍스트가 박스를 넘치는 새 결함이 생깁니다. 검증 루프가 이 회귀를 잡아 자동 롤백했고, 이는 "고쳤다는 주장"과 "고쳐진 것이 측정됨"의 차이를 보여 줍니다. 같은 결함에 대해 에이전트가 자식 규칙 컨텍스트를 보고 `&__info { min-width: 0 }`과 제목 말줄임을 함께 제안한 패치는 **230px → 0px, 새 결함 없음**으로 검증을 통과했습니다 (MCP `propose_patch` → 대시보드 적용으로 확인).
 
+`pnpm bench` 는 위 Vue playground 뒤에 `apps/playground-react` 도 별도 서버로 띄워 같은 방식으로 검사합니다. 가로 오버플로우 정답 4건(CSS Modules `.module.scss`/`.module.css`, 일반 `.css`/`.scss` 를 섞음)과 정상 대조군 2건에서 재현율·정밀도 100%, 대조군 오탐 0건, 1280px 결함 0건, JSX 소스 매핑 4/4 이고, 규칙 기반 패치가 정답 스타일시트를 수정 대상으로 잡는지(4/4)를 게이트로 검사합니다. 설계 근거는 `docs/react-source-mapping.md`.
+
 > **해석 시 주의**: 정답표는 이 프로젝트가 직접 심은 작은 데모 결함 4건입니다. 범용 정확도를 주장하는 수치가 아니라 파이프라인이 끝까지 동작함을 재현 가능하게 보여 주는 회귀 테스트로 봐야 합니다. 토큰 수는 4자당 1토큰 근사치입니다. 실제 서비스 페이지와 실제 토크나이저로 확장하는 것이 다음 단계입니다.
 
 
@@ -434,7 +440,8 @@ PromoBanner.vue  +109px  fixed-width ✓
 - [x] 세로 오버플로우(`overflow-y`)와 의도치 않은 텍스트 잘림(`clipped-text`) 탐지
 - [x] 닫혀 있는 팝업·데이터가 있어야 그려지는 화면을 스캔하기 위한 시나리오(시드 + 클릭/입력/대기 단계)
 - [ ] 로그인이 필요한 화면(세션 쿠키·토큰을 안전하게 다루는 시나리오 저장 방식)
-- [ ] React(`__source`/소스맵) 매핑, CSS Modules·Tailwind 클래스 → 소스 매핑
+- [x] React(Vite) 소스 매핑(`data-ia-src` 주입)과 CSS Modules·일반 `.css`/`.scss` 규칙 탐색 (`docs/react-source-mapping.md`)
+- [ ] Tailwind 유틸리티 클래스 → 소스 매핑, CSS-in-JS, CSS Modules `composes`/`:global`
 - [ ] 실제 서비스 페이지 벤치마크와 실제 토크나이저 기반 토큰 측정, LLM 패치 성공률 리포트
 - [x] CI용 `inspector-scan --fail-on` 과 job summary
 - [ ] PR 코멘트 게시, 기존 결함 기준선(허용 목록) 파일
