@@ -2,15 +2,15 @@
   <section class="overview">
     <StatsOverview v-if="stats" :stats="stats" />
     <ScanForm @scanned="handleRefresh" />
-    <DefectTable :defects="defects ?? []" @filter="handleFilter" />
+    <DefectTable :groups="groups ?? []" @filter="handleFilter" />
   </section>
 </template>
 
 <script setup lang="ts">
-import type { DashboardStats, DefectStatus, StoredDefect } from '~~/shared/types/inspector'
+import type { DashboardStats, DefectGroupSummary, DefectStatus } from '~~/shared/types/inspector'
 
 const statusFilter = useState<DefectStatus | ''>('defect-status-filter', (): DefectStatus | '' => '')
-const { data: defects, refresh: refreshDefects } = await useFetch<StoredDefect[]>('/api/defects', {
+const { data: groups, refresh: refreshDefects } = await useFetch<DefectGroupSummary[]>('/api/defect-groups', {
   query: { status: statusFilter }
 })
 const { data: stats, refresh: refreshStats } = await useFetch<DashboardStats>('/api/stats')

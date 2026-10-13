@@ -82,6 +82,13 @@ export interface FixSuggestion {
   reason: string
 }
 
+/** 한 원인이 밀어내서 함께 넘친 형제 결함. 원인을 고치면 같이 사라지므로 별도 결함으로 세지 않는다 */
+export interface CascadedDefect {
+  selector: string
+  source?: SourceLocation
+  overflowPx: number
+}
+
 export interface OverflowMetrics {
   kind: 'overflow-x'
   mode: OverflowMode
@@ -91,6 +98,8 @@ export interface OverflowMetrics {
   overflowRatio: number
   parentContentWidth: number
   nodeWidth: number
+  /** 이 결함이 밀어낸 같은 줄의 뒤쪽 형제 결함 (연쇄 결함) */
+  cascaded?: CascadedDefect[]
 }
 
 /** 한 stacking context(또는 그 안에서 겨루는 대표 요소)의 요약 */

@@ -15,6 +15,9 @@ interface StyleRule {
 /** Defect 가 kind 별 합집합이라 interface extends 대신 교차 타입으로 확장한다 */
 export type DefectSummary = Defect & { status: string }
 
+/** 같은 소스 위치·뷰포트의 결함을 URL 과 무관하게 묶은 목록 항목. status 는 URL 별 상태를 합친 값, urls 는 발생한 경로 */
+export type DefectListItem = DefectSummary & { urls: string[] }
+
 export interface DefectContextResponse {
   defect: DefectSummary
   payload: AgentDefectPayload
@@ -51,9 +54,18 @@ export interface PatchResponse {
 
 export class DashboardError extends Error {}
 
+const pathOf = (url: string): string => {
+  try {
+    const parsed = new URL(url)
+    return `${parsed.pathname}${parsed.search}`
+  } catch {
+    return url
+  }
+}
+
 export interface DashboardClient {
   scan: (url: string, viewports?: Viewport[]) => Promise<{ defects: number; created: number; resolved: number }>
-  listDefects: (status?: string) => Promise<DefectSummary[]>
+  listDefects: (status?: string) => Promise<DefectListItem[]>
   getContext: (defectId: string) => Promise<DefectContextResponse>
   proposePatch: (input: { defectId: string; file: string; edits: PatchEdit[]; rationale: string }) => Promise<PatchResponse>
   getPatch: (patchId: string) => Promise<PatchResponse>
@@ -80,8 +92,12 @@ export const createDashboardClient = (baseUrl: string): DashboardClient => {
   return {
     scan: (url: string, viewports?: Viewport[]): Promise<{ defects: number; created: number; resolved: number }> =>
       request('/api/scan', { method: 'POST', body: { url, viewports } }),
-    listDefects: (status?: string): Promise<DefectSummary[]> =>
-      request(`/api/defects${status ? `?status=${encodeURIComponent(status)}` : ''}`),
+    listDefects: async (status?: string): Promise<DefectListItem[]> => {
+      const groups = await request<Array<{ defect: Defect; status: string; members: Array<{ url: string }> }>>(
+        `/api/defect-groups${status ? `?status=${encodeURIComponent(status)}` : ''}`
+      )
+      return groups.map((group): DefectListItem => ({ ...group.defect, status: group.status, urls: group.members.map((member): string => pathOf(member.url)) }))
+    },
     getContext: (defectId: string): Promise<DefectContextResponse> =>
       request(`/api/defects/${encodeURIComponent(defectId)}/context`),
     proposePatch: (input: { defectId: string; file: string; edits: PatchEdit[]; rationale: string }): Promise<PatchResponse> =>

@@ -2,14 +2,14 @@ import { cp, mkdtemp, readFile, realpath, rm, symlink, writeFile } from 'node:fs
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { applyEdits, defectMagnitude, toAgentPayload } from '@inspector-agent/core'
+import { applyEdits, defectMagnitude, groupDefects, toAgentPayload } from '@inspector-agent/core'
 import type { Defect, DefectKind, PatchEdit } from '@inspector-agent/core'
 import { buildDeclarationPatch, formatRulesCompact, locateStyleRules, readSnippet } from '@inspector-agent/source-locator'
 import { measureDefect, scanPage } from '@inspector-agent/verifier'
 import { chromium } from 'playwright-core'
 import { createServer } from 'vite'
 import type { ViteDevServer } from 'vite'
-import { DESKTOP_VIEWPORT, EXPECTED_AT_MOBILE, MOBILE_VIEWPORT, NEGATIVE_CONTROLS } from './fixtures'
+import { DESKTOP_VIEWPORT, EXPECTED_AT_MOBILE, MOBILE_VIEWPORT, NEGATIVE_CONTROLS, SECOND_PAGE_QUERY } from './fixtures'
 import type { ExpectedDefect } from './fixtures'
 import { findDetectionRegressions } from './gate'
 import { createTokenCounter } from './tokens'
@@ -222,6 +222,21 @@ const main = async (): Promise<void> => {
     const hintMatches = EXPECTED_AT_MOBILE.filter((expected): boolean =>
       mobile.defects.some((defect): boolean => isExpected(defect, expected) && defect.suggestions[0]?.hint === expected.primaryHint)
     )
+    // 연쇄 결함: 원인 하나에 형제가 정답표대로 묶였는지 (묶이지 않으면 형제가 별개 결함으로 따로 나온다)
+    const cascadeMismatches = EXPECTED_AT_MOBILE.filter((expected): boolean => {
+      if (expected.cascadedCount === undefined) return false
+      const found = mobile.defects.find((defect): boolean => isExpected(defect, expected))
+      const cascaded = found?.kind === 'overflow-x' ? (found.metrics.cascaded?.length ?? 0) : 0
+      return cascaded !== expected.cascadedCount
+    }).length
+    // URL 그룹: 같은 컴포넌트를 다른 URL 에서 스캔해도 한 그룹(발생 URL 2개)이어야 한다
+    const [secondPage] = await scanPage(`${url}${SECOND_PAGE_QUERY}`, [MOBILE_VIEWPORT], { executablePath })
+    const groups = groupDefects([...mobile.defects, ...(secondPage?.defects ?? [])])
+    const groupingMismatches = EXPECTED_AT_MOBILE.filter((expected): boolean => {
+      if (!expected.alsoOnSecondPage) return false
+      const group = groups.find((item): boolean => isExpected(item.representative, expected))
+      return new Set(group?.members.map((member): string => member.url)).size !== 2
+    }).length
     const recallOf = (kind: DefectKind): number => {
       const expected = EXPECTED_AT_MOBILE.filter((item): boolean => item.kind === kind)
       return expected.filter((item): boolean => truePositives.includes(item)).length / Math.max(expected.length, 1)
@@ -269,6 +284,8 @@ const main = async (): Promise<void> => {
         precision: mobile.defects.length === 0 ? 1 : (mobile.defects.length - falsePositives.length) / mobile.defects.length,
         negativeControlHits: negativeHits.length,
         desktopDefects: desktop.defects.length,
+        cascadeMismatches,
+        groupingMismatches,
         primaryHintAccuracy: hintMatches.length / EXPECTED_AT_MOBILE.length,
         scanMs: mobile.stats.durationMs,
         scannedNodes: mobile.stats.scannedNodes
@@ -304,6 +321,7 @@ const main = async (): Promise<void> => {
 
     console.log('\n## 탐지 정확도 (375px)')
     console.log(`재현율 ${percent(summary.detection.recall)} · 정밀도 ${percent(summary.detection.precision)} · 대조군 오탐 ${negativeHits.length}건 · 1280px 결함 ${desktop.defects.length}건`)
+    console.log(`연쇄 결함 묶음 불일치 ${cascadeMismatches}건 · URL 그룹 불일치 ${groupingMismatches}건 (결함 ${mobile.defects.length + (secondPage?.defects.length ?? 0)}건 → URL 그룹 ${groups.length}개)`)
     console.log(`종류별 재현율: 오버플로우 ${percent(summary.detection.recallByKind['overflow-x'])} · 가려짐 ${percent(summary.detection.recallByKind.occluded)} · 포커스 이탈 ${percent(summary.detection.recallByKind['focus-escape'])}`)
     console.log(`1순위 원인 진단 일치 ${percent(summary.detection.primaryHintAccuracy)} · 노드 ${mobile.stats.scannedNodes}개 탐지 ${mobile.stats.durationMs}ms`)
     console.log('\n## 소스 매핑')

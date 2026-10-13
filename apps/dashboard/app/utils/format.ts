@@ -35,6 +35,16 @@ export const TARGET_LABEL: Record<FixSuggestion['target'], string> = { node: '�
 export const formatPercent = (value: number | undefined): string =>
   value === undefined ? '-' : `${Math.round(value * 100)}%`
 
+/** URL 에서 출처를 떼고 경로와 쿼리만 보여 준다. 해석할 수 없으면 원문 그대로 */
+export const formatUrlPath = (url: string): string => {
+  try {
+    const parsed = new URL(url)
+    return `${parsed.pathname}${parsed.search}`
+  } catch {
+    return url
+  }
+}
+
 export const formatDateTime = (iso: string | undefined): string =>
   iso ? new Date(iso).toLocaleString('ko-KR', { dateStyle: 'short', timeStyle: 'medium' }) : '-'
 

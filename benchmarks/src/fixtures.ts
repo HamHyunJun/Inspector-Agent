@@ -2,7 +2,7 @@ import type { DefectKind, FixHint, PatchEdit } from '@inspector-agent/core'
 
 /**
  * playground 앱에 심어 둔 결함의 정답표.
- * 375px 에서는 아래 8건(오버플로우 4 + 가려짐 3 + 포커스 이탈 1)만 탐지되어야 하고, 768px/1280px 에서는 0건이어야 한다.
+ * 375px 에서는 아래 9건(오버플로우 5 + 가려짐 3 + 포커스 이탈 1)만 탐지되어야 하고, 768px/1280px 에서는 0건이어야 한다.
  * NEGATIVE_CONTROLS 의 컴포넌트는 정상 동작이므로 탐지되면 오탐이다.
  */
 export interface ExpectedDefect {
@@ -16,6 +16,10 @@ export interface ExpectedDefect {
    * 검증 루프가 "제대로 고친 패치"를 통과시키는지 확인하는 데만 쓴다
    */
   referenceEdits?: PatchEdit[]
+  /** 이 결함에 연쇄 결함으로 묶여야 하는 같은 줄 형제 수. 형제가 별개 결함으로 따로 나오면 정답표 위반이다 */
+  cascadedCount?: number
+  /** 다른 URL(SECOND_PAGE_QUERY)에도 같은 컴포넌트가 나오는 결함. 대시보드에서는 URL 이 달라도 한 그룹으로 묶여야 한다 */
+  alsoOnSecondPage?: boolean
 }
 
 export const EXPECTED_AT_MOBILE: ExpectedDefect[] = [
@@ -23,6 +27,14 @@ export const EXPECTED_AT_MOBILE: ExpectedDefect[] = [
   { file: 'src/components/TagList.vue', kind: 'overflow-x', primaryHint: 'flex-shrink-disabled', description: '줄바꿈 없는 flex + flex-shrink:0 태그' },
   { file: 'src/components/PromoBanner.vue', kind: 'overflow-x', primaryHint: 'fixed-width', description: '데스크톱 기준 고정 너비 420px' },
   { file: 'src/components/ShareLink.vue', kind: 'overflow-x', primaryHint: 'unbreakable-text', description: '공백 없는 긴 URL' },
+  {
+    file: 'src/components/MemberRow.vue',
+    kind: 'overflow-x',
+    primaryHint: 'flex-item-min-width',
+    description: '긴 이름(nowrap)이 알약을 넘치며 뒤의 배지를 밀어냄 (원인 1건 + 연쇄 1건), 다른 URL 에도 같은 결함',
+    cascadedCount: 1,
+    alsoOnSecondPage: true
+  },
   { file: 'src/components/FilterDropdown.vue', kind: 'occluded', primaryHint: 'stacking-context-trap', description: 'transform 카드의 stacking context 에 갇힌 드롭다운 (z-index 9999 여도 가려짐)',
     referenceEdits: [{ oldText: '\n    transform: translateY(0);', newText: '' }]
   },
@@ -62,6 +74,9 @@ const trapFocus = (event: KeyboardEvent): void => {
     ]
   }
 ]
+
+/** 같은 컴포넌트를 다른 URL 에서 보여 주는 playground 화면 (URL 그룹핑 재현) */
+export const SECOND_PAGE_QUERY = '?page=members'
 
 export const NEGATIVE_CONTROLS: string[] = [
   'src/components/OrderTable.vue',

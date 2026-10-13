@@ -55,7 +55,7 @@ server.registerTool(
   'list_defects',
   {
     title: '결함 목록',
-    description: '대시보드에 저장된 결함을 심각도 순으로 한 줄씩 요약합니다.',
+    description: '대시보드에 저장된 결함을 심각도 순으로 한 줄씩 요약합니다. 같은 소스 위치·뷰포트의 결함은 URL 이 달라도 한 줄로 묶고 발생 URL 을 urls= 로 보여 줍니다(한 곳만 고치면 됩니다).',
     inputSchema: {
       status: z.enum(['open', 'patched', 'resolved']).optional().describe('상태 필터. 기본은 전체')
     }

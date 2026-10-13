@@ -1,8 +1,11 @@
 import { classifySeverity, diagnose, diagnoseOcclusion } from './diagnose'
 import { createDefectId, createFingerprint, parseSourceAttribute } from './fingerprint'
+import { groupCascades } from './cascade'
+import type { CascadeEntry } from './cascade'
 import { classifyOcclusionSeverity, compareStacking, effectiveZIndex, stackingReason } from './occlusion'
 import type { ChainLayer, StackStyle } from './occlusion'
 import type {
+  CascadedDefect,
   Defect,
   DetectOptions,
   NodeSnapshot,
@@ -193,6 +196,7 @@ export const detect = (options: DetectOptions = {}): ScanResult => {
     element: HTMLElement
     parent: HTMLElement
     metrics: OverflowMetrics
+    parentContentRight: number
   }
 
   const candidates: Candidate[] = []
@@ -225,6 +229,7 @@ export const detect = (options: DetectOptions = {}): ScanResult => {
       candidates.push({
         element,
         parent,
+        parentContentRight,
         metrics: {
           kind: 'overflow-x',
           mode: 'box',
@@ -243,6 +248,7 @@ export const detect = (options: DetectOptions = {}): ScanResult => {
       candidates.push({
         element,
         parent,
+        parentContentRight,
         metrics: {
           kind: 'overflow-x',
           mode: 'content',
@@ -270,15 +276,57 @@ export const detect = (options: DetectOptions = {}): ScanResult => {
   const url = location.href
   const detectedAt = new Date().toISOString()
 
-  const seenFingerprints = new Set<string>()
-  const overflowDefects: OverflowDefect[] = culprits
+  interface Entry {
+    candidate: Candidate
+    node: NodeSnapshot
+    parent: NodeSnapshot
+    fingerprint: string
+  }
+
+  const entries: Entry[] = culprits
     .sort((a, b): number => b.metrics.overflowPx - a.metrics.overflowPx)
-    .map((candidate): OverflowDefect => {
+    .map((candidate): Entry => {
       const node = snapshot(candidate.element)
-      const parent = snapshot(candidate.parent)
+      return {
+        candidate,
+        node,
+        parent: snapshot(candidate.parent),
+        fingerprint: createFingerprint('overflow-x', node.source, node.selector, viewport.width)
+      }
+    })
+
+  // v-for 로 렌더된 형제들은 같은 소스 위치를 공유하므로 가장 심한 하나만 남긴다
+  const seenFingerprints = new Set<string>()
+  const unique = entries.filter((entry): boolean => {
+    if (seenFingerprints.has(entry.fingerprint)) return false
+    seenFingerprints.add(entry.fingerprint)
+    return true
+  })
+
+  // 한 원인이 같은 줄의 뒤쪽 형제를 밖으로 밀어낸 경우(예: 긴 이름이 배지를 밀어냄)는 원인 하나로 묶고 나머지는 연쇄 결함으로 남긴다
+  const chainable = unique.filter((entry): boolean => entry.candidate.metrics.mode === 'box')
+  const cascadeGroups = groupCascades(
+    chainable.map((entry): CascadeEntry<Entry> => ({
+      item: entry,
+      parent: entry.candidate.parent,
+      box: { left: entry.node.rect.x, right: entry.node.rect.right, top: entry.node.rect.y, bottom: entry.node.rect.bottom },
+      parentContentRight: entry.candidate.parentContentRight
+    })),
+    thresholdPx
+  )
+  const cascadedOf = new Map<Entry, Entry[]>(cascadeGroups.map((group): [Entry, Entry[]] => [group.root, group.cascaded]))
+  const absorbed = new Set<Entry>(cascadeGroups.flatMap((group): Entry[] => group.cascaded))
+
+  const overflowDefects: OverflowDefect[] = unique
+    .filter((entry): boolean => !absorbed.has(entry))
+    .map((entry): OverflowDefect => {
+      const { candidate, node, parent, fingerprint } = entry
+      const cascaded = (cascadedOf.get(entry) ?? []).map(
+        (other): CascadedDefect => ({ selector: other.node.selector, source: other.node.source, overflowPx: other.candidate.metrics.overflowPx })
+      )
+      const metrics: OverflowMetrics = cascaded.length > 0 ? { ...candidate.metrics, cascaded } : candidate.metrics
       const visibleRight = candidate.metrics.mode === 'box' ? node.rect.right : node.rect.x + node.scrollWidth
       const causesPageScroll = documentOverflowPx > 0 && visibleRight > viewport.width
-      const fingerprint = createFingerprint('overflow-x', node.source, node.selector, viewport.width)
       return {
         id: createDefectId(url, fingerprint),
         fingerprint,
@@ -288,16 +336,10 @@ export const detect = (options: DetectOptions = {}): ScanResult => {
         viewport,
         node,
         parent,
-        metrics: candidate.metrics,
-        suggestions: diagnose(node, parent, candidate.metrics),
+        metrics,
+        suggestions: diagnose(node, parent, metrics),
         detectedAt
       }
-    })
-    // v-for 로 렌더된 형제들은 같은 소스 위치를 공유하므로 가장 심한 하나만 남긴다
-    .filter((defect): boolean => {
-      if (seenFingerprints.has(defect.fingerprint)) return false
-      seenFingerprints.add(defect.fingerprint)
-      return true
     })
     .slice(0, maxDefects)
 

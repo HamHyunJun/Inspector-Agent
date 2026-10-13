@@ -49,12 +49,35 @@
           <dd>+{{ formatPx(context.defect.metrics.overflowPx) }} ({{ formatPercent(context.defect.metrics.overflowRatio) }})</dd>
           <dt>부모 콘텐츠 / 노드 너비</dt>
           <dd>{{ formatPx(context.defect.metrics.parentContentWidth) }} / {{ formatPx(context.defect.metrics.nodeWidth) }}</dd>
+          <template v-if="context.defect.metrics.cascaded?.length">
+            <dt>연쇄 결함</dt>
+            <dd>
+              이 결함이 밀어내서 함께 넘친 같은 줄의 뒤쪽 요소입니다. 원인을 고치면 같이 사라집니다.
+              <ul class="defect-detail__list">
+                <li v-for="item in context.defect.metrics.cascaded" :key="item.selector">
+                  <code>{{ item.source ? formatSourceRef(item.source.file, item.source.line) : item.selector }}</code>
+                  +{{ formatPx(item.overflowPx) }}
+                </li>
+              </ul>
+            </dd>
+          </template>
         </template>
         <dt>셀렉터</dt>
         <dd><code>{{ context.defect.node.selector }}</code></dd>
         <dt>페이지</dt>
         <dd>{{ context.defect.url }}</dd>
       </dl>
+    </section>
+
+    <section v-if="sameLocation.length > 0" class="defect-detail__panel" aria-labelledby="same-location-heading">
+      <h2 id="same-location-heading" class="defect-detail__heading">같은 위치의 다른 URL ({{ sameLocation.length }})</h2>
+      <p class="defect-detail__muted">같은 소스 위치·뷰포트에서 나온 결함이라 이 파일을 고치면 함께 해결됩니다. 해소 여부는 해당 URL 을 다시 스캔해 확인하세요.</p>
+      <ul class="defect-detail__list">
+        <li v-for="member in sameLocation" :key="member.id">
+          <NuxtLink :to="`/defects/${member.id}`">{{ formatUrlPath(member.url) }}</NuxtLink>
+          <StatusBadge :status="member.status" kind="defect" />
+        </li>
+      </ul>
     </section>
 
     <section class="defect-detail__panel" aria-labelledby="diagnosis-heading">
@@ -118,14 +141,14 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import type { DefectContext, Patch, StoredDefect } from '~~/shared/types/inspector'
-import { OCCLUSION_CAUSE_LABEL, TARGET_LABEL, formatPercent, formatPx, formatSourceRef } from '~/utils/format'
+import type { DefectContext, DefectGroupMember, Patch, StoredDefect } from '~~/shared/types/inspector'
+import { OCCLUSION_CAUSE_LABEL, TARGET_LABEL, formatPercent, formatPx, formatSourceRef, formatUrlPath } from '~/utils/format'
 
 const route = useRoute()
 const { data: context, refresh: refreshContext } = await useFetch<DefectContext>(
   (): string => `/api/defects/${String(route.params.id)}/context`
 )
-const { data: detail, refresh: refreshDetail } = await useFetch<{ defect: StoredDefect; patches: Patch[] }>(
+const { data: detail, refresh: refreshDetail } = await useFetch<{ defect: StoredDefect; patches: Patch[]; sameLocation: DefectGroupMember[] }>(
   (): string => `/api/defects/${String(route.params.id)}`
 )
 
@@ -134,6 +157,7 @@ const proposeError = ref<string>('')
 
 const defectId = computed((): string => String(route.params.id))
 const patches = computed((): Patch[] => detail.value?.patches ?? [])
+const sameLocation = computed((): DefectGroupMember[] => detail.value?.sameLocation ?? [])
 const payloadJson = computed((): string => JSON.stringify(context.value?.payload, undefined, 2))
 
 const formatDeclarations = (declarations: Record<string, string>): string =>
@@ -288,6 +312,18 @@ useHead({ title: computed((): string => `결함 ${defectId.value} · Inspector-A
     background: var(--color-bg);
     border: 1px solid var(--color-border);
     border-radius: 8px;
+  }
+
+  &__list {
+    margin: 6px 0 0;
+    padding: 0 0 0 18px;
+
+    li {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+    }
   }
 
   &__muted {
