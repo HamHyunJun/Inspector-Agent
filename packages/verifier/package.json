@@ -1,7 +1,34 @@
 {
   "name": "@inspector-agent/verifier",
   "version": "0.1.0",
-  "description": "Playwright로 여러 뷰포트를 스캔하고 패치 전후를 재측정하는 검증기",
+  "description": "Playwright 로 여러 뷰포트를 스캔하고(inspector-scan CLI) 패치 전후를 재측정하는 레이아웃 결함 검증기",
+  "license": "MIT",
+  "author": "HamHyunJun",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/HamHyunJun/Inspector-Agent.git",
+    "directory": "packages/verifier"
+  },
+  "homepage": "https://github.com/HamHyunJun/Inspector-Agent/tree/main/packages/verifier#readme",
+  "bugs": {
+    "url": "https://github.com/HamHyunJun/Inspector-Agent/issues"
+  },
+  "keywords": [
+    "playwright",
+    "layout",
+    "overflow",
+    "viewport",
+    "cli",
+    "ci",
+    "accessibility",
+    "focus-trap"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -14,14 +41,16 @@
       "import": "./dist/index.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsup src/index.ts src/cli.ts --format esm --dts --clean",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@inspector-agent/core": "workspace:*",
+    "@inspector-agent/core": "workspace:^",
     "playwright-core": "1.56.1"
   }
 }

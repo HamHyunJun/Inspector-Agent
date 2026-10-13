@@ -2,18 +2,45 @@
   "name": "@inspector-agent/mcp-server",
   "version": "0.1.0",
   "description": "Claude Code 등 MCP 클라이언트가 결함 조회·컨텍스트·패치 제안을 하도록 대시보드 API를 노출하는 stdio MCP 서버",
+  "license": "MIT",
+  "author": "HamHyunJun",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/HamHyunJun/Inspector-Agent.git",
+    "directory": "packages/mcp-server"
+  },
+  "homepage": "https://github.com/HamHyunJun/Inspector-Agent/tree/main/packages/mcp-server#readme",
+  "bugs": {
+    "url": "https://github.com/HamHyunJun/Inspector-Agent/issues"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "claude",
+    "claude-code",
+    "agent",
+    "layout"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "module",
   "bin": {
     "inspector-agent-mcp": "./dist/index.js"
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsup src/index.ts --format esm --clean",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@inspector-agent/core": "workspace:*",
+    "@inspector-agent/core": "workspace:^",
     "@modelcontextprotocol/sdk": "^1.32.0",
     "zod": "^3.25.0"
   }

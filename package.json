@@ -10,9 +10,16 @@
     "dev:dashboard": "pnpm --filter dashboard dev",
     "test": "pnpm --filter \"./packages/**\" test",
     "bench": "pnpm --filter @inspector-agent/benchmarks bench",
-    "typecheck": "pnpm -r typecheck"
+    "typecheck": "pnpm -r typecheck",
+    "test:scripts": "vitest run scripts",
+    "changeset": "changeset",
+    "version-packages": "changeset version",
+    "release:check": "node scripts/release-check.mjs",
+    "release:smoke": "node scripts/pack-smoke.mjs",
+    "release": "pnpm build && pnpm release:check && changeset publish"
   },
   "devDependencies": {
+    "@changesets/cli": "^3.0.3",
     "@types/node": "^22.10.0",
     "tsup": "^8.5.0",
     "typescript": "^5.9.0",

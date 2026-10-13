@@ -1,0 +1,76 @@
+name: release
+
+# v* 태그를 push 하면 npm 에 배포한다. 태그는 반드시 main 에 병합된 커밋에 붙여야 하고, 태그 버전이
+# 패키지 버전(v<버전>)과 같아야 한다. 절차는 docs/releasing.md 를 보세요.
+# 필요한 저장소 시크릿: NPM_TOKEN (npm 의 @inspector-agent 스코프에 publish 권한이 있는 토큰. 직접 등록)
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+  id-token: write # npm provenance(어느 저장소·커밋에서 빌드됐는지 증명)에 필요
+
+# 같은 태그로 두 번 돌아 중복 배포되지 않게 하고, 진행 중인 배포를 취소하지 않는다
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 태그가 main 에 병합된 커밋을 가리키는지 확인
+        run: |
+          git fetch origin main
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::태그 $GITHUB_REF_NAME 가 main 에 병합되지 않은 커밋을 가리킵니다. main 에 병합한 뒤 그 커밋에 태그를 붙이세요."
+            exit 1
+          fi
+
+      # pnpm 버전은 package.json 의 packageManager 를 따른다
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      # prepare 단계에서 packages/* 가 자동 빌드된다
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm -r typecheck
+
+      - run: pnpm dlx playwright@1.56.1 install --with-deps chromium
+
+      - run: pnpm test
+
+      - run: pnpm test:scripts
+
+      - name: 배포 전 검증 (메타데이터, 산출물, 태그와 버전 일치)
+        run: pnpm release:check --tag "$GITHUB_REF_NAME"
+
+      - name: tarball 스모크 테스트 (pack → 임시 Vite 프로젝트에 설치 → 동작 확인)
+        run: pnpm release:smoke
+
+      - name: NPM_TOKEN 시크릿 확인
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -z "$NODE_AUTH_TOKEN" ]; then
+            echo "::error::NPM_TOKEN 시크릿이 없습니다. 저장소 Settings → Secrets and variables → Actions 에 등록하세요."
+            exit 1
+          fi
+
+      # 아직 npm 에 없는 버전의 패키지만 올린다(이미 올라간 버전은 건너뛰므로 다시 돌려도 안전하다)
+      - name: npm 에 배포
+        run: pnpm exec changeset publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: 'true'
