@@ -14,6 +14,23 @@ export type StoredDefect = Defect & {
   occurrences: number
 }
 
+/** 같은 소스 위치·뷰포트의 결함이 발생한 URL 하나 */
+export interface DefectGroupMember {
+  id: string
+  url: string
+  status: DefectStatus
+}
+
+/** URL 이 달라도 같은 소스 위치·뷰포트(같은 fingerprint)인 결함을 묶은 것. 고칠 곳은 한 곳이다 */
+export interface DefectGroupSummary {
+  key: string
+  /** 대표 결함: 상세 화면과 패치는 이 결함 기준 */
+  defect: StoredDefect
+  /** 하나라도 open 이면 open, 아니면 patched 가 있으면 patched, 모두 resolved 일 때만 resolved */
+  status: DefectStatus
+  members: DefectGroupMember[]
+}
+
 export type PatchStatus = 'proposed' | 'verified' | 'failed' | 'rolled-back' | 'rejected'
 
 export interface Patch {

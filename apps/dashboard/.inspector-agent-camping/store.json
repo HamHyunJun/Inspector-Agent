@@ -1,0 +1,2772 @@
+{
+  "defects": {
+    "d_366b3031": {
+      "id": "d_366b3031",
+      "fingerprint": "overflow-x|pages/index.vue:41:9|375",
+      "kind": "overflow-x",
+      "severity": "low",
+      "url": "http://localhost:5174/",
+      "viewport": {
+        "width": 375,
+        "height": 812
+      },
+      "node": {
+        "selector": "section > div.me-picker:nth-of-type(2) > button.card.me-trigger > span.chevron.down:nth-of-type(3)",
+        "tag": "span",
+        "classes": [
+          "chevron",
+          "down"
+        ],
+        "source": {
+          "file": "pages/index.vue",
+          "line": 41,
+          "column": 9,
+          "exact": true
+        },
+        "rect": {
+          "x": 325,
+          "y": 327.8,
+          "width": 24,
+          "height": 9.9,
+          "right": 349,
+          "bottom": 337.7
+        },
+        "scrollWidth": 10,
+        "clientWidth": 10,
+        "styles": {
+          "display": "block",
+          "box-sizing": "border-box",
+          "min-width": "auto"
+        },
+        "childElementCount": 0,
+        "childClasses": [],
+        "text": "›"
+      },
+      "parent": {
+        "selector": "main.content > section > div.me-picker:nth-of-type(2) > button.card.me-trigger",
+        "tag": "button",
+        "classes": [
+          "card",
+          "me-trigger"
+        ],
+        "source": {
+          "file": "pages/index.vue",
+          "line": 28,
+          "column": 7,
+          "exact": true
+        },
+        "rect": {
+          "x": 16,
+          "y": 294,
+          "width": 343,
+          "height": 77.5,
+          "right": 359,
+          "bottom": 371.5
+        },
+        "scrollWidth": 341,
+        "clientWidth": 341,
+        "styles": {
+          "display": "flex",
+          "box-sizing": "border-box",
+          "min-width": "0px",
+          "column-gap": "12px",
+          "padding-left": "16px",
+          "padding-right": "16px"
+        },
+        "childElementCount": 3,
+        "childClasses": [
+          "avatar",
+          "me-text",
+          "chevron",
+          "down"
+        ]
+      },
+      "metrics": {
+        "mode": "box",
+        "overflowPx": 7,
+        "overflowRatio": 0,
+        "parentContentWidth": 309,
+        "nodeWidth": 24
+      },
+      "suggestions": [
+        {
+          "hint": "flex-item-min-width",
+          "target": "node",
+          "declarations": {
+            "min-width": "0"
+          },
+          "reason": "flex item의 min-width 기본값(auto)이 콘텐츠 최소 너비 아래로 줄어드는 것을 막습니다."
+        },
+        {
+          "hint": "flex-nowrap",
+          "target": "parent",
+          "declarations": {
+            "flex-wrap": "wrap"
+          },
+          "reason": "flex 컨테이너가 줄바꿈 없이 자식 3개를 한 줄에 배치합니다."
+        }
+      ],
+      "detectedAt": "2026-10-13T04:00:21.984Z",
+      "status": "resolved",
+      "firstSeenAt": "2026-10-13T04:03:32.284Z",
+      "lastSeenAt": "2026-10-13T04:03:32.284Z",
+      "occurrences": 1
+    },
+    "d_7be68fa7": {
+      "id": "d_7be68fa7",
+      "fingerprint": "overflow-x|pages/index.vue:41:9|768",
+      "kind": "overflow-x",
+      "severity": "low",
+      "url": "http://localhost:5174/",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "node": {
+        "selector": "section > div.me-picker:nth-of-type(2) > button.card.me-trigger > span.chevron.down:nth-of-type(3)",
+        "tag": "span",
+        "classes": [
+          "chevron",
+          "down"
+        ],
+        "source": {
+          "file": "pages/index.vue",
+          "line": 41,
+          "column": 9,
+          "exact": true
+        },
+        "rect": {
+          "x": 714,
+          "y": 306.8,
+          "width": 24,
+          "height": 9.9,
+          "right": 738,
+          "bottom": 316.7
+        },
+        "scrollWidth": 10,
+        "clientWidth": 10,
+        "styles": {
+          "display": "block",
+          "box-sizing": "border-box",
+          "min-width": "auto"
+        },
+        "childElementCount": 0,
+        "childClasses": [],
+        "text": "›"
+      },
+      "parent": {
+        "selector": "main.content > section > div.me-picker:nth-of-type(2) > button.card.me-trigger",
+        "tag": "button",
+        "classes": [
+          "card",
+          "me-trigger"
+        ],
+        "source": {
+          "file": "pages/index.vue",
+          "line": 28,
+          "column": 7,
+          "exact": true
+        },
+        "rect": {
+          "x": 20,
+          "y": 273,
+          "width": 728,
+          "height": 77.5,
+          "right": 748,
+          "bottom": 350.5
+        },
+        "scrollWidth": 726,
+        "clientWidth": 726,
+        "styles": {
+          "display": "flex",
+          "box-sizing": "border-box",
+          "min-width": "0px",
+          "column-gap": "12px",
+          "padding-left": "16px",
+          "padding-right": "16px"
+        },
+        "childElementCount": 3,
+        "childClasses": [
+          "avatar",
+          "me-text",
+          "chevron",
+          "down"
+        ]
+      },
+      "metrics": {
+        "mode": "box",
+        "overflowPx": 7,
+        "overflowRatio": 0,
+        "parentContentWidth": 694,
+        "nodeWidth": 24
+      },
+      "suggestions": [
+        {
+          "hint": "flex-item-min-width",
+          "target": "node",
+          "declarations": {
+            "min-width": "0"
+          },
+          "reason": "flex item의 min-width 기본값(auto)이 콘텐츠 최소 너비 아래로 줄어드는 것을 막습니다."
+        },
+        {
+          "hint": "flex-nowrap",
+          "target": "parent",
+          "declarations": {
+            "flex-wrap": "wrap"
+          },
+          "reason": "flex 컨테이너가 줄바꿈 없이 자식 3개를 한 줄에 배치합니다."
+        }
+      ],
+      "detectedAt": "2026-10-13T04:00:23.499Z",
+      "status": "resolved",
+      "firstSeenAt": "2026-10-13T04:03:32.284Z",
+      "lastSeenAt": "2026-10-13T04:03:32.284Z",
+      "occurrences": 1
+    },
+    "d_f291c24f": {
+      "id": "d_f291c24f",
+      "fingerprint": "overflow-x|pages/index.vue:41:9|1280",
+      "kind": "overflow-x",
+      "severity": "low",
+      "url": "http://localhost:5174/",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "node": {
+        "selector": "section > div.me-picker:nth-of-type(2) > button.card.me-trigger > span.chevron.down:nth-of-type(3)",
+        "tag": "span",
+        "classes": [
+          "chevron",
+          "down"
+        ],
+        "source": {
+          "file": "pages/index.vue",
+          "line": 41,
+          "column": 9,
+          "exact": true
+        },
+        "rect": {
+          "x": 970,
+          "y": 306.8,
+          "width": 24,
+          "height": 9.9,
+          "right": 994,
+          "bottom": 316.7
+        },
+        "scrollWidth": 10,
+        "clientWidth": 10,
+        "styles": {
+          "display": "block",
+          "box-sizing": "border-box",
+          "min-width": "auto"
+        },
+        "childElementCount": 0,
+        "childClasses": [],
+        "text": "›"
+      },
+      "parent": {
+        "selector": "main.content > section > div.me-picker:nth-of-type(2) > button.card.me-trigger",
+        "tag": "button",
+        "classes": [
+          "card",
+          "me-trigger"
+        ],
+        "source": {
+          "file": "pages/index.vue",
+          "line": 28,
+          "column": 7,
+          "exact": true
+        },
+        "rect": {
+          "x": 276,
+          "y": 273,
+          "width": 728,
+          "height": 77.5,
+          "right": 1004,
+          "bottom": 350.5
+        },
+        "scrollWidth": 726,
+        "clientWidth": 726,
+        "styles": {
+          "display": "flex",
+          "box-sizing": "border-box",
+          "min-width": "0px",
+          "column-gap": "12px",
+          "padding-left": "16px",
+          "padding-right": "16px"
+        },
+        "childElementCount": 3,
+        "childClasses": [
+          "avatar",
+          "me-text",
+          "chevron",
+          "down"
+        ]
+      },
+      "metrics": {
+        "mode": "box",
+        "overflowPx": 7,
+        "overflowRatio": 0,
+        "parentContentWidth": 694,
+        "nodeWidth": 24
+      },
+      "suggestions": [
+        {
+          "hint": "flex-item-min-width",
+          "target": "node",
+          "declarations": {
+            "min-width": "0"
+          },
+          "reason": "flex item의 min-width 기본값(auto)이 콘텐츠 최소 너비 아래로 줄어드는 것을 막습니다."
+        },
+        {
+          "hint": "flex-nowrap",
+          "target": "parent",
+          "declarations": {
+            "flex-wrap": "wrap"
+          },
+          "reason": "flex 컨테이너가 줄바꿈 없이 자식 3개를 한 줄에 배치합니다."
+        }
+      ],
+      "detectedAt": "2026-10-13T04:00:24.959Z",
+      "status": "resolved",
+      "firstSeenAt": "2026-10-13T04:03:32.284Z",
+      "lastSeenAt": "2026-10-13T04:03:32.284Z",
+      "occurrences": 1
+    },
+    "d_4e1bfe68": {
+      "id": "d_4e1bfe68",
+      "fingerprint": "overflow-x|components/PersonGearCard.vue:12:9|375",
+      "kind": "overflow-x",
+      "severity": "low",
+      "url": "http://localhost:5174/gear",
+      "viewport": {
+        "width": 375,
+        "height": 812
+      },
+      "node": {
+        "selector": "article.card.person-card:nth-of-type(1) > header.person-header > button.toggle > span.chevron:nth-of-type(3)",
+        "tag": "span",
+        "classes": [
+          "chevron"
+        ],
+        "source": {
+          "file": "components/PersonGearCard.vue",
+          "line": 12,
+          "column": 9,
+          "exact": true
+        },
+        "rect": {
+          "x": 329.9,
+          "y": 333.2,
+          "width": 14.1,
+          "height": 14.1,
+          "right": 344.1,
+          "bottom": 347.3
+        },
+        "scrollWidth": 8,
+        "clientWidth": 8,
+        "styles": {
+          "display": "block",
+          "box-sizing": "border-box",
+          "min-width": "auto"
+        },
+        "childElementCount": 0,
+        "childClasses": []
+      },
+      "parent": {
+        "selector": "div.people:nth-of-type(3) > article.card.person-card:nth-of-type(1) > header.person-header > button.toggle",
+        "tag": "button",
+        "classes": [
+          "toggle"
+        ],
+        "source": {
+          "file": "components/PersonGearCard.vue",
+          "line": 4,
+          "column": 7,
+          "exact": true
+        },
+        "rect": {
+          "x": 17,
+          "y": 304,
+          "width": 341,
+          "height": 78.5,
+          "right": 358,
+          "bottom": 382.5
+        },
+        "scrollWidth": 341,
+        "clientWidth": 341,
+        "styles": {
+          "display": "flex",
+          "box-sizing": "border-box",
+          "min-width": "0px",
+          "column-gap": "12px",
+          "padding-left": "16px",
+          "padding-right": "16px"
+        },
+        "childElementCount": 4,
+        "childClasses": [
+          "avatar",
+          "title",
+          "chevron",
+          "sr-only"
+        ]
+      },
+      "metrics": {
+        "mode": "box",
+        "overflowPx": 2.1,
+        "overflowRatio": 0,
+        "parentContentWidth": 309,
+        "nodeWidth": 14.1
+      },
+      "suggestions": [
+        {
+          "hint": "flex-item-min-width",
+          "target": "node",
+          "declarations": {
+            "min-width": "0"
+          },
+          "reason": "flex item의 min-width 기본값(auto)이 콘텐츠 최소 너비 아래로 줄어드는 것을 막습니다."
+        },
+        {
+          "hint": "flex-nowrap",
+          "target": "parent",
+          "declarations": {
+            "flex-wrap": "wrap"
+          },
+          "reason": "flex 컨테이너가 줄바꿈 없이 자식 4개를 한 줄에 배치합니다."
+        }
+      ],
+      "detectedAt": "2026-10-13T04:00:26.398Z",
+      "status": "resolved",
+      "firstSeenAt": "2026-10-13T04:03:32.284Z",
+      "lastSeenAt": "2026-10-13T04:03:32.284Z",
+      "occurrences": 1
+    },
+    "d_0050e07a": {
+      "id": "d_0050e07a",
+      "fingerprint": "overflow-x|components/PersonGearCard.vue:12:9|768",
+      "kind": "overflow-x",
+      "severity": "low",
+      "url": "http://localhost:5174/gear",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "node": {
+        "selector": "article.card.person-card:nth-of-type(1) > header.person-header > button.toggle > span.chevron:nth-of-type(3)",
+        "tag": "span",
+        "classes": [
+          "chevron"
+        ],
+        "source": {
+          "file": "components/PersonGearCard.vue",
+          "line": 12,
+          "column": 9,
+          "exact": true
+        },
+        "rect": {
+          "x": 718.9,
+          "y": 291.2,
+          "width": 14.1,
+          "height": 14.1,
+          "right": 733.1,
+          "bottom": 305.3
+        },
+        "scrollWidth": 8,
+        "clientWidth": 8,
+        "styles": {
+          "display": "block",
+          "box-sizing": "border-box",
+          "min-width": "auto"
+        },
+        "childElementCount": 0,
+        "childClasses": []
+      },
+      "parent": {
+        "selector": "div.people:nth-of-type(3) > article.card.person-card:nth-of-type(1) > header.person-header > button.toggle",
+        "tag": "button",
+        "classes": [
+          "toggle"
+        ],
+        "source": {
+          "file": "components/PersonGearCard.vue",
+          "line": 4,
+          "column": 7,
+          "exact": true
+        },
+        "rect": {
+          "x": 21,
+          "y": 262,
+          "width": 726,
+          "height": 78.5,
+          "right": 747,
+          "bottom": 340.5
+        },
+        "scrollWidth": 726,
+        "clientWidth": 726,
+        "styles": {
+          "display": "flex",
+          "box-sizing": "border-box",
+          "min-width": "0px",
+          "column-gap": "12px",
+          "padding-left": "16px",
+          "padding-right": "16px"
+        },
+        "childElementCount": 4,
+        "childClasses": [
+          "avatar",
+          "title",
+          "chevron",
+          "sr-only"
+        ]
+      },
+      "metrics": {
+        "mode": "box",
+        "overflowPx": 2.1,
+        "overflowRatio": 0,
+        "parentContentWidth": 694,
+        "nodeWidth": 14.1
+      },
+      "suggestions": [
+        {
+          "hint": "flex-item-min-width",
+          "target": "node",
+          "declarations": {
+            "min-width": "0"
+          },
+          "reason": "flex item의 min-width 기본값(auto)이 콘텐츠 최소 너비 아래로 줄어드는 것을 막습니다."
+        },
+        {
+          "hint": "flex-nowrap",
+          "target": "parent",
+          "declarations": {
+            "flex-wrap": "wrap"
+          },
+          "reason": "flex 컨테이너가 줄바꿈 없이 자식 4개를 한 줄에 배치합니다."
+        }
+      ],
+      "detectedAt": "2026-10-13T04:00:27.861Z",
+      "status": "resolved",
+      "firstSeenAt": "2026-10-13T04:03:32.284Z",
+      "lastSeenAt": "2026-10-13T04:03:32.284Z",
+      "occurrences": 1
+    },
+    "d_1f2cb7bc": {
+      "id": "d_1f2cb7bc",
+      "fingerprint": "overflow-x|components/PersonGearCard.vue:12:9|1280",
+      "kind": "overflow-x",
+      "severity": "low",
+      "url": "http://localhost:5174/gear",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "node": {
+        "selector": "article.card.person-card:nth-of-type(1) > header.person-header > button.toggle > span.chevron:nth-of-type(3)",
+        "tag": "span",
+        "classes": [
+          "chevron"
+        ],
+        "source": {
+          "file": "components/PersonGearCard.vue",
+          "line": 12,
+          "column": 9,
+          "exact": true
+        },
+        "rect": {
+          "x": 974.9,
+          "y": 291.2,
+          "width": 14.1,
+          "height": 14.1,
+          "right": 989.1,
+          "bottom": 305.3
+        },
+        "scrollWidth": 8,
+        "clientWidth": 8,
+        "styles": {
+          "display": "block",
+          "box-sizing": "border-box",
+          "min-width": "auto"
+        },
+        "childElementCount": 0,
+        "childClasses": []
+      },
+      "parent": {
+        "selector": "div.people:nth-of-type(3) > article.card.person-card:nth-of-type(1) > header.person-header > button.toggle",
+        "tag": "button",
+        "classes": [
+          "toggle"
+        ],
+        "source": {
+          "file": "components/PersonGearCard.vue",
+          "line": 4,
+          "column": 7,
+          "exact": true
+        },
+        "rect": {
+          "x": 277,
+          "y": 262,
+          "width": 726,
+          "height": 78.5,
+          "right": 1003,
+          "bottom": 340.5
+        },
+        "scrollWidth": 726,
+        "clientWidth": 726,
+        "styles": {
+          "display": "flex",
+          "box-sizing": "border-box",
+          "min-width": "0px",
+          "column-gap": "12px",
+          "padding-left": "16px",
+          "padding-right": "16px"
+        },
+        "childElementCount": 4,
+        "childClasses": [
+          "avatar",
+          "title",
+          "chevron",
+          "sr-only"
+        ]
+      },
+      "metrics": {
+        "mode": "box",
+        "overflowPx": 2.1,
+        "overflowRatio": 0,
+        "parentContentWidth": 694,
+        "nodeWidth": 14.1
+      },
+      "suggestions": [
+        {
+          "hint": "flex-item-min-width",
+          "target": "node",
+          "declarations": {
+            "min-width": "0"
+          },
+          "reason": "flex item의 min-width 기본값(auto)이 콘텐츠 최소 너비 아래로 줄어드는 것을 막습니다."
+        },
+        {
+          "hint": "flex-nowrap",
+          "target": "parent",
+          "declarations": {
+            "flex-wrap": "wrap"
+          },
+          "reason": "flex 컨테이너가 줄바꿈 없이 자식 4개를 한 줄에 배치합니다."
+        }
+      ],
+      "detectedAt": "2026-10-13T04:00:29.312Z",
+      "status": "resolved",
+      "firstSeenAt": "2026-10-13T04:03:32.284Z",
+      "lastSeenAt": "2026-10-13T04:03:32.284Z",
+      "occurrences": 1
+    },
+    "d_059bcb4d": {
+      "id": "d_059bcb4d",
+      "fingerprint": "overflow-x|components/SelectMenu.vue:12:7|375",
+      "kind": "overflow-x",
+      "severity": "low",
+      "url": "http://localhost:5174/camps/c1/schedule",
+      "viewport": {
+        "width": 375,
+        "height": 812
+      },
+      "node": {
+        "selector": "div.add-row:nth-of-type(1) > div.select-menu.md > button.select-trigger > span.select-chevron:nth-of-type(2)",
+        "tag": "span",
+        "classes": [
+          "select-chevron"
+        ],
+        "source": {
+          "file": "components/SelectMenu.vue",
+          "line": 12,
+          "column": 7,
+          "exact": true
+        },
+        "rect": {
+          "x": 109.9,
+          "y": 351.9,
+          "width": 20,
+          "height": 8.3,
+          "right": 129.9,
+          "bottom": 360.1
+        },
+        "scrollWidth": 8,
+        "clientWidth": 8,
+        "styles": {
+          "display": "block",
+          "box-sizing": "border-box",
+          "flex-shrink": "0",
+          "min-width": "auto"
+        },
+        "childElementCount": 0,
+        "childClasses": [],
+        "text": "›"
+      },
+      "parent": {
+        "selector": "form.card.add-card > div.add-row:nth-of-type(1) > div.select-menu.md > button.select-trigger",
+        "tag": "button",
+        "classes": [
+          "select-trigger"
+        ],
+        "source": {
+          "file": "components/SelectMenu.vue",
+          "line": 3,
+          "column": 5,
+          "exact": true
+        },
+        "rect": {
+          "x": 33,
+          "y": 333,
+          "width": 104,
+          "height": 46,
+          "right": 137,
+          "bottom": 379
+        },
+        "scrollWidth": 102,
+        "clientWidth": 102,
+        "styles": {
+          "display": "flex",
+          "box-sizing": "border-box",
+          "min-width": "0px",
+          "column-gap": "8px",
+          "padding-left": "12px",
+          "padding-right": "12px"
+        },
+        "childElementCount": 2,
+        "childClasses": [
+          "select-value",
+          "select-chevron"
+        ]
+      },
+      "metrics": {
+        "mode": "box",
+        "overflowPx": 5.9,
+        "overflowRatio": 0.1,
+        "parentContentWidth": 78,
+        "nodeWidth": 20
+      },
+      "suggestions": [
+        {
+          "hint": "flex-shrink-disabled",
+          "target": "node",
+          "declarations": {
+            "flex-shrink": "1",
+            "min-width": "0"
+          },
+          "reason": "flex-shrink: 0 이라 flex item이 부모 너비에 맞춰 줄어들지 못합니다."
+        },
+        {
+          "hint": "flex-nowrap",
+          "target": "parent",
+          "declarations": {
+            "flex-wrap": "wrap"
+          },
+          "reason": "flex 컨테이너가 줄바꿈 없이 자식 2개를 한 줄에 배치합니다."
+        }
+      ],
+      "detectedAt": "2026-10-13T04:00:52.467Z",
+      "status": "resolved",
+      "firstSeenAt": "2026-10-13T04:03:32.284Z",
+      "lastSeenAt": "2026-10-13T04:03:32.284Z",
+      "occurrences": 1
+    },
+    "d_29d5de03": {
+      "id": "d_29d5de03",
+      "fingerprint": "overflow-x|components/SelectMenu.vue:12:7|768",
+      "kind": "overflow-x",
+      "severity": "low",
+      "url": "http://localhost:5174/camps/c1/schedule",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "node": {
+        "selector": "div.add-row:nth-of-type(1) > div.select-menu.md > button.select-trigger > span.select-chevron:nth-of-type(2)",
+        "tag": "span",
+        "classes": [
+          "select-chevron"
+        ],
+        "source": {
+          "file": "components/SelectMenu.vue",
+          "line": 12,
+          "column": 7,
+          "exact": true
+        },
+        "rect": {
+          "x": 113.9,
+          "y": 351.9,
+          "width": 20,
+          "height": 8.3,
+          "right": 133.9,
+          "bottom": 360.1
+        },
+        "scrollWidth": 8,
+        "clientWidth": 8,
+        "styles": {
+          "display": "block",
+          "box-sizing": "border-box",
+          "flex-shrink": "0",
+          "min-width": "auto"
+        },
+        "childElementCount": 0,
+        "childClasses": [],
+        "text": "›"
+      },
+      "parent": {
+        "selector": "form.card.add-card > div.add-row:nth-of-type(1) > div.select-menu.md > button.select-trigger",
+        "tag": "button",
+        "classes": [
+          "select-trigger"
+        ],
+        "source": {
+          "file": "components/SelectMenu.vue",
+          "line": 3,
+          "column": 5,
+          "exact": true
+        },
+        "rect": {
+          "x": 37,
+          "y": 333,
+          "width": 104,
+          "height": 46,
+          "right": 141,
+          "bottom": 379
+        },
+        "scrollWidth": 102,
+        "clientWidth": 102,
+        "styles": {
+          "display": "flex",
+          "box-sizing": "border-box",
+          "min-width": "0px",
+          "column-gap": "8px",
+          "padding-left": "12px",
+          "padding-right": "12px"
+        },
+        "childElementCount": 2,
+        "childClasses": [
+          "select-value",
+          "select-chevron"
+        ]
+      },
+      "metrics": {
+        "mode": "box",
+        "overflowPx": 5.9,
+        "overflowRatio": 0.1,
+        "parentContentWidth": 78,
+        "nodeWidth": 20
+      },
+      "suggestions": [
+        {
+          "hint": "flex-shrink-disabled",
+          "target": "node",
+          "declarations": {
+            "flex-shrink": "1",
+            "min-width": "0"
+          },
+          "reason": "flex-shrink: 0 이라 flex item이 부모 너비에 맞춰 줄어들지 못합니다."
+        },
+        {
+          "hint": "flex-nowrap",
+          "target": "parent",
+          "declarations": {
+            "flex-wrap": "wrap"
+          },
+          "reason": "flex 컨테이너가 줄바꿈 없이 자식 2개를 한 줄에 배치합니다."
+        }
+      ],
+      "detectedAt": "2026-10-13T04:00:53.949Z",
+      "status": "resolved",
+      "firstSeenAt": "2026-10-13T04:03:32.284Z",
+      "lastSeenAt": "2026-10-13T04:03:32.284Z",
+      "occurrences": 1
+    },
+    "d_11434313": {
+      "id": "d_11434313",
+      "fingerprint": "overflow-x|components/SelectMenu.vue:12:7|1280",
+      "kind": "overflow-x",
+      "severity": "low",
+      "url": "http://localhost:5174/camps/c1/schedule",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "node": {
+        "selector": "div.add-row:nth-of-type(1) > div.select-menu.md > button.select-trigger > span.select-chevron:nth-of-type(2)",
+        "tag": "span",
+        "classes": [
+          "select-chevron"
+        ],
+        "source": {
+          "file": "components/SelectMenu.vue",
+          "line": 12,
+          "column": 7,
+          "exact": true
+        },
+        "rect": {
+          "x": 369.9,
+          "y": 337.4,
+          "width": 20,
+          "height": 8.3,
+          "right": 389.9,
+          "bottom": 345.6
+        },
+        "scrollWidth": 8,
+        "clientWidth": 8,
+        "styles": {
+          "display": "block",
+          "box-sizing": "border-box",
+          "flex-shrink": "0",
+          "min-width": "auto"
+        },
+        "childElementCount": 0,
+        "childClasses": [],
+        "text": "›"
+      },
+      "parent": {
+        "selector": "form.card.add-card > div.add-row:nth-of-type(1) > div.select-menu.md > button.select-trigger",
+        "tag": "button",
+        "classes": [
+          "select-trigger"
+        ],
+        "source": {
+          "file": "components/SelectMenu.vue",
+          "line": 3,
+          "column": 5,
+          "exact": true
+        },
+        "rect": {
+          "x": 293,
+          "y": 318.5,
+          "width": 104,
+          "height": 46,
+          "right": 397,
+          "bottom": 364.5
+        },
+        "scrollWidth": 102,
+        "clientWidth": 102,
+        "styles": {
+          "display": "flex",
+          "box-sizing": "border-box",
+          "min-width": "0px",
+          "column-gap": "8px",
+          "padding-left": "12px",
+          "padding-right": "12px"
+        },
+        "childElementCount": 2,
+        "childClasses": [
+          "select-value",
+          "select-chevron"
+        ]
+      },
+      "metrics": {
+        "mode": "box",
+        "overflowPx": 5.9,
+        "overflowRatio": 0.1,
+        "parentContentWidth": 78,
+        "nodeWidth": 20
+      },
+      "suggestions": [
+        {
+          "hint": "flex-shrink-disabled",
+          "target": "node",
+          "declarations": {
+            "flex-shrink": "1",
+            "min-width": "0"
+          },
+          "reason": "flex-shrink: 0 이라 flex item이 부모 너비에 맞춰 줄어들지 못합니다."
+        },
+        {
+          "hint": "flex-nowrap",
+          "target": "parent",
+          "declarations": {
+            "flex-wrap": "wrap"
+          },
+          "reason": "flex 컨테이너가 줄바꿈 없이 자식 2개를 한 줄에 배치합니다."
+        }
+      ],
+      "detectedAt": "2026-10-13T04:00:55.405Z",
+      "status": "resolved",
+      "firstSeenAt": "2026-10-13T04:03:32.284Z",
+      "lastSeenAt": "2026-10-13T04:03:32.284Z",
+      "occurrences": 1
+    },
+    "d_44f74622": {
+      "id": "d_44f74622",
+      "fingerprint": "overflow-x|components/SelectMenu.vue:12:7|375",
+      "kind": "overflow-x",
+      "severity": "low",
+      "url": "http://localhost:5174/camps/c2/schedule",
+      "viewport": {
+        "width": 375,
+        "height": 812
+      },
+      "node": {
+        "selector": "div.add-row:nth-of-type(1) > div.select-menu.md > button.select-trigger > span.select-chevron:nth-of-type(2)",
+        "tag": "span",
+        "classes": [
+          "select-chevron"
+        ],
+        "source": {
+          "file": "components/SelectMenu.vue",
+          "line": 12,
+          "column": 7,
+          "exact": true
+        },
+        "rect": {
+          "x": 109.9,
+          "y": 351.9,
+          "width": 20,
+          "height": 8.3,
+          "right": 129.9,
+          "bottom": 360.1
+        },
+        "scrollWidth": 8,
+        "clientWidth": 8,
+        "styles": {
+          "display": "block",
+          "box-sizing": "border-box",
+          "flex-shrink": "0",
+          "min-width": "auto"
+        },
+        "childElementCount": 0,
+        "childClasses": [],
+        "text": "›"
+      },
+      "parent": {
+        "selector": "form.card.add-card > div.add-row:nth-of-type(1) > div.select-menu.md > button.select-trigger",
+        "tag": "button",
+        "classes": [
+          "select-trigger"
+        ],
+        "source": {
+          "file": "components/SelectMenu.vue",
+          "line": 3,
+          "column": 5,
+          "exact": true
+        },
+        "rect": {
+          "x": 33,
+          "y": 333,
+          "width": 104,
+          "height": 46,
+          "right": 137,
+          "bottom": 379
+        },
+        "scrollWidth": 102,
+        "clientWidth": 102,
+        "styles": {
+          "display": "flex",
+          "box-sizing": "border-box",
+          "min-width": "0px",
+          "column-gap": "8px",
+          "padding-left": "12px",
+          "padding-right": "12px"
+        },
+        "childElementCount": 2,
+        "childClasses": [
+          "select-value",
+          "select-chevron"
+        ]
+      },
+      "metrics": {
+        "mode": "box",
+        "overflowPx": 5.9,
+        "overflowRatio": 0.1,
+        "parentContentWidth": 78,
+        "nodeWidth": 20
+      },
+      "suggestions": [
+        {
+          "hint": "flex-shrink-disabled",
+          "target": "node",
+          "declarations": {
+            "flex-shrink": "1",
+            "min-width": "0"
+          },
+          "reason": "flex-shrink: 0 이라 flex item이 부모 너비에 맞춰 줄어들지 못합니다."
+        },
+        {
+          "hint": "flex-nowrap",
+          "target": "parent",
+          "declarations": {
+            "flex-wrap": "wrap"
+          },
+          "reason": "flex 컨테이너가 줄바꿈 없이 자식 2개를 한 줄에 배치합니다."
+        }
+      ],
+      "detectedAt": "2026-10-13T04:00:56.899Z",
+      "status": "resolved",
+      "firstSeenAt": "2026-10-13T04:03:32.284Z",
+      "lastSeenAt": "2026-10-13T04:03:32.284Z",
+      "occurrences": 1
+    },
+    "d_7f540dbc": {
+      "id": "d_7f540dbc",
+      "fingerprint": "overflow-x|components/SelectMenu.vue:12:7|768",
+      "kind": "overflow-x",
+      "severity": "low",
+      "url": "http://localhost:5174/camps/c2/schedule",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "node": {
+        "selector": "div.add-row:nth-of-type(1) > div.select-menu.md > button.select-trigger > span.select-chevron:nth-of-type(2)",
+        "tag": "span",
+        "classes": [
+          "select-chevron"
+        ],
+        "source": {
+          "file": "components/SelectMenu.vue",
+          "line": 12,
+          "column": 7,
+          "exact": true
+        },
+        "rect": {
+          "x": 113.9,
+          "y": 351.9,
+          "width": 20,
+          "height": 8.3,
+          "right": 133.9,
+          "bottom": 360.1
+        },
+        "scrollWidth": 8,
+        "clientWidth": 8,
+        "styles": {
+          "display": "block",
+          "box-sizing": "border-box",
+          "flex-shrink": "0",
+          "min-width": "auto"
+        },
+        "childElementCount": 0,
+        "childClasses": [],
+        "text": "›"
+      },
+      "parent": {
+        "selector": "form.card.add-card > div.add-row:nth-of-type(1) > div.select-menu.md > button.select-trigger",
+        "tag": "button",
+        "classes": [
+          "select-trigger"
+        ],
+        "source": {
+          "file": "components/SelectMenu.vue",
+          "line": 3,
+          "column": 5,
+          "exact": true
+        },
+        "rect": {
+          "x": 37,
+          "y": 333,
+          "width": 104,
+          "height": 46,
+          "right": 141,
+          "bottom": 379
+        },
+        "scrollWidth": 102,
+        "clientWidth": 102,
+        "styles": {
+          "display": "flex",
+          "box-sizing": "border-box",
+          "min-width": "0px",
+          "column-gap": "8px",
+          "padding-left": "12px",
+          "padding-right": "12px"
+        },
+        "childElementCount": 2,
+        "childClasses": [
+          "select-value",
+          "select-chevron"
+        ]
+      },
+      "metrics": {
+        "mode": "box",
+        "overflowPx": 5.9,
+        "overflowRatio": 0.1,
+        "parentContentWidth": 78,
+        "nodeWidth": 20
+      },
+      "suggestions": [
+        {
+          "hint": "flex-shrink-disabled",
+          "target": "node",
+          "declarations": {
+            "flex-shrink": "1",
+            "min-width": "0"
+          },
+          "reason": "flex-shrink: 0 이라 flex item이 부모 너비에 맞춰 줄어들지 못합니다."
+        },
+        {
+          "hint": "flex-nowrap",
+          "target": "parent",
+          "declarations": {
+            "flex-wrap": "wrap"
+          },
+          "reason": "flex 컨테이너가 줄바꿈 없이 자식 2개를 한 줄에 배치합니다."
+        }
+      ],
+      "detectedAt": "2026-10-13T04:00:58.364Z",
+      "status": "resolved",
+      "firstSeenAt": "2026-10-13T04:03:32.284Z",
+      "lastSeenAt": "2026-10-13T04:03:32.284Z",
+      "occurrences": 1
+    },
+    "d_7fe895ae": {
+      "id": "d_7fe895ae",
+      "fingerprint": "overflow-x|components/SelectMenu.vue:12:7|1280",
+      "kind": "overflow-x",
+      "severity": "low",
+      "url": "http://localhost:5174/camps/c2/schedule",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "node": {
+        "selector": "div.add-row:nth-of-type(1) > div.select-menu.md > button.select-trigger > span.select-chevron:nth-of-type(2)",
+        "tag": "span",
+        "classes": [
+          "select-chevron"
+        ],
+        "source": {
+          "file": "components/SelectMenu.vue",
+          "line": 12,
+          "column": 7,
+          "exact": true
+        },
+        "rect": {
+          "x": 369.9,
+          "y": 337.4,
+          "width": 20,
+          "height": 8.3,
+          "right": 389.9,
+          "bottom": 345.6
+        },
+        "scrollWidth": 8,
+        "clientWidth": 8,
+        "styles": {
+          "display": "block",
+          "box-sizing": "border-box",
+          "flex-shrink": "0",
+          "min-width": "auto"
+        },
+        "childElementCount": 0,
+        "childClasses": [],
+        "text": "›"
+      },
+      "parent": {
+        "selector": "form.card.add-card > div.add-row:nth-of-type(1) > div.select-menu.md > button.select-trigger",
+        "tag": "button",
+        "classes": [
+          "select-trigger"
+        ],
+        "source": {
+          "file": "components/SelectMenu.vue",
+          "line": 3,
+          "column": 5,
+          "exact": true
+        },
+        "rect": {
+          "x": 293,
+          "y": 318.5,
+          "width": 104,
+          "height": 46,
+          "right": 397,
+          "bottom": 364.5
+        },
+        "scrollWidth": 102,
+        "clientWidth": 102,
+        "styles": {
+          "display": "flex",
+          "box-sizing": "border-box",
+          "min-width": "0px",
+          "column-gap": "8px",
+          "padding-left": "12px",
+          "padding-right": "12px"
+        },
+        "childElementCount": 2,
+        "childClasses": [
+          "select-value",
+          "select-chevron"
+        ]
+      },
+      "metrics": {
+        "mode": "box",
+        "overflowPx": 5.9,
+        "overflowRatio": 0.1,
+        "parentContentWidth": 78,
+        "nodeWidth": 20
+      },
+      "suggestions": [
+        {
+          "hint": "flex-shrink-disabled",
+          "target": "node",
+          "declarations": {
+            "flex-shrink": "1",
+            "min-width": "0"
+          },
+          "reason": "flex-shrink: 0 이라 flex item이 부모 너비에 맞춰 줄어들지 못합니다."
+        },
+        {
+          "hint": "flex-nowrap",
+          "target": "parent",
+          "declarations": {
+            "flex-wrap": "wrap"
+          },
+          "reason": "flex 컨테이너가 줄바꿈 없이 자식 2개를 한 줄에 배치합니다."
+        }
+      ],
+      "detectedAt": "2026-10-13T04:00:59.833Z",
+      "status": "resolved",
+      "firstSeenAt": "2026-10-13T04:03:32.284Z",
+      "lastSeenAt": "2026-10-13T04:03:32.284Z",
+      "occurrences": 1
+    },
+    "d_88b27060": {
+      "id": "d_88b27060",
+      "fingerprint": "overflow-x|pages/camps/[campId]/distribute.vue:18:13|1280",
+      "kind": "overflow-x",
+      "severity": "high",
+      "url": "http://localhost:5174/camps/c1/distribute",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "node": {
+        "selector": "nav.panel.members-panel > ul.member-list > li.member-row:nth-of-type(3) > span.badge:nth-of-type(2)",
+        "tag": "span",
+        "classes": [
+          "badge"
+        ],
+        "source": {
+          "file": "pages/camps/[campId]/distribute.vue",
+          "line": 18,
+          "column": 13,
+          "exact": true
+        },
+        "rect": {
+          "x": 302.1,
+          "y": 381.5,
+          "width": 22,
+          "height": 18,
+          "right": 324.1,
+          "bottom": 399.5
+        },
+        "scrollWidth": 22,
+        "clientWidth": 22,
+        "styles": {
+          "display": "block",
+          "box-sizing": "border-box",
+          "min-width": "22px",
+          "white-space": "nowrap",
+          "padding-left": "6px",
+          "padding-right": "6px"
+        },
+        "childElementCount": 0,
+        "childClasses": [],
+        "text": "2"
+      },
+      "parent": {
+        "selector": "div.board:nth-of-type(2) > nav.panel.members-panel > ul.member-list > li.member-row:nth-of-type(3)",
+        "tag": "li",
+        "classes": [
+          "member-row"
+        ],
+        "source": {
+          "file": "pages/camps/[campId]/distribute.vue",
+          "line": 16,
+          "column": 11,
+          "exact": true
+        },
+        "rect": {
+          "x": 109,
+          "y": 370.5,
+          "width": 154,
+          "height": 40,
+          "right": 263,
+          "bottom": 410.5
+        },
+        "scrollWidth": 214,
+        "clientWidth": 152,
+        "styles": {
+          "display": "flex",
+          "box-sizing": "border-box",
+          "column-gap": "8px",
+          "white-space": "nowrap",
+          "padding-left": "12px",
+          "padding-right": "12px",
+          "min-width": "auto"
+        },
+        "childElementCount": 2,
+        "childClasses": [
+          "name",
+          "badge"
+        ]
+      },
+      "metrics": {
+        "mode": "box",
+        "overflowPx": 74.1,
+        "overflowRatio": 0.6,
+        "parentContentWidth": 128,
+        "nodeWidth": 22
+      },
+      "suggestions": [
+        {
+          "hint": "flex-nowrap",
+          "target": "parent",
+          "declarations": {
+            "flex-wrap": "wrap"
+          },
+          "reason": "flex 컨테이너가 줄바꿈 없이 자식 2개를 한 줄에 배치합니다."
+        },
+        {
+          "hint": "nowrap-text",
+          "target": "node",
+          "declarations": {
+            "overflow": "hidden",
+            "text-overflow": "ellipsis",
+            "white-space": "nowrap",
+            "min-width": "0"
+          },
+          "reason": "white-space: nowrap 텍스트가 줄바꿈 없이 박스를 넘칩니다. 말줄임 처리 또는 white-space: normal 이 필요합니다."
+        }
+      ],
+      "detectedAt": "2026-10-13T04:01:04.400Z",
+      "status": "resolved",
+      "firstSeenAt": "2026-10-13T04:03:32.284Z",
+      "lastSeenAt": "2026-10-13T04:03:32.284Z",
+      "occurrences": 1
+    },
+    "d_5b4d6f15": {
+      "id": "d_5b4d6f15",
+      "fingerprint": "overflow-x|pages/camps/[campId]/distribute.vue:17:13|1280",
+      "kind": "overflow-x",
+      "severity": "high",
+      "url": "http://localhost:5174/camps/c1/distribute",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "node": {
+        "selector": "nav.panel.members-panel > ul.member-list > li.member-row:nth-of-type(3) > span.name:nth-of-type(1)",
+        "tag": "span",
+        "classes": [
+          "name"
+        ],
+        "source": {
+          "file": "pages/camps/[campId]/distribute.vue",
+          "line": 17,
+          "column": 13,
+          "exact": true
+        },
+        "rect": {
+          "x": 122,
+          "y": 378.5,
+          "width": 172.1,
+          "height": 24,
+          "right": 294.1,
+          "bottom": 402.5
+        },
+        "scrollWidth": 172,
+        "clientWidth": 172,
+        "styles": {
+          "display": "block",
+          "box-sizing": "border-box",
+          "white-space": "nowrap",
+          "min-width": "auto"
+        },
+        "childElementCount": 0,
+        "childClasses": [],
+        "text": "Alexandria-Montgomery"
+      },
+      "parent": {
+        "selector": "div.board:nth-of-type(2) > nav.panel.members-panel > ul.member-list > li.member-row:nth-of-type(3)",
+        "tag": "li",
+        "classes": [
+          "member-row"
+        ],
+        "source": {
+          "file": "pages/camps/[campId]/distribute.vue",
+          "line": 16,
+          "column": 11,
+          "exact": true
+        },
+        "rect": {
+          "x": 109,
+          "y": 370.5,
+          "width": 154,
+          "height": 40,
+          "right": 263,
+          "bottom": 410.5
+        },
+        "scrollWidth": 214,
+        "clientWidth": 152,
+        "styles": {
+          "display": "flex",
+          "box-sizing": "border-box",
+          "column-gap": "8px",
+          "white-space": "nowrap",
+          "padding-left": "12px",
+          "padding-right": "12px",
+          "min-width": "auto"
+        },
+        "childElementCount": 2,
+        "childClasses": [
+          "name",
+          "badge"
+        ]
+      },
+      "metrics": {
+        "mode": "box",
+        "overflowPx": 44.1,
+        "overflowRatio": 0.3,
+        "parentContentWidth": 128,
+        "nodeWidth": 172.1
+      },
+      "suggestions": [
+        {
+          "hint": "flex-item-min-width",
+          "target": "node",
+          "declarations": {
+            "min-width": "0"
+          },
+          "reason": "flex item의 min-width 기본값(auto)이 콘텐츠 최소 너비 아래로 줄어드는 것을 막습니다."
+        },
+        {
+          "hint": "flex-nowrap",
+          "target": "parent",
+          "declarations": {
+            "flex-wrap": "wrap"
+          },
+          "reason": "flex 컨테이너가 줄바꿈 없이 자식 2개를 한 줄에 배치합니다."
+        },
+        {
+          "hint": "nowrap-text",
+          "target": "node",
+          "declarations": {
+            "overflow": "hidden",
+            "text-overflow": "ellipsis",
+            "white-space": "nowrap",
+            "min-width": "0"
+          },
+          "reason": "white-space: nowrap 텍스트가 줄바꿈 없이 박스를 넘칩니다. 말줄임 처리 또는 white-space: normal 이 필요합니다."
+        }
+      ],
+      "detectedAt": "2026-10-13T04:01:04.400Z",
+      "status": "resolved",
+      "firstSeenAt": "2026-10-13T04:03:32.284Z",
+      "lastSeenAt": "2026-10-13T04:03:32.284Z",
+      "occurrences": 1
+    },
+    "d_d3d1bd57": {
+      "id": "d_d3d1bd57",
+      "fingerprint": "overflow-x|pages/camps/[campId]/distribute.vue:18:13|1280",
+      "kind": "overflow-x",
+      "severity": "high",
+      "url": "http://localhost:5174/camps/c2/distribute",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "node": {
+        "selector": "nav.panel.members-panel > ul.member-list > li.member-row:nth-of-type(3) > span.badge:nth-of-type(2)",
+        "tag": "span",
+        "classes": [
+          "badge"
+        ],
+        "source": {
+          "file": "pages/camps/[campId]/distribute.vue",
+          "line": 18,
+          "column": 13,
+          "exact": true
+        },
+        "rect": {
+          "x": 302.1,
+          "y": 381.5,
+          "width": 22,
+          "height": 18,
+          "right": 324.1,
+          "bottom": 399.5
+        },
+        "scrollWidth": 22,
+        "clientWidth": 22,
+        "styles": {
+          "display": "block",
+          "box-sizing": "border-box",
+          "min-width": "22px",
+          "white-space": "nowrap",
+          "padding-left": "6px",
+          "padding-right": "6px"
+        },
+        "childElementCount": 0,
+        "childClasses": [],
+        "text": "2"
+      },
+      "parent": {
+        "selector": "div.board:nth-of-type(2) > nav.panel.members-panel > ul.member-list > li.member-row:nth-of-type(3)",
+        "tag": "li",
+        "classes": [
+          "member-row"
+        ],
+        "source": {
+          "file": "pages/camps/[campId]/distribute.vue",
+          "line": 16,
+          "column": 11,
+          "exact": true
+        },
+        "rect": {
+          "x": 109,
+          "y": 370.5,
+          "width": 154,
+          "height": 40,
+          "right": 263,
+          "bottom": 410.5
+        },
+        "scrollWidth": 214,
+        "clientWidth": 152,
+        "styles": {
+          "display": "flex",
+          "box-sizing": "border-box",
+          "column-gap": "8px",
+          "white-space": "nowrap",
+          "padding-left": "12px",
+          "padding-right": "12px",
+          "min-width": "auto"
+        },
+        "childElementCount": 2,
+        "childClasses": [
+          "name",
+          "badge"
+        ]
+      },
+      "metrics": {
+        "mode": "box",
+        "overflowPx": 74.1,
+        "overflowRatio": 0.6,
+        "parentContentWidth": 128,
+        "nodeWidth": 22
+      },
+      "suggestions": [
+        {
+          "hint": "flex-nowrap",
+          "target": "parent",
+          "declarations": {
+            "flex-wrap": "wrap"
+          },
+          "reason": "flex 컨테이너가 줄바꿈 없이 자식 2개를 한 줄에 배치합니다."
+        },
+        {
+          "hint": "nowrap-text",
+          "target": "node",
+          "declarations": {
+            "overflow": "hidden",
+            "text-overflow": "ellipsis",
+            "white-space": "nowrap",
+            "min-width": "0"
+          },
+          "reason": "white-space: nowrap 텍스트가 줄바꿈 없이 박스를 넘칩니다. 말줄임 처리 또는 white-space: normal 이 필요합니다."
+        }
+      ],
+      "detectedAt": "2026-10-13T04:01:08.916Z",
+      "status": "resolved",
+      "firstSeenAt": "2026-10-13T04:03:32.284Z",
+      "lastSeenAt": "2026-10-13T04:03:32.284Z",
+      "occurrences": 1
+    },
+    "d_0322825e": {
+      "id": "d_0322825e",
+      "fingerprint": "overflow-x|pages/camps/[campId]/distribute.vue:17:13|1280",
+      "kind": "overflow-x",
+      "severity": "high",
+      "url": "http://localhost:5174/camps/c2/distribute",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "node": {
+        "selector": "nav.panel.members-panel > ul.member-list > li.member-row:nth-of-type(3) > span.name:nth-of-type(1)",
+        "tag": "span",
+        "classes": [
+          "name"
+        ],
+        "source": {
+          "file": "pages/camps/[campId]/distribute.vue",
+          "line": 17,
+          "column": 13,
+          "exact": true
+        },
+        "rect": {
+          "x": 122,
+          "y": 378.5,
+          "width": 172.1,
+          "height": 24,
+          "right": 294.1,
+          "bottom": 402.5
+        },
+        "scrollWidth": 172,
+        "clientWidth": 172,
+        "styles": {
+          "display": "block",
+          "box-sizing": "border-box",
+          "white-space": "nowrap",
+          "min-width": "auto"
+        },
+        "childElementCount": 0,
+        "childClasses": [],
+        "text": "Alexandria-Montgomery"
+      },
+      "parent": {
+        "selector": "div.board:nth-of-type(2) > nav.panel.members-panel > ul.member-list > li.member-row:nth-of-type(3)",
+        "tag": "li",
+        "classes": [
+          "member-row"
+        ],
+        "source": {
+          "file": "pages/camps/[campId]/distribute.vue",
+          "line": 16,
+          "column": 11,
+          "exact": true
+        },
+        "rect": {
+          "x": 109,
+          "y": 370.5,
+          "width": 154,
+          "height": 40,
+          "right": 263,
+          "bottom": 410.5
+        },
+        "scrollWidth": 214,
+        "clientWidth": 152,
+        "styles": {
+          "display": "flex",
+          "box-sizing": "border-box",
+          "column-gap": "8px",
+          "white-space": "nowrap",
+          "padding-left": "12px",
+          "padding-right": "12px",
+          "min-width": "auto"
+        },
+        "childElementCount": 2,
+        "childClasses": [
+          "name",
+          "badge"
+        ]
+      },
+      "metrics": {
+        "mode": "box",
+        "overflowPx": 44.1,
+        "overflowRatio": 0.3,
+        "parentContentWidth": 128,
+        "nodeWidth": 172.1
+      },
+      "suggestions": [
+        {
+          "hint": "flex-item-min-width",
+          "target": "node",
+          "declarations": {
+            "min-width": "0"
+          },
+          "reason": "flex item의 min-width 기본값(auto)이 콘텐츠 최소 너비 아래로 줄어드는 것을 막습니다."
+        },
+        {
+          "hint": "flex-nowrap",
+          "target": "parent",
+          "declarations": {
+            "flex-wrap": "wrap"
+          },
+          "reason": "flex 컨테이너가 줄바꿈 없이 자식 2개를 한 줄에 배치합니다."
+        },
+        {
+          "hint": "nowrap-text",
+          "target": "node",
+          "declarations": {
+            "overflow": "hidden",
+            "text-overflow": "ellipsis",
+            "white-space": "nowrap",
+            "min-width": "0"
+          },
+          "reason": "white-space: nowrap 텍스트가 줄바꿈 없이 박스를 넘칩니다. 말줄임 처리 또는 white-space: normal 이 필요합니다."
+        }
+      ],
+      "detectedAt": "2026-10-13T04:01:08.916Z",
+      "status": "resolved",
+      "firstSeenAt": "2026-10-13T04:03:32.284Z",
+      "lastSeenAt": "2026-10-13T04:03:32.284Z",
+      "occurrences": 1
+    },
+    "d_06001b54": {
+      "id": "d_06001b54",
+      "fingerprint": "overflow-x|app/pages/camps/[campId]/distribute.vue:18:13|1280",
+      "kind": "overflow-x",
+      "severity": "high",
+      "url": "http://localhost:5174/camps/c1/distribute",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "node": {
+        "selector": "nav.panel.members-panel > ul.member-list > li.member-row:nth-of-type(3) > span.badge:nth-of-type(2)",
+        "tag": "span",
+        "classes": [
+          "badge"
+        ],
+        "source": {
+          "file": "app/pages/camps/[campId]/distribute.vue",
+          "line": 18,
+          "column": 13,
+          "exact": true
+        },
+        "rect": {
+          "x": 302.1,
+          "y": 381.5,
+          "width": 22,
+          "height": 18,
+          "right": 324.1,
+          "bottom": 399.5
+        },
+        "scrollWidth": 22,
+        "clientWidth": 22,
+        "styles": {
+          "display": "block",
+          "box-sizing": "border-box",
+          "min-width": "22px",
+          "white-space": "nowrap",
+          "padding-left": "6px",
+          "padding-right": "6px"
+        },
+        "childElementCount": 0,
+        "childClasses": [],
+        "text": "2"
+      },
+      "parent": {
+        "selector": "div.board:nth-of-type(2) > nav.panel.members-panel > ul.member-list > li.member-row:nth-of-type(3)",
+        "tag": "li",
+        "classes": [
+          "member-row"
+        ],
+        "source": {
+          "file": "app/pages/camps/[campId]/distribute.vue",
+          "line": 16,
+          "column": 11,
+          "exact": true
+        },
+        "rect": {
+          "x": 109,
+          "y": 370.5,
+          "width": 154,
+          "height": 40,
+          "right": 263,
+          "bottom": 410.5
+        },
+        "scrollWidth": 214,
+        "clientWidth": 152,
+        "styles": {
+          "display": "flex",
+          "box-sizing": "border-box",
+          "column-gap": "8px",
+          "white-space": "nowrap",
+          "padding-left": "12px",
+          "padding-right": "12px",
+          "min-width": "auto"
+        },
+        "childElementCount": 2,
+        "childClasses": [
+          "name",
+          "badge"
+        ]
+      },
+      "metrics": {
+        "mode": "box",
+        "overflowPx": 74.1,
+        "overflowRatio": 0.6,
+        "parentContentWidth": 128,
+        "nodeWidth": 22
+      },
+      "suggestions": [
+        {
+          "hint": "flex-nowrap",
+          "target": "parent",
+          "declarations": {
+            "flex-wrap": "wrap"
+          },
+          "reason": "flex 컨테이너가 줄바꿈 없이 자식 2개를 한 줄에 배치합니다."
+        },
+        {
+          "hint": "nowrap-text",
+          "target": "node",
+          "declarations": {
+            "overflow": "hidden",
+            "text-overflow": "ellipsis",
+            "white-space": "nowrap",
+            "min-width": "0"
+          },
+          "reason": "white-space: nowrap 텍스트가 줄바꿈 없이 박스를 넘칩니다. 말줄임 처리 또는 white-space: normal 이 필요합니다."
+        }
+      ],
+      "detectedAt": "2026-10-13T04:12:15.887Z",
+      "status": "open",
+      "firstSeenAt": "2026-10-13T04:12:29.560Z",
+      "lastSeenAt": "2026-10-13T04:12:29.560Z",
+      "occurrences": 1
+    },
+    "d_f8174ac1": {
+      "id": "d_f8174ac1",
+      "fingerprint": "overflow-x|app/pages/camps/[campId]/distribute.vue:17:13|1280",
+      "kind": "overflow-x",
+      "severity": "high",
+      "url": "http://localhost:5174/camps/c1/distribute",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "node": {
+        "selector": "nav.panel.members-panel > ul.member-list > li.member-row:nth-of-type(3) > span.name:nth-of-type(1)",
+        "tag": "span",
+        "classes": [
+          "name"
+        ],
+        "source": {
+          "file": "app/pages/camps/[campId]/distribute.vue",
+          "line": 17,
+          "column": 13,
+          "exact": true
+        },
+        "rect": {
+          "x": 122,
+          "y": 378.5,
+          "width": 172.1,
+          "height": 24,
+          "right": 294.1,
+          "bottom": 402.5
+        },
+        "scrollWidth": 172,
+        "clientWidth": 172,
+        "styles": {
+          "display": "block",
+          "box-sizing": "border-box",
+          "white-space": "nowrap",
+          "min-width": "auto"
+        },
+        "childElementCount": 0,
+        "childClasses": [],
+        "text": "Alexandria-Montgomery"
+      },
+      "parent": {
+        "selector": "div.board:nth-of-type(2) > nav.panel.members-panel > ul.member-list > li.member-row:nth-of-type(3)",
+        "tag": "li",
+        "classes": [
+          "member-row"
+        ],
+        "source": {
+          "file": "app/pages/camps/[campId]/distribute.vue",
+          "line": 16,
+          "column": 11,
+          "exact": true
+        },
+        "rect": {
+          "x": 109,
+          "y": 370.5,
+          "width": 154,
+          "height": 40,
+          "right": 263,
+          "bottom": 410.5
+        },
+        "scrollWidth": 214,
+        "clientWidth": 152,
+        "styles": {
+          "display": "flex",
+          "box-sizing": "border-box",
+          "column-gap": "8px",
+          "white-space": "nowrap",
+          "padding-left": "12px",
+          "padding-right": "12px",
+          "min-width": "auto"
+        },
+        "childElementCount": 2,
+        "childClasses": [
+          "name",
+          "badge"
+        ]
+      },
+      "metrics": {
+        "mode": "box",
+        "overflowPx": 44.1,
+        "overflowRatio": 0.3,
+        "parentContentWidth": 128,
+        "nodeWidth": 172.1
+      },
+      "suggestions": [
+        {
+          "hint": "flex-item-min-width",
+          "target": "node",
+          "declarations": {
+            "min-width": "0"
+          },
+          "reason": "flex item의 min-width 기본값(auto)이 콘텐츠 최소 너비 아래로 줄어드는 것을 막습니다."
+        },
+        {
+          "hint": "flex-nowrap",
+          "target": "parent",
+          "declarations": {
+            "flex-wrap": "wrap"
+          },
+          "reason": "flex 컨테이너가 줄바꿈 없이 자식 2개를 한 줄에 배치합니다."
+        },
+        {
+          "hint": "nowrap-text",
+          "target": "node",
+          "declarations": {
+            "overflow": "hidden",
+            "text-overflow": "ellipsis",
+            "white-space": "nowrap",
+            "min-width": "0"
+          },
+          "reason": "white-space: nowrap 텍스트가 줄바꿈 없이 박스를 넘칩니다. 말줄임 처리 또는 white-space: normal 이 필요합니다."
+        }
+      ],
+      "detectedAt": "2026-10-13T04:12:15.887Z",
+      "status": "open",
+      "firstSeenAt": "2026-10-13T04:12:29.560Z",
+      "lastSeenAt": "2026-10-13T04:12:29.560Z",
+      "occurrences": 1
+    },
+    "d_a6ce54cf": {
+      "id": "d_a6ce54cf",
+      "fingerprint": "overflow-x|app/pages/camps/[campId]/distribute.vue:18:13|1280",
+      "kind": "overflow-x",
+      "severity": "high",
+      "url": "http://localhost:5174/camps/c2/distribute",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "node": {
+        "selector": "nav.panel.members-panel > ul.member-list > li.member-row:nth-of-type(3) > span.badge:nth-of-type(2)",
+        "tag": "span",
+        "classes": [
+          "badge"
+        ],
+        "source": {
+          "file": "app/pages/camps/[campId]/distribute.vue",
+          "line": 18,
+          "column": 13,
+          "exact": true
+        },
+        "rect": {
+          "x": 302.1,
+          "y": 381.5,
+          "width": 22,
+          "height": 18,
+          "right": 324.1,
+          "bottom": 399.5
+        },
+        "scrollWidth": 22,
+        "clientWidth": 22,
+        "styles": {
+          "display": "block",
+          "box-sizing": "border-box",
+          "min-width": "22px",
+          "white-space": "nowrap",
+          "padding-left": "6px",
+          "padding-right": "6px"
+        },
+        "childElementCount": 0,
+        "childClasses": [],
+        "text": "2"
+      },
+      "parent": {
+        "selector": "div.board:nth-of-type(2) > nav.panel.members-panel > ul.member-list > li.member-row:nth-of-type(3)",
+        "tag": "li",
+        "classes": [
+          "member-row"
+        ],
+        "source": {
+          "file": "app/pages/camps/[campId]/distribute.vue",
+          "line": 16,
+          "column": 11,
+          "exact": true
+        },
+        "rect": {
+          "x": 109,
+          "y": 370.5,
+          "width": 154,
+          "height": 40,
+          "right": 263,
+          "bottom": 410.5
+        },
+        "scrollWidth": 214,
+        "clientWidth": 152,
+        "styles": {
+          "display": "flex",
+          "box-sizing": "border-box",
+          "column-gap": "8px",
+          "white-space": "nowrap",
+          "padding-left": "12px",
+          "padding-right": "12px",
+          "min-width": "auto"
+        },
+        "childElementCount": 2,
+        "childClasses": [
+          "name",
+          "badge"
+        ]
+      },
+      "metrics": {
+        "mode": "box",
+        "overflowPx": 74.1,
+        "overflowRatio": 0.6,
+        "parentContentWidth": 128,
+        "nodeWidth": 22
+      },
+      "suggestions": [
+        {
+          "hint": "flex-nowrap",
+          "target": "parent",
+          "declarations": {
+            "flex-wrap": "wrap"
+          },
+          "reason": "flex 컨테이너가 줄바꿈 없이 자식 2개를 한 줄에 배치합니다."
+        },
+        {
+          "hint": "nowrap-text",
+          "target": "node",
+          "declarations": {
+            "overflow": "hidden",
+            "text-overflow": "ellipsis",
+            "white-space": "nowrap",
+            "min-width": "0"
+          },
+          "reason": "white-space: nowrap 텍스트가 줄바꿈 없이 박스를 넘칩니다. 말줄임 처리 또는 white-space: normal 이 필요합니다."
+        }
+      ],
+      "detectedAt": "2026-10-13T04:12:20.351Z",
+      "status": "open",
+      "firstSeenAt": "2026-10-13T04:12:29.560Z",
+      "lastSeenAt": "2026-10-13T04:12:29.560Z",
+      "occurrences": 1
+    },
+    "d_6cec8126": {
+      "id": "d_6cec8126",
+      "fingerprint": "overflow-x|app/pages/camps/[campId]/distribute.vue:17:13|1280",
+      "kind": "overflow-x",
+      "severity": "high",
+      "url": "http://localhost:5174/camps/c2/distribute",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "node": {
+        "selector": "nav.panel.members-panel > ul.member-list > li.member-row:nth-of-type(3) > span.name:nth-of-type(1)",
+        "tag": "span",
+        "classes": [
+          "name"
+        ],
+        "source": {
+          "file": "app/pages/camps/[campId]/distribute.vue",
+          "line": 17,
+          "column": 13,
+          "exact": true
+        },
+        "rect": {
+          "x": 122,
+          "y": 378.5,
+          "width": 172.1,
+          "height": 24,
+          "right": 294.1,
+          "bottom": 402.5
+        },
+        "scrollWidth": 172,
+        "clientWidth": 172,
+        "styles": {
+          "display": "block",
+          "box-sizing": "border-box",
+          "white-space": "nowrap",
+          "min-width": "auto"
+        },
+        "childElementCount": 0,
+        "childClasses": [],
+        "text": "Alexandria-Montgomery"
+      },
+      "parent": {
+        "selector": "div.board:nth-of-type(2) > nav.panel.members-panel > ul.member-list > li.member-row:nth-of-type(3)",
+        "tag": "li",
+        "classes": [
+          "member-row"
+        ],
+        "source": {
+          "file": "app/pages/camps/[campId]/distribute.vue",
+          "line": 16,
+          "column": 11,
+          "exact": true
+        },
+        "rect": {
+          "x": 109,
+          "y": 370.5,
+          "width": 154,
+          "height": 40,
+          "right": 263,
+          "bottom": 410.5
+        },
+        "scrollWidth": 214,
+        "clientWidth": 152,
+        "styles": {
+          "display": "flex",
+          "box-sizing": "border-box",
+          "column-gap": "8px",
+          "white-space": "nowrap",
+          "padding-left": "12px",
+          "padding-right": "12px",
+          "min-width": "auto"
+        },
+        "childElementCount": 2,
+        "childClasses": [
+          "name",
+          "badge"
+        ]
+      },
+      "metrics": {
+        "mode": "box",
+        "overflowPx": 44.1,
+        "overflowRatio": 0.3,
+        "parentContentWidth": 128,
+        "nodeWidth": 172.1
+      },
+      "suggestions": [
+        {
+          "hint": "flex-item-min-width",
+          "target": "node",
+          "declarations": {
+            "min-width": "0"
+          },
+          "reason": "flex item의 min-width 기본값(auto)이 콘텐츠 최소 너비 아래로 줄어드는 것을 막습니다."
+        },
+        {
+          "hint": "flex-nowrap",
+          "target": "parent",
+          "declarations": {
+            "flex-wrap": "wrap"
+          },
+          "reason": "flex 컨테이너가 줄바꿈 없이 자식 2개를 한 줄에 배치합니다."
+        },
+        {
+          "hint": "nowrap-text",
+          "target": "node",
+          "declarations": {
+            "overflow": "hidden",
+            "text-overflow": "ellipsis",
+            "white-space": "nowrap",
+            "min-width": "0"
+          },
+          "reason": "white-space: nowrap 텍스트가 줄바꿈 없이 박스를 넘칩니다. 말줄임 처리 또는 white-space: normal 이 필요합니다."
+        }
+      ],
+      "detectedAt": "2026-10-13T04:12:20.351Z",
+      "status": "open",
+      "firstSeenAt": "2026-10-13T04:12:29.560Z",
+      "lastSeenAt": "2026-10-13T04:12:29.560Z",
+      "occurrences": 1
+    }
+  },
+  "patches": {},
+  "baselines": {
+    "http://localhost:5174/|375": [],
+    "http://localhost:5174/|768": [],
+    "http://localhost:5174/|1280": [],
+    "http://localhost:5174/gear|375": [],
+    "http://localhost:5174/gear|768": [],
+    "http://localhost:5174/gear|1280": [],
+    "http://localhost:5174/camps/past|375": [],
+    "http://localhost:5174/camps/past|768": [],
+    "http://localhost:5174/camps/past|1280": [],
+    "http://localhost:5174/camps/c1/info|375": [],
+    "http://localhost:5174/camps/c1/info|768": [],
+    "http://localhost:5174/camps/c1/info|1280": [],
+    "http://localhost:5174/camps/c2/info|375": [],
+    "http://localhost:5174/camps/c2/info|768": [],
+    "http://localhost:5174/camps/c2/info|1280": [],
+    "http://localhost:5174/camps/c1/members|375": [],
+    "http://localhost:5174/camps/c1/members|768": [],
+    "http://localhost:5174/camps/c1/members|1280": [],
+    "http://localhost:5174/camps/c2/members|375": [],
+    "http://localhost:5174/camps/c2/members|768": [],
+    "http://localhost:5174/camps/c2/members|1280": [],
+    "http://localhost:5174/camps/c1/schedule|375": [],
+    "http://localhost:5174/camps/c1/schedule|768": [],
+    "http://localhost:5174/camps/c1/schedule|1280": [],
+    "http://localhost:5174/camps/c2/schedule|375": [],
+    "http://localhost:5174/camps/c2/schedule|768": [],
+    "http://localhost:5174/camps/c2/schedule|1280": [],
+    "http://localhost:5174/camps/c1/distribute|375": [],
+    "http://localhost:5174/camps/c1/distribute|768": [],
+    "http://localhost:5174/camps/c1/distribute|1280": [
+      {
+        "id": "d_06001b54",
+        "fingerprint": "overflow-x|app/pages/camps/[campId]/distribute.vue:18:13|1280",
+        "kind": "overflow-x",
+        "severity": "high",
+        "url": "http://localhost:5174/camps/c1/distribute",
+        "viewport": {
+          "width": 1280,
+          "height": 800
+        },
+        "node": {
+          "selector": "nav.panel.members-panel > ul.member-list > li.member-row:nth-of-type(3) > span.badge:nth-of-type(2)",
+          "tag": "span",
+          "classes": [
+            "badge"
+          ],
+          "source": {
+            "file": "app/pages/camps/[campId]/distribute.vue",
+            "line": 18,
+            "column": 13,
+            "exact": true
+          },
+          "rect": {
+            "x": 302.1,
+            "y": 381.5,
+            "width": 22,
+            "height": 18,
+            "right": 324.1,
+            "bottom": 399.5
+          },
+          "scrollWidth": 22,
+          "clientWidth": 22,
+          "styles": {
+            "display": "block",
+            "box-sizing": "border-box",
+            "min-width": "22px",
+            "white-space": "nowrap",
+            "padding-left": "6px",
+            "padding-right": "6px"
+          },
+          "childElementCount": 0,
+          "childClasses": [],
+          "text": "2"
+        },
+        "parent": {
+          "selector": "div.board:nth-of-type(2) > nav.panel.members-panel > ul.member-list > li.member-row:nth-of-type(3)",
+          "tag": "li",
+          "classes": [
+            "member-row"
+          ],
+          "source": {
+            "file": "app/pages/camps/[campId]/distribute.vue",
+            "line": 16,
+            "column": 11,
+            "exact": true
+          },
+          "rect": {
+            "x": 109,
+            "y": 370.5,
+            "width": 154,
+            "height": 40,
+            "right": 263,
+            "bottom": 410.5
+          },
+          "scrollWidth": 214,
+          "clientWidth": 152,
+          "styles": {
+            "display": "flex",
+            "box-sizing": "border-box",
+            "column-gap": "8px",
+            "white-space": "nowrap",
+            "padding-left": "12px",
+            "padding-right": "12px",
+            "min-width": "auto"
+          },
+          "childElementCount": 2,
+          "childClasses": [
+            "name",
+            "badge"
+          ]
+        },
+        "metrics": {
+          "mode": "box",
+          "overflowPx": 74.1,
+          "overflowRatio": 0.6,
+          "parentContentWidth": 128,
+          "nodeWidth": 22
+        },
+        "suggestions": [
+          {
+            "hint": "flex-nowrap",
+            "target": "parent",
+            "declarations": {
+              "flex-wrap": "wrap"
+            },
+            "reason": "flex 컨테이너가 줄바꿈 없이 자식 2개를 한 줄에 배치합니다."
+          },
+          {
+            "hint": "nowrap-text",
+            "target": "node",
+            "declarations": {
+              "overflow": "hidden",
+              "text-overflow": "ellipsis",
+              "white-space": "nowrap",
+              "min-width": "0"
+            },
+            "reason": "white-space: nowrap 텍스트가 줄바꿈 없이 박스를 넘칩니다. 말줄임 처리 또는 white-space: normal 이 필요합니다."
+          }
+        ],
+        "detectedAt": "2026-10-13T04:12:15.887Z"
+      },
+      {
+        "id": "d_f8174ac1",
+        "fingerprint": "overflow-x|app/pages/camps/[campId]/distribute.vue:17:13|1280",
+        "kind": "overflow-x",
+        "severity": "high",
+        "url": "http://localhost:5174/camps/c1/distribute",
+        "viewport": {
+          "width": 1280,
+          "height": 800
+        },
+        "node": {
+          "selector": "nav.panel.members-panel > ul.member-list > li.member-row:nth-of-type(3) > span.name:nth-of-type(1)",
+          "tag": "span",
+          "classes": [
+            "name"
+          ],
+          "source": {
+            "file": "app/pages/camps/[campId]/distribute.vue",
+            "line": 17,
+            "column": 13,
+            "exact": true
+          },
+          "rect": {
+            "x": 122,
+            "y": 378.5,
+            "width": 172.1,
+            "height": 24,
+            "right": 294.1,
+            "bottom": 402.5
+          },
+          "scrollWidth": 172,
+          "clientWidth": 172,
+          "styles": {
+            "display": "block",
+            "box-sizing": "border-box",
+            "white-space": "nowrap",
+            "min-width": "auto"
+          },
+          "childElementCount": 0,
+          "childClasses": [],
+          "text": "Alexandria-Montgomery"
+        },
+        "parent": {
+          "selector": "div.board:nth-of-type(2) > nav.panel.members-panel > ul.member-list > li.member-row:nth-of-type(3)",
+          "tag": "li",
+          "classes": [
+            "member-row"
+          ],
+          "source": {
+            "file": "app/pages/camps/[campId]/distribute.vue",
+            "line": 16,
+            "column": 11,
+            "exact": true
+          },
+          "rect": {
+            "x": 109,
+            "y": 370.5,
+            "width": 154,
+            "height": 40,
+            "right": 263,
+            "bottom": 410.5
+          },
+          "scrollWidth": 214,
+          "clientWidth": 152,
+          "styles": {
+            "display": "flex",
+            "box-sizing": "border-box",
+            "column-gap": "8px",
+            "white-space": "nowrap",
+            "padding-left": "12px",
+            "padding-right": "12px",
+            "min-width": "auto"
+          },
+          "childElementCount": 2,
+          "childClasses": [
+            "name",
+            "badge"
+          ]
+        },
+        "metrics": {
+          "mode": "box",
+          "overflowPx": 44.1,
+          "overflowRatio": 0.3,
+          "parentContentWidth": 128,
+          "nodeWidth": 172.1
+        },
+        "suggestions": [
+          {
+            "hint": "flex-item-min-width",
+            "target": "node",
+            "declarations": {
+              "min-width": "0"
+            },
+            "reason": "flex item의 min-width 기본값(auto)이 콘텐츠 최소 너비 아래로 줄어드는 것을 막습니다."
+          },
+          {
+            "hint": "flex-nowrap",
+            "target": "parent",
+            "declarations": {
+              "flex-wrap": "wrap"
+            },
+            "reason": "flex 컨테이너가 줄바꿈 없이 자식 2개를 한 줄에 배치합니다."
+          },
+          {
+            "hint": "nowrap-text",
+            "target": "node",
+            "declarations": {
+              "overflow": "hidden",
+              "text-overflow": "ellipsis",
+              "white-space": "nowrap",
+              "min-width": "0"
+            },
+            "reason": "white-space: nowrap 텍스트가 줄바꿈 없이 박스를 넘칩니다. 말줄임 처리 또는 white-space: normal 이 필요합니다."
+          }
+        ],
+        "detectedAt": "2026-10-13T04:12:15.887Z"
+      }
+    ],
+    "http://localhost:5174/camps/c2/distribute|375": [],
+    "http://localhost:5174/camps/c2/distribute|768": [],
+    "http://localhost:5174/camps/c2/distribute|1280": [
+      {
+        "id": "d_a6ce54cf",
+        "fingerprint": "overflow-x|app/pages/camps/[campId]/distribute.vue:18:13|1280",
+        "kind": "overflow-x",
+        "severity": "high",
+        "url": "http://localhost:5174/camps/c2/distribute",
+        "viewport": {
+          "width": 1280,
+          "height": 800
+        },
+        "node": {
+          "selector": "nav.panel.members-panel > ul.member-list > li.member-row:nth-of-type(3) > span.badge:nth-of-type(2)",
+          "tag": "span",
+          "classes": [
+            "badge"
+          ],
+          "source": {
+            "file": "app/pages/camps/[campId]/distribute.vue",
+            "line": 18,
+            "column": 13,
+            "exact": true
+          },
+          "rect": {
+            "x": 302.1,
+            "y": 381.5,
+            "width": 22,
+            "height": 18,
+            "right": 324.1,
+            "bottom": 399.5
+          },
+          "scrollWidth": 22,
+          "clientWidth": 22,
+          "styles": {
+            "display": "block",
+            "box-sizing": "border-box",
+            "min-width": "22px",
+            "white-space": "nowrap",
+            "padding-left": "6px",
+            "padding-right": "6px"
+          },
+          "childElementCount": 0,
+          "childClasses": [],
+          "text": "2"
+        },
+        "parent": {
+          "selector": "div.board:nth-of-type(2) > nav.panel.members-panel > ul.member-list > li.member-row:nth-of-type(3)",
+          "tag": "li",
+          "classes": [
+            "member-row"
+          ],
+          "source": {
+            "file": "app/pages/camps/[campId]/distribute.vue",
+            "line": 16,
+            "column": 11,
+            "exact": true
+          },
+          "rect": {
+            "x": 109,
+            "y": 370.5,
+            "width": 154,
+            "height": 40,
+            "right": 263,
+            "bottom": 410.5
+          },
+          "scrollWidth": 214,
+          "clientWidth": 152,
+          "styles": {
+            "display": "flex",
+            "box-sizing": "border-box",
+            "column-gap": "8px",
+            "white-space": "nowrap",
+            "padding-left": "12px",
+            "padding-right": "12px",
+            "min-width": "auto"
+          },
+          "childElementCount": 2,
+          "childClasses": [
+            "name",
+            "badge"
+          ]
+        },
+        "metrics": {
+          "mode": "box",
+          "overflowPx": 74.1,
+          "overflowRatio": 0.6,
+          "parentContentWidth": 128,
+          "nodeWidth": 22
+        },
+        "suggestions": [
+          {
+            "hint": "flex-nowrap",
+            "target": "parent",
+            "declarations": {
+              "flex-wrap": "wrap"
+            },
+            "reason": "flex 컨테이너가 줄바꿈 없이 자식 2개를 한 줄에 배치합니다."
+          },
+          {
+            "hint": "nowrap-text",
+            "target": "node",
+            "declarations": {
+              "overflow": "hidden",
+              "text-overflow": "ellipsis",
+              "white-space": "nowrap",
+              "min-width": "0"
+            },
+            "reason": "white-space: nowrap 텍스트가 줄바꿈 없이 박스를 넘칩니다. 말줄임 처리 또는 white-space: normal 이 필요합니다."
+          }
+        ],
+        "detectedAt": "2026-10-13T04:12:20.351Z"
+      },
+      {
+        "id": "d_6cec8126",
+        "fingerprint": "overflow-x|app/pages/camps/[campId]/distribute.vue:17:13|1280",
+        "kind": "overflow-x",
+        "severity": "high",
+        "url": "http://localhost:5174/camps/c2/distribute",
+        "viewport": {
+          "width": 1280,
+          "height": 800
+        },
+        "node": {
+          "selector": "nav.panel.members-panel > ul.member-list > li.member-row:nth-of-type(3) > span.name:nth-of-type(1)",
+          "tag": "span",
+          "classes": [
+            "name"
+          ],
+          "source": {
+            "file": "app/pages/camps/[campId]/distribute.vue",
+            "line": 17,
+            "column": 13,
+            "exact": true
+          },
+          "rect": {
+            "x": 122,
+            "y": 378.5,
+            "width": 172.1,
+            "height": 24,
+            "right": 294.1,
+            "bottom": 402.5
+          },
+          "scrollWidth": 172,
+          "clientWidth": 172,
+          "styles": {
+            "display": "block",
+            "box-sizing": "border-box",
+            "white-space": "nowrap",
+            "min-width": "auto"
+          },
+          "childElementCount": 0,
+          "childClasses": [],
+          "text": "Alexandria-Montgomery"
+        },
+        "parent": {
+          "selector": "div.board:nth-of-type(2) > nav.panel.members-panel > ul.member-list > li.member-row:nth-of-type(3)",
+          "tag": "li",
+          "classes": [
+            "member-row"
+          ],
+          "source": {
+            "file": "app/pages/camps/[campId]/distribute.vue",
+            "line": 16,
+            "column": 11,
+            "exact": true
+          },
+          "rect": {
+            "x": 109,
+            "y": 370.5,
+            "width": 154,
+            "height": 40,
+            "right": 263,
+            "bottom": 410.5
+          },
+          "scrollWidth": 214,
+          "clientWidth": 152,
+          "styles": {
+            "display": "flex",
+            "box-sizing": "border-box",
+            "column-gap": "8px",
+            "white-space": "nowrap",
+            "padding-left": "12px",
+            "padding-right": "12px",
+            "min-width": "auto"
+          },
+          "childElementCount": 2,
+          "childClasses": [
+            "name",
+            "badge"
+          ]
+        },
+        "metrics": {
+          "mode": "box",
+          "overflowPx": 44.1,
+          "overflowRatio": 0.3,
+          "parentContentWidth": 128,
+          "nodeWidth": 172.1
+        },
+        "suggestions": [
+          {
+            "hint": "flex-item-min-width",
+            "target": "node",
+            "declarations": {
+              "min-width": "0"
+            },
+            "reason": "flex item의 min-width 기본값(auto)이 콘텐츠 최소 너비 아래로 줄어드는 것을 막습니다."
+          },
+          {
+            "hint": "flex-nowrap",
+            "target": "parent",
+            "declarations": {
+              "flex-wrap": "wrap"
+            },
+            "reason": "flex 컨테이너가 줄바꿈 없이 자식 2개를 한 줄에 배치합니다."
+          },
+          {
+            "hint": "nowrap-text",
+            "target": "node",
+            "declarations": {
+              "overflow": "hidden",
+              "text-overflow": "ellipsis",
+              "white-space": "nowrap",
+              "min-width": "0"
+            },
+            "reason": "white-space: nowrap 텍스트가 줄바꿈 없이 박스를 넘칩니다. 말줄임 처리 또는 white-space: normal 이 필요합니다."
+          }
+        ],
+        "detectedAt": "2026-10-13T04:12:20.351Z"
+      }
+    ],
+    "http://localhost:5174/camps/c1/result|375": [],
+    "http://localhost:5174/camps/c1/result|768": [],
+    "http://localhost:5174/camps/c1/result|1280": [],
+    "http://localhost:5174/camps/c2/result|375": [],
+    "http://localhost:5174/camps/c2/result|768": [],
+    "http://localhost:5174/camps/c2/result|1280": []
+  },
+  "lastScanAt": "2026-10-13T04:12:29.560Z"
+}

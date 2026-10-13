@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { NodeSnapshot } from '@inspector-agent/core'
-import type { DefectSummary, PatchResponse } from '../src/dashboard-client'
+import type { DefectListItem, DefectSummary, PatchResponse } from '../src/dashboard-client'
 import { formatDefectList, formatPatch } from '../src/format'
 
 const snapshot = (selector: string): NodeSnapshot => ({
@@ -61,14 +61,32 @@ const focusEscape: DefectSummary = {
 
 describe('formatDefectList', () => {
   it('오버플로우는 px, 가려짐은 비율과 원인으로 한 줄씩 요약한다', () => {
-    const lines = formatDefectList([overflow, occluded]).split('\n')
+    const lines = formatDefectList([{ ...overflow, urls: ['/'] }, { ...occluded, urls: ['/'] }]).split('\n')
     expect(lines[0]).toContain('box +232px')
     expect(lines[1]).toContain('가려짐 100% (stacking-context)')
     expect(lines[1]).toContain('hints=stacking-context-trap')
   })
 
   it('포커스 이탈은 방향과 hint 로 요약한다', () => {
-    expect(formatDefectList([focusEscape])).toContain('포커스 이탈 (Tab 2번째) hints=focus-trap-missing')
+    expect(formatDefectList([{ ...focusEscape, urls: ['/'] }])).toContain('포커스 이탈 (Tab 2번째) hints=focus-trap-missing urls=/')
+  })
+})
+
+describe('formatDefectList (URL 그룹, 연쇄 결함)', () => {
+  it('같은 위치의 결함은 한 줄로 두고 발생 URL 을 모두 보여 주며, 많으면 줄인다', () => {
+    const urls = ['/a', '/b', '/c', '/d', '/e', '/f', '/g']
+    const line = formatDefectList([{ ...overflow, urls }])
+    expect(line).toContain('urls=/a,/b,/c,/d,/e,+2')
+    expect(line.split('\n')).toHaveLength(1)
+  })
+
+  it('연쇄 결함이 있으면 건수를 함께 보여 준다', () => {
+    const cascading: DefectListItem = {
+      ...overflow,
+      metrics: { ...(overflow.metrics as Extract<DefectSummary['metrics'], { kind: 'overflow-x' }>), cascaded: [{ selector: 'span.badge', overflowPx: 74 }] },
+      urls: ['/']
+    }
+    expect(formatDefectList([cascading])).toContain('box +232px · 연쇄 1건')
   })
 })
 

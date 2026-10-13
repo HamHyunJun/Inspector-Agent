@@ -1,5 +1,5 @@
 import { formatMagnitude } from '@inspector-agent/core'
-import type { DefectContextResponse, DefectSummary, PatchResponse } from './dashboard-client'
+import type { DefectContextResponse, DefectListItem, PatchResponse } from './dashboard-client'
 
 /** MCP 응답 텍스트 포맷터. 에이전트가 읽기 쉬우면서 토큰을 아끼는 형태를 유지한다 */
 
@@ -15,13 +15,17 @@ const formatRules = (title: string, rules: Rule[]): string => {
   return `${title}:\n${lines.join('\n')}`
 }
 
-export const formatDefectList = (defects: DefectSummary[]): string => {
+const MAX_LISTED_URLS = 5
+
+export const formatDefectList = (defects: DefectListItem[]): string => {
   if (defects.length === 0) return '조건에 맞는 결함이 없습니다.'
   return defects
     .map((defect): string => {
       const source = defect.node.source ? `${defect.node.source.file}:${defect.node.source.line}` : defect.node.selector
       const hints = defect.suggestions.map((suggestion): string => suggestion.hint).join(',') || '-'
-      return `${defect.id} [${defect.severity}/${defect.status}] ${source} @${defect.viewport.width}px ${formatMagnitude(defect)} hints=${hints}`
+      const listed = defect.urls.slice(0, MAX_LISTED_URLS).join(',')
+      const more = defect.urls.length > MAX_LISTED_URLS ? `,+${defect.urls.length - MAX_LISTED_URLS}` : ''
+      return `${defect.id} [${defect.severity}/${defect.status}] ${source} @${defect.viewport.width}px ${formatMagnitude(defect)} hints=${hints} urls=${listed}${more}`
     })
     .join('\n')
 }
@@ -32,7 +36,7 @@ export const formatContext = (context: DefectContextResponse): string => {
     context.payload.summary,
     '',
     '## 런타임 페이로드',
-    JSON.stringify({ node: context.payload.node, parent: context.payload.parent, occlusion: context.payload.occlusion, focus: context.payload.focus, suggestions: context.payload.suggestions }),
+    JSON.stringify({ node: context.payload.node, parent: context.payload.parent, occlusion: context.payload.occlusion, focus: context.payload.focus, cascaded: context.payload.cascaded, suggestions: context.payload.suggestions }),
     '',
     `## 소스 (${context.file ?? '소스 위치 없음'})`
   ]

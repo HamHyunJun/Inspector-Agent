@@ -91,7 +91,7 @@ flowchart LR
 | `packages/mcp-server` | stdio MCP 서버: `scan_page`, `list_defects`, `get_defect_context`, `propose_patch`, `get_patch_status` (+ 자율 모드 `apply_patch`) |
 | `packages/extension` | Chrome 확장 (MV3). 현재 탭의 실제 뷰포트에서 탐지해 대시보드로 전송 |
 | `apps/dashboard` | Nuxt 4 대시보드. 결함 현황, 소스 매핑, 에이전트 컨텍스트, Diff 검토, 적용/롤백 |
-| `apps/playground` | 정답 결함 8건(오버플로우 4, 가려짐 3, 포커스 이탈 1)과 정상 대조군 5건을 심어 둔 Vue 3 데모 앱 (벤치마크 대상) |
+| `apps/playground` | 정답 결함 9건(오버플로우 5, 가려짐 3, 포커스 이탈 1), 시나리오로만 보이는 정답 2건(클릭해야 열리는 메뉴, 시드가 있어야 그려지는 요소), 정상 대조군 6건을 심어 둔 Vue 3 데모 앱 (벤치마크 대상) |
 | `apps/playground-nuxt` | Nuxt 4(`app/`, layouts, 자동 import 컴포넌트)에서 `data-ia-src` 매핑이 맞는지 확인하는 최소 앱 |
 | `benchmarks` | 탐지·매핑·토큰·자가 치유 벤치마크 |
 
@@ -109,7 +109,7 @@ pnpm dev:playground        # http://localhost:5173  결함이 심어진 데모 �
 pnpm dev:dashboard         # http://localhost:3000  대시보드 (기본 패치 대상: apps/playground)
 ```
 
-대시보드에서 **스캔 실행**을 누르면 375px에서 결함 8건(오버플로우 4, 가려짐 3, 포커스 이탈 1)이 나타나고 768/1280px 에서는 0건입니다. 결함을 열어 소스 매핑을 확인하고, 규칙 기반 제안이나 에이전트 패치를 **적용하고 검증**해 보세요. 내 프로젝트에 붙여 매일 쓰는 방법은 [5. 운영 가이드](#5-운영-가이드)에 있습니다.
+대시보드에서 **스캔 실행**을 누르면 375px에서 결함 9건(오버플로우 5, 가려짐 3, 포커스 이탈 1)이 나타나고 768/1280px 에서는 0건입니다. 결함을 열어 소스 매핑을 확인하고, 규칙 기반 제안이나 에이전트 패치를 **적용하고 검증**해 보세요. 내 프로젝트에 붙여 매일 쓰는 방법은 [5. 운영 가이드](#5-운영-가이드)에 있습니다.
 
 ### Claude Code 연결
 
@@ -145,6 +145,7 @@ INSPECTOR_PROJECT_ROOT=/path/to/my-app pnpm dev:dashboard
 | `INSPECTOR_CHROMIUM_PATH` | Playwright 기본 | 헤드리스 Chromium 실행 파일 |
 | `INSPECTOR_DASHBOARD_URL` | `http://localhost:3000` | MCP 서버가 호출할 대시보드 주소 |
 | `INSPECTOR_ALLOW_AGENT_APPLY` | 미설정 | `1`이면 MCP에 `apply_patch` 노출 (자율 모드) |
+| `INSPECTOR_ALLOWED_HOSTS` | 미설정 | 대시보드는 `localhost`/`127.0.0.1`/`[::1]` 로 들어온 요청만 받습니다. 다른 호스트 이름으로 열 때 쉼표로 추가 |
 
 Chrome 확장은 `packages/extension/dist`를 `chrome://extensions` → **압축해제된 확장 프로그램 로드**로 불러옵니다.
 
@@ -223,8 +224,8 @@ pnpm dev:dashboard                      # http://localhost:3000
 ### 5.3 일상 운영 루프
 
 1. **켜기**: 내 앱 개발 서버, 대시보드(터미널 2개). Claude Code 를 쓰면 MCP 서버는 자동으로 뜹니다.
-2. **스캔**: 화면을 만들거나 고친 뒤 스캔합니다(방법은 5.6). 기본 뷰포트는 375/768/1280px 이고, 같은 결함도 뷰포트·URL 마다 별개로 기록됩니다.
-3. **우선순위 정하기**: 대시보드 목록은 심각도 순입니다. 먼저 `high`(24px 이상 넘침, 페이지 가로 스크롤 유발, 가려짐 80% 이상, 포커스 이탈)를 처리하고, 같은 컴포넌트에서 나온 중복(뷰포트별, URL별)은 한 번 고치면 같이 사라집니다.
+2. **스캔**: 화면을 만들거나 고친 뒤 스캔합니다(방법은 5.6). 기본 뷰포트는 375/768/1280px 입니다. 저장소에는 뷰포트·URL 마다 별개로 기록되지만(URL 별 검증과 기준선 유지), 목록에는 **같은 소스 위치·뷰포트의 결함이 URL 이 달라도 한 건으로 묶여** 보이고 `발생 URL N개`를 펼치면 URL 별 상태가 나옵니다. 상태는 URL 별 상태를 합친 값(하나라도 미해결이면 미해결)입니다.
+3. **우선순위 정하기**: 대시보드 목록은 심각도 순입니다. 먼저 `high`(24px 이상 넘침, 페이지 가로 스크롤 유발, 가려짐 80% 이상, 포커스 이탈)를 처리하고, 같은 컴포넌트에서 나온 URL 별 중복은 이미 한 건으로 묶여 있고, 뷰포트별 결함은 같은 파일을 고치면 같이 사라집니다. 다른 URL 의 해소는 그 URL 을 다시 스캔해 확인하세요. 한 원인이 같은 줄의 뒤쪽 요소를 밀어낸 경우(예: 긴 이름이 배지를 밀어냄)는 원인 하나로 묶이고 뒤쪽 요소는 **연쇄 결함 N건**으로 표시되니, 원인만 고치면 됩니다.
 4. **패치 만들기** (둘 중 하나)
    - **에이전트**: Claude Code 에 `inspector-agent 로 http://localhost:5173 을 스캔하고, high 결함부터 컨텍스트를 읽어 패치를 제안해줘` 처럼 요청합니다. 에이전트는 `get_defect_context` 로 압축 컨텍스트(수치, 템플릿 스니펫, 노드·부모·자식 SCSS 규칙, 진단)를 읽고 `propose_patch` 로 제안합니다.
    - **규칙 기반**: 대시보드 결함 상세의 **이 규칙으로 패치 제안** 버튼. 선언만으로 고칠 수 있는 진단(오버플로우, z-index 부족)에만 나타납니다.
@@ -254,7 +255,7 @@ pnpm dev:dashboard                      # http://localhost:3000
 자율 모드는 켜기 전에 아래를 지키는 것을 권장합니다.
 
 - **전용 브랜치에서, 작업 트리를 깨끗하게 한 뒤** 켭니다. 끝난 뒤 `git diff` 가 곧 에이전트가 한 일의 전부입니다.
-- 대시보드의 **안전장치**는 이렇습니다: 모든 경로가 `INSPECTOR_PROJECT_ROOT` 안으로 제한되고 `node_modules` 는 거부, 반영 전 백업, 제안 이후 파일이 바뀌었으면 적용 거부(409), 재측정 실패 시 자동 롤백.
+- 대시보드의 **안전장치**는 이렇습니다: 모든 경로가 `INSPECTOR_PROJECT_ROOT` 안으로 제한되고 `node_modules` 는 거부, 반영 전 백업, 제안 이후 파일이 바뀌었으면 적용 거부(409), 재측정 실패 시 자동 롤백. API 는 CORS 를 열지 않고, 로컬 주소가 아닌 Host(DNS 리바인딩)와 다른 웹사이트에서 온 쓰기 요청(Origin 불일치)을 403 으로 거부합니다. MCP 서버, CLI, 대시보드 화면, Chrome 확장은 그대로 동작합니다.
 - 하지만 **검증은 "대상 결함이 사라졌고, 같은 뷰포트에 새 결함이 없다"까지만** 봅니다. 다른 페이지, 다른 뷰포트, 열려야 보이는 UI 에서 생긴 회귀와 디자인 의도는 못 봅니다. 자율 모드가 끝나면 사람이 diff 를 훑고, 모든 뷰포트로 다시 스캔하세요.
 - **시도 횟수 제한은 코드에 없습니다.** 에이전트에게 "결함당 최대 3회, 그래도 안 되면 멈추고 보고"처럼 지시하세요(벤치마크 실측도 이 조건이었습니다).
 - 대상은 로컬 개발 서버와 로컬 프로젝트 루트입니다. 원격·프로덕션 URL 을 스캔할 수는 있어도 거기에는 `data-ia-src` 가 없어 소스 매핑이 안 됩니다.
@@ -265,14 +266,26 @@ pnpm dev:dashboard                      # http://localhost:3000
 | --- | --- | --- | --- |
 | 대시보드 폼 | 메인 화면의 **스캔 실행** (URL, 뷰포트 입력) | 가장 간단. 결과가 바로 저장됨 | URL 만 연다 (아래 참고) |
 | MCP `scan_page` | 에이전트에게 "스캔해줘" | 에이전트가 스캔→패치를 한 번에 진행 | 대시보드 폼과 같음 |
-| CLI | `node packages/verifier/dist/cli.js <url> [--viewports 375,768x1024] [--report http://localhost:3000] [--fail-on high] [--summary 파일]` | 종료 코드·마크다운 요약. `--report` 로 대시보드에도 저장 | 같음 |
+| CLI | `node packages/verifier/dist/cli.js <url> [--viewports 375,768x1024] [--report http://localhost:3000] [--fail-on high] [--summary 파일] [--scenario 파일.json]` | 종료 코드·마크다운 요약. `--report` 로 대시보드에도 저장 | 같음 |
 | Chrome 확장 | `pnpm build` 후 `packages/extension/dist` 를 `chrome://extensions` → **압축해제된 확장 프로그램 로드**. 확장 팝업에 대시보드 주소 입력 | **지금 보고 있는 탭 그대로** 탐지 (로그인, 시드 데이터, 인터랙션 후 상태 포함) | `localhost`/`127.0.0.1` 만, 탭의 실제 너비 1개만, **모달 포커스 이탈 검사는 하지 않음** |
 
-**상태에 의존하는 화면 주의**: 헤드리스 스캔은 URL 만 열기 때문에 로그인이 필요하거나 데이터가 있어야 그려지는 화면은 빈 상태로 검사되고, 이때 "결함 0건"은 **안전하다는 뜻이 아닙니다.** 실제 앱(Camping-Joy)에서 데이터 없이 스캔했을 때 13개 URL 이 전부 0건이었습니다. 이런 화면은 ① 확장으로 실제 탭을 스캔하거나 ② 시드 데이터를 쿼리·라우트로 주입할 수 있는 개발 전용 경로를 만들어 그 URL 을 스캔하세요. 또 스캔 시점에 **이미 열려 있는** 모달·드롭다운만 가려짐·포커스 검사 대상이므로, 닫혀 있는 팝업은 열린 상태로 보이는 URL(또는 확장 + 직접 열기)로 검사해야 합니다.
+**상태에 의존하는 화면은 시나리오로 스캔하세요.** 헤드리스 스캔은 URL 만 열기 때문에 데이터가 있어야 그려지는 화면은 빈 상태로 검사되고, 이때 "결함 0건"은 **안전하다는 뜻이 아닙니다.** 실제 앱(Camping-Joy)에서 데이터 없이 스캔했을 때 13개 URL 이 전부 0건이었습니다. 또 스캔 시점에 **이미 열려 있는** 모달·드롭다운만 가려짐·포커스 검사 대상입니다. **시나리오**는 스캔 전에 `localStorage`/`sessionStorage`/쿠키 시드를 심고 클릭·입력·대기 단계를 실행하는 JSON 이며, 위 네 가지 경로(대시보드, MCP, CLI, 패치 후 재측정)가 같은 파일을 그대로 씁니다.
+
+```bash
+node packages/verifier/dist/cli.js http://localhost:5174/camps/c1/distribute --viewports 1280 --scenario docs/scenarios/camping-joy.json
+```
+
+- 형식, 한도, 경로별 사용법, 내 앱의 시나리오 만드는 법은 [`docs/scenarios/README.md`](docs/scenarios/README.md), Camping-Joy 예시(캠핑 3개, 멤버 4명, 긴 이름 포함)는 `docs/scenarios/` 에 있습니다.
+- 시나리오 스캔의 결함은 시나리오 키가 id 에 섞여 같은 URL 의 일반 스캔과 별개로 기록됩니다(서로를 `resolved` 로 바꾸지 않음). 패치 후 재측정은 저장된 같은 시나리오로 합니다. 시나리오 없이 재측정하면 닫힌 메뉴를 재서 고치기 전에도 "통과"가 나오기 때문입니다.
+- **비밀번호, 토큰, 실제 세션 쿠키는 넣지 마세요.** 시나리오는 대시보드 저장소에 평문으로 저장됩니다.
+- 확장은 시나리오를 쓰지 않습니다(지금 보는 탭 그대로 검사).
 
 ### 5.7 CI 운영
 
-`.github/workflows/layout-scan.yml` 은 playground 를 띄워 스캔하고, 기준 이상 결함이 있으면 실패하며 결과 표를 job summary 에 남깁니다. **이 저장소의 playground 는 벤치마크용 결함이 일부러 심겨 있어 항상 실패하는 것이 정상**입니다.
+이 저장소에는 워크플로가 둘 있습니다.
+
+- `.github/workflows/ci.yml` (모든 PR, `main`): 타입체크, 단위 테스트, 탐지 회귀 벤치마크(`pnpm bench`, 근사 토큰 모드). 정답표·대조군의 불변 조건(재현율·정밀도 100%, 대조군 오탐 0건, 1280px 결함 0건)이 깨지면 실패하므로 탐지 규칙을 바꾸는 PR 이 회귀를 만들면 막힙니다.
+- `.github/workflows/layout-scan.yml` (수동 실행): playground 를 띄워 스캔하고, 기준 이상 결함이 있으면 실패하며 결과 표를 job summary 에 남깁니다. **이 저장소의 playground 는 벤치마크용 결함이 일부러 심겨 있어 항상 실패하는 것이 정상**이라 PR 마다 돌리지 않습니다. 내 앱에 쓸 때는 아래처럼 바꾸고 트리거에 `pull_request` 를 추가하세요.
 
 내 앱에 쓰려면 워크플로의 "playground 실행" 단계와 `SCAN_URL` 을 내 앱의 실행 명령·주소로 바꿉니다.
 
@@ -309,9 +322,9 @@ pnpm dev:dashboard                      # http://localhost:3000
 ### 5.9 오탐·미탐 대응
 
 - **일시적으로 제외**: 검사에서 빼고 싶은 요소(또는 그 하위 전체)에 `data-ia-ignore` 속성을 붙입니다. 오버플로우, 가려짐, 모달 포커스 검사에 모두 적용됩니다. 의도한 겹침이나 스크롤이면 이유를 주석으로 남기세요.
-- **오탐을 발견했다면**: 재현 컴포넌트를 `apps/playground/src/components/` 에 **정상 대조군**으로 추가하고 `benchmarks/src/fixtures.ts` 의 `NEGATIVE_CONTROLS` 에 등록한 뒤, 탐지 규칙을 고치고 `pnpm bench` 에서 대조군 오탐 0건이 유지되는지 확인합니다. (회전한 아이콘 오탐을 이 순서로 고쳤습니다. 실서비스 사례는 `docs/real-world-report.md`.)
+- **오탐을 발견했다면**: 재현 컴포넌트를 `apps/playground/src/components/` 에 **정상 대조군**으로 추가하고 `benchmarks/src/fixtures.ts` 의 `NEGATIVE_CONTROLS` 에 등록한 뒤, 탐지 규칙을 고치고 `pnpm bench` 에서 대조군 오탐 0건이 유지되는지 확인합니다(불변 조건이 깨지면 `pnpm bench` 가 종료 코드 1 로 끝나므로 CI 도 같은 기준으로 실패합니다). (회전한 아이콘 오탐을 이 순서로 고쳤습니다. 실서비스 사례는 `docs/real-world-report.md`.)
 - **탐지 규칙을 고칠 때의 최소 확인**: `pnpm test` → `pnpm typecheck` → `pnpm bench`. 토큰 수까지 재려면 `ANTHROPIC_API_KEY` 가 필요하고, 없으면 `INSPECTOR_BENCH_ESTIMATE=1` 로 근사 모드를 쓸 수 있습니다(결과에 `method: estimate` 표시).
-- **알려진 미탐 영역**: 세로 오버플로우, 텍스트 대비 등 접근성 일반, 인터랙션 후에만 나타나는 UI, `transform` 이 걸린 요소의 박스 오버플로우. 로드맵(8)을 참고하세요.
+- **알려진 미탐 영역**: 세로 오버플로우, 텍스트 대비 등 접근성 일반, 시나리오(5.6)에 단계로 정의하지 않은 인터랙션 후의 UI, `transform` 이 걸린 요소의 박스 오버플로우. 로드맵(8)을 참고하세요.
 
 ### 5.10 문제 해결
 
@@ -321,11 +334,14 @@ pnpm dev:dashboard                      # http://localhost:3000
 | 결함 컨텍스트에 템플릿·SCSS 규칙이 비어 있음 (`rawFile: 0`) | `INSPECTOR_PROJECT_ROOT` 가 `data-ia-src` 경로의 기준(프로젝트 루트)과 다름, 또는 플러그인이 옛 버전 | 루트를 `package.json` 이 있는 폴더로 지정, `pnpm build` 로 플러그인 재빌드 후 앱 개발 서버 재시작 |
 | 화면은 깨져 보이는데 스캔은 0건 | 빈 상태/로그인 필요/닫힌 팝업을 검사함, 또는 `data-ia-ignore` 로 제외됨 | 5.6 의 확장 스캔이나 시드 URL 사용 |
 | 결함에 소스 위치가 없음 | 플러그인이 안 켜졌거나(`apply: serve` 라 프로덕션 빌드 제외), 컴포넌트 태그(`<MyCard>`)에는 속성을 주입하지 않음 | 개발 서버로 스캔. 매핑은 각 컴포넌트 안의 일반 HTML 요소 기준 |
+| 대시보드 API 가 403 (`허용되지 않은 호스트`, `다른 출처의 쓰기 요청`) | `localhost` 가 아닌 호스트 이름으로 열었거나, 다른 웹사이트에서 보낸 쓰기 요청 | 다른 호스트로 열어야 하면 `INSPECTOR_ALLOWED_HOSTS` 에 추가. 대시보드 화면, MCP, CLI, 확장은 영향 없음 |
 | 대시보드 500, `does not provide an export named …` | 패키지를 재빌드했는데 대시보드가 옛 모듈을 들고 있음 | 대시보드 프로세스 재시작 |
 | 적용이 409 `제안 이후 파일이 바뀌었습니다` | 제안 뒤에 파일이 수정됨 | 컨텍스트를 다시 읽고 패치를 새로 제안 |
 | 재측정이 들쭉날쭉하거나 항상 실패 | HMR 이 `INSPECTOR_SETTLE_MS`(기본 800ms) 안에 끝나지 않음, 개발 서버가 내려감 | `INSPECTOR_SETTLE_MS=2000` 등으로 늘리기, 앱 개발 서버 상태 확인 |
 | `browserType.launch: Executable doesn't exist` | Chromium 미설치 | `pnpm dlx playwright@1.56.1 install chromium` 또는 `INSPECTOR_CHROMIUM_PATH` |
 | 포트 충돌(`strictPort`, `EADDRINUSE`) | 5173/3000 이미 사용 중 | 다른 포트로 띄우고 스캔 URL, `INSPECTOR_DASHBOARD_URL` 을 맞춤 |
+| `시나리오 steps[N] (click …) 실패` (CLI 종료 코드 2, 대시보드 422) | 셀렉터가 5초 안에 화면에 나타나지 않음(오타, 앱이 아직 안 뜸, 다른 URL) | 시나리오의 URL 과 셀렉터를 개발자 도구로 확인. 열린 뒤에만 생기는 요소는 `wait selector` 로 기다리기 |
+| 적용이 409 `…시나리오(s_…)를 찾을 수 없어 재측정할 수 없습니다` | 시나리오가 저장되지 않은 채 시나리오 키만 가진 결함 기록(예: 저장소를 지웠거나 다른 곳에서 가져옴) | 같은 시나리오로 다시 스캔한 뒤 새 결함으로 패치 제안 |
 | 확장: `탐지기를 실행하지 못했습니다` | 탭을 확장이 열기 전에 로드했거나 `localhost`/`127.0.0.1` 이 아님 | 페이지 새로고침 후 재시도, 로컬 주소로만 사용 |
 | `pnpm bench` 가 토큰 계측에서 실패 | `ANTHROPIC_API_KEY`(또는 `ant auth login`) 없음 | 키 설정 또는 `INSPECTOR_BENCH_ESTIMATE=1` |
 
@@ -411,7 +427,8 @@ PromoBanner.vue  +109px  fixed-width ✓
 
 - [x] z-index / stacking context 충돌 탐지 (`elementFromPoint` 표본점 가림 검사). 스캔 시점에 열려 있는 UI 만 검사합니다
 - [x] 접근성: 모달 포커스 트랩 (verifier 가 실제 Tab 키로 검사). 대비, 라벨 누락 규칙은 아직 없습니다
-- [ ] 닫혀 있는 팝업·로그인 상태 화면을 스캔하기 위한 상호작용/시드 스크립트 옵션
+- [x] 닫혀 있는 팝업·데이터가 있어야 그려지는 화면을 스캔하기 위한 시나리오(시드 + 클릭/입력/대기 단계)
+- [ ] 로그인이 필요한 화면(세션 쿠키·토큰을 안전하게 다루는 시나리오 저장 방식)
 - [ ] React(`__source`/소스맵) 매핑, CSS Modules·Tailwind 클래스 → 소스 매핑
 - [ ] 실제 서비스 페이지 벤치마크와 실제 토크나이저 기반 토큰 측정, LLM 패치 성공률 리포트
 - [x] CI용 `inspector-scan --fail-on` 과 job summary

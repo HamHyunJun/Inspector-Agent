@@ -22,11 +22,11 @@ const locationOf = (defect: Defect): string =>
   defect.node.source ? `${defect.node.source.file}:${defect.node.source.line}` : defect.node.selector
 
 /** GitHub job summary 에 붙일 마크다운. 결함이 없으면 한 줄만 남긴다 */
-export const renderMarkdown = (url: string, results: ScanResult[], failOn: Severity | undefined): string => {
+export const renderMarkdown = (url: string, results: ScanResult[], failOn: Severity | undefined, scenarioName?: string): string => {
   const total = results.reduce((sum, result): number => sum + result.defects.length, 0)
   const failing = failOn ? defectsAtOrAbove(results, failOn).length : 0
   const verdict = failOn ? (failing > 0 ? `❌ 실패: \`${failOn}\` 이상 ${failing}건` : `✅ 통과: \`${failOn}\` 이상 없음`) : '(통과/실패 기준 없음)'
-  const lines = ['## Inspector-Agent 레이아웃 스캔', '', `- 대상: ${url}`, `- 뷰포트: ${results.map((result): string => `${result.viewport.width}px`).join(', ')}`, `- 결함: ${total}건 · ${verdict}`]
+  const lines = ['## Inspector-Agent 레이아웃 스캔', '', `- 대상: ${url}`, ...(scenarioName ? [`- 시나리오: ${scenarioName}`] : []), `- 뷰포트: ${results.map((result): string => `${result.viewport.width}px`).join(', ')}`, `- 결함: ${total}건 · ${verdict}`]
   if (total === 0) return `${lines.join('\n')}\n\n결함이 없습니다. ✅\n`
 
   lines.push('', '| 뷰포트 | 심각도 | 위치 | 종류 | 크기 | 진단 |', '| --- | --- | --- | --- | --- | --- |')

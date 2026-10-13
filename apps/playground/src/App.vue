@@ -4,21 +4,29 @@
     <p class="app-header__desc">375px 뷰포트에서 레이아웃 오버플로우가 발생하도록 결함을 심어 둔 화면입니다.</p>
   </header>
   <main class="app-main">
-    <ProductCard
-      title="초경량 듀얼 레이어 방수 트레킹 재킷 2026 FW 한정판 컬러 에디션"
-      :price="189000"
-    />
-    <TagList :tags="tags" />
-    <PromoBanner />
-    <ShareLink url="https://example.com/campaign/2026/autumn/landing?utm_source=newsletter&utm_medium=email&utm_campaign=inspector_agent_demo" />
-    <OrderTable :orders="orders" />
-    <SortMenu />
-    <BadgeCard />
-    <ModalControl />
-    <ShareSheet />
-    <ClippedMenu />
-    <FilterDropdown />
-    <ConfirmDialog />
+    <!-- ?page=members 는 같은 컴포넌트를 다른 URL 에서 보여 주는 용도(대시보드 URL 그룹핑 재현) -->
+    <MemberRow v-if="page === 'members'" />
+    <template v-else>
+      <DecorDots />
+      <ProductCard
+        title="초경량 듀얼 레이어 방수 트레킹 재킷 2026 FW 한정판 컬러 에디션"
+        :price="189000"
+      />
+      <TagList :tags="tags" />
+      <PromoBanner />
+      <MemberRow />
+      <SeededChip />
+      <ShareLink url="https://example.com/campaign/2026/autumn/landing?utm_source=newsletter&utm_medium=email&utm_campaign=inspector_agent_demo" />
+      <OrderTable :orders="orders" />
+      <SortMenu />
+      <BadgeCard />
+      <ModalControl />
+      <ShareSheet />
+      <OpenMenu />
+      <ClippedMenu />
+      <FilterDropdown />
+      <ConfirmDialog />
+    </template>
   </main>
 </template>
 
@@ -27,8 +35,12 @@ import OrderTable from './components/OrderTable.vue'
 import BadgeCard from './components/BadgeCard.vue'
 import ClippedMenu from './components/ClippedMenu.vue'
 import ConfirmDialog from './components/ConfirmDialog.vue'
+import DecorDots from './components/DecorDots.vue'
 import FilterDropdown from './components/FilterDropdown.vue'
+import MemberRow from './components/MemberRow.vue'
 import ModalControl from './components/ModalControl.vue'
+import OpenMenu from './components/OpenMenu.vue'
+import SeededChip from './components/SeededChip.vue'
 import ShareSheet from './components/ShareSheet.vue'
 import ProductCard from './components/ProductCard.vue'
 import PromoBanner from './components/PromoBanner.vue'
@@ -37,6 +49,7 @@ import SortMenu from './components/SortMenu.vue'
 import TagList from './components/TagList.vue'
 import type { Order } from './components/OrderTable.vue'
 
+const page = new URLSearchParams(window.location.search).get('page')
 const tags = ['방수', '경량', '고어텍스', '아웃도어', '트레킹', '한정판', '무료배송']
 const orders: Order[] = [
   { id: 'A-1024', product: '트레킹 재킷', quantity: 1, amount: 189000, status: '배송 중' },

@@ -82,6 +82,13 @@ export interface FixSuggestion {
   reason: string
 }
 
+/** 한 원인이 밀어내서 함께 넘친 형제 결함. 원인을 고치면 같이 사라지므로 별도 결함으로 세지 않는다 */
+export interface CascadedDefect {
+  selector: string
+  source?: SourceLocation
+  overflowPx: number
+}
+
 export interface OverflowMetrics {
   kind: 'overflow-x'
   mode: OverflowMode
@@ -91,6 +98,8 @@ export interface OverflowMetrics {
   overflowRatio: number
   parentContentWidth: number
   nodeWidth: number
+  /** 이 결함이 밀어낸 같은 줄의 뒤쪽 형제 결함 (연쇄 결함) */
+  cascaded?: CascadedDefect[]
 }
 
 /** 한 stacking context(또는 그 안에서 겨루는 대표 요소)의 요약 */
@@ -142,6 +151,33 @@ export interface FocusMetrics {
   escapedTo?: NodeSnapshot
 }
 
+/**
+ * 스캔 전에 페이지 상태를 만드는 시나리오. 데이터가 있어야 그려지는 화면과 클릭해야 열리는 UI(드롭다운, 모달)를
+ * 스캔하는 데 쓰며, 같은 JSON 을 대시보드, CLI, MCP, 패치 후 재측정이 모두 재사용한다.
+ * 비밀번호나 토큰은 넣지 않는다(대시보드 저장소에 평문으로 저장된다).
+ */
+export interface ScenarioSeed {
+  /** 값이 문자열이면 그대로, 그 밖의 값(객체, 배열, 숫자)은 JSON 문자열로 넣는다 */
+  localStorage?: Record<string, unknown>
+  sessionStorage?: Record<string, unknown>
+  /** 스캔하는 URL 의 호스트에만 설정된다 */
+  cookies?: Array<{ name: string; value: string; path?: string }>
+}
+
+export type ScenarioStep =
+  | { action: 'click'; selector: string }
+  | { action: 'fill'; selector: string; value: string }
+  /** ms 만큼 기다리거나, selector 가 화면에 나타날 때까지 기다린다 (둘 중 하나) */
+  | { action: 'wait'; ms?: number; selector?: string }
+
+export interface Scenario {
+  name?: string
+  description?: string
+  seed?: ScenarioSeed
+  /** 페이지를 열고 안정화한 뒤, 탐지 전에 순서대로 실행한다 */
+  steps?: ScenarioStep[]
+}
+
 interface DefectBase {
   /** url + fingerprint 기반의 결정론적 id (재스캔 시 동일) */
   id: string
@@ -154,6 +190,8 @@ interface DefectBase {
   parent: NodeSnapshot
   suggestions: FixSuggestion[]
   detectedAt: string
+  /** 시나리오로 스캔한 결함이면 그 시나리오의 키. id 에도 반영되어 같은 URL 의 일반 스캔과 섞이지 않는다 */
+  scenarioKey?: string
 }
 
 export interface OverflowDefect extends DefectBase {
@@ -175,6 +213,8 @@ export interface FocusDefect extends DefectBase {
 export type Defect = OverflowDefect | OcclusionDefect | FocusDefect
 
 export interface ScanResult {
+  /** 시나리오로 스캔했다면 그 키 (결함의 scenarioKey 와 같다) */
+  scenarioKey?: string
   url: string
   viewport: Viewport
   /** document 전체 가로 스크롤 양 (html.scrollWidth - clientWidth) */

@@ -2,15 +2,16 @@ import { cp, mkdtemp, readFile, realpath, rm, symlink, writeFile } from 'node:fs
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { applyEdits, defectMagnitude, toAgentPayload } from '@inspector-agent/core'
+import { applyEdits, defectMagnitude, groupDefects, toAgentPayload } from '@inspector-agent/core'
 import type { Defect, DefectKind, PatchEdit } from '@inspector-agent/core'
 import { buildDeclarationPatch, formatRulesCompact, locateStyleRules, readSnippet } from '@inspector-agent/source-locator'
 import { measureDefect, scanPage } from '@inspector-agent/verifier'
 import { chromium } from 'playwright-core'
 import { createServer } from 'vite'
 import type { ViteDevServer } from 'vite'
-import { DESKTOP_VIEWPORT, EXPECTED_AT_MOBILE, MOBILE_VIEWPORT, NEGATIVE_CONTROLS } from './fixtures'
+import { DESKTOP_VIEWPORT, EXPECTED_AT_MOBILE, MOBILE_VIEWPORT, NEGATIVE_CONTROLS, PLAYGROUND_SCENARIO, SCENARIO_ONLY, SECOND_PAGE_QUERY } from './fixtures'
 import type { ExpectedDefect } from './fixtures'
+import { findDetectionRegressions } from './gate'
 import { createTokenCounter } from './tokens'
 import type { TokenCounter } from './tokens'
 
@@ -221,6 +222,57 @@ const main = async (): Promise<void> => {
     const hintMatches = EXPECTED_AT_MOBILE.filter((expected): boolean =>
       mobile.defects.some((defect): boolean => isExpected(defect, expected) && defect.suggestions[0]?.hint === expected.primaryHint)
     )
+    // 연쇄 결함: 원인 하나에 형제가 정답표대로 묶였는지 (묶이지 않으면 형제가 별개 결함으로 따로 나온다)
+    const cascadeMismatches = EXPECTED_AT_MOBILE.filter((expected): boolean => {
+      if (expected.cascadedCount === undefined) return false
+      const found = mobile.defects.find((defect): boolean => isExpected(defect, expected))
+      const cascaded = found?.kind === 'overflow-x' ? (found.metrics.cascaded?.length ?? 0) : 0
+      return cascaded !== expected.cascadedCount
+    }).length
+    // URL 그룹: 같은 컴포넌트를 다른 URL 에서 스캔해도 한 그룹(발생 URL 2개)이어야 한다
+    const [secondPage] = await scanPage(`${url}${SECOND_PAGE_QUERY}`, [MOBILE_VIEWPORT], { executablePath })
+    const groups = groupDefects([...mobile.defects, ...(secondPage?.defects ?? [])])
+    const groupingMismatches = EXPECTED_AT_MOBILE.filter((expected): boolean => {
+      if (!expected.alsoOnSecondPage) return false
+      const group = groups.find((item): boolean => isExpected(item.representative, expected))
+      return new Set(group?.members.map((member): string => member.url)).size !== 2
+    }).length
+    // 시나리오 전용 결함: 시나리오(메뉴 열기 + 시드)로만 보이고, 같은 URL 의 일반 스캔에는 없어야 한다
+    const [scenarioScan] = await scanPage(url, [MOBILE_VIEWPORT], { executablePath, scenario: PLAYGROUND_SCENARIO })
+    const scenarioMismatches = SCENARIO_ONLY.filter((expected): boolean => {
+      const withScenario = scenarioScan?.defects.find((defect): boolean => isExpected(defect, expected))
+      const visibleWithoutScenario = mobile.defects.some((defect): boolean => defect.node.source?.file === expected.file)
+      return !withScenario || visibleWithoutScenario || withScenario.suggestions[0]?.hint !== expected.primaryHint
+    }).length
+    // 패치 후 재측정이 스캔 때와 같은 시나리오를 쓰는지: 고치기 전에는 (시나리오로 재면) 남아 있고, 고친 뒤에는 통과해야 한다.
+    // 시나리오 없이 재면 메뉴가 닫힌 화면을 재서 고치기 전에도 통과해 버리는데, 이것이 시나리오를 재측정에 넘기는 이유다
+    const remeasured = SCENARIO_ONLY.find((expected): boolean => expected.referenceEdits !== undefined)
+    const remeasureTarget = remeasured ? scenarioScan?.defects.find((defect): boolean => isExpected(defect, remeasured)) : undefined
+    let scenarioRemeasureMismatches = 0
+    let falsePassWithoutScenario = false
+    if (remeasured?.referenceEdits && remeasureTarget && scenarioScan) {
+      const unfixed = await measureDefect(remeasureTarget, scenarioScan.defects, { executablePath, scenario: PLAYGROUND_SCENARIO })
+      const unfixedWithoutScenario = await measureDefect(remeasureTarget, scenarioScan.defects, { executablePath })
+      falsePassWithoutScenario = unfixedWithoutScenario.passed
+      const path = join(workdir, remeasured.file)
+      const original = await readFile(path, 'utf8')
+      const fixed = applyEdits(original, remeasured.referenceEdits)
+      let afterFix = false
+      if (fixed.ok) {
+        try {
+          await writeFile(path, fixed.content, 'utf8')
+          await new Promise((done): void => {
+            setTimeout(done, 500)
+          })
+          afterFix = (await measureDefect(remeasureTarget, scenarioScan.defects, { executablePath, scenario: PLAYGROUND_SCENARIO })).passed
+        } finally {
+          await writeFile(path, original, 'utf8')
+        }
+      }
+      scenarioRemeasureMismatches = Number(unfixed.passed || !unfixed.stillPresent) + Number(!afterFix)
+    } else {
+      scenarioRemeasureMismatches = 1
+    }
     const recallOf = (kind: DefectKind): number => {
       const expected = EXPECTED_AT_MOBILE.filter((item): boolean => item.kind === kind)
       return expected.filter((item): boolean => truePositives.includes(item)).length / Math.max(expected.length, 1)
@@ -268,6 +320,11 @@ const main = async (): Promise<void> => {
         precision: mobile.defects.length === 0 ? 1 : (mobile.defects.length - falsePositives.length) / mobile.defects.length,
         negativeControlHits: negativeHits.length,
         desktopDefects: desktop.defects.length,
+        cascadeMismatches,
+        groupingMismatches,
+        scenarioMismatches,
+        scenarioRemeasureMismatches,
+        falsePassWithoutScenario,
         primaryHintAccuracy: hintMatches.length / EXPECTED_AT_MOBILE.length,
         scanMs: mobile.stats.durationMs,
         scannedNodes: mobile.stats.scannedNodes
@@ -303,6 +360,8 @@ const main = async (): Promise<void> => {
 
     console.log('\n## 탐지 정확도 (375px)')
     console.log(`재현율 ${percent(summary.detection.recall)} · 정밀도 ${percent(summary.detection.precision)} · 대조군 오탐 ${negativeHits.length}건 · 1280px 결함 ${desktop.defects.length}건`)
+    console.log(`연쇄 결함 묶음 불일치 ${cascadeMismatches}건 · URL 그룹 불일치 ${groupingMismatches}건 (결함 ${mobile.defects.length + (secondPage?.defects.length ?? 0)}건 → URL 그룹 ${groups.length}개)`)
+    console.log(`시나리오 전용 결함 불일치 ${scenarioMismatches}건 · 재측정 시나리오 반영 불일치 ${scenarioRemeasureMismatches}건 (시나리오 없이 재면 고치기 전에도 통과: ${falsePassWithoutScenario ? '예' : '아니오'})`)
     console.log(`종류별 재현율: 오버플로우 ${percent(summary.detection.recallByKind['overflow-x'])} · 가려짐 ${percent(summary.detection.recallByKind.occluded)} · 포커스 이탈 ${percent(summary.detection.recallByKind['focus-escape'])}`)
     console.log(`1순위 원인 진단 일치 ${percent(summary.detection.primaryHintAccuracy)} · 노드 ${mobile.stats.scannedNodes}개 탐지 ${mobile.stats.durationMs}ms`)
     console.log('\n## 소스 매핑')
@@ -324,6 +383,13 @@ const main = async (): Promise<void> => {
     }
     console.log(`성공 ${healed}/${patchable.length} (첫 시도 성공 ${firstTry}) · 구조 변경 필요 ${manualOnly}건 중 참조 패치 검증 통과 ${referenceVerified}건 · 재측정으로 잡아낸 회귀 ${caughtRegressions}건`)
     console.log('\n결과 파일: benchmarks/results/latest.json')
+
+    // 탐지 규칙 회귀 게이트: CI 가 규칙 변경 PR 을 막을 수 있도록 불변 조건이 깨지면 종료 코드 1
+    const regressions = findDetectionRegressions(summary.detection)
+    if (regressions.length > 0) {
+      console.error(`\n탐지 회귀 ${regressions.length}건:\n${regressions.map((problem): string => `- ${problem}`).join('\n')}`)
+      process.exitCode = 1
+    }
   } finally {
     await server.close()
     await rm(workdir, { recursive: true, force: true })

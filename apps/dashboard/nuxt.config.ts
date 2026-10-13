@@ -16,11 +16,9 @@ export default defineNuxtConfig({
     dataDir: process.env.INSPECTOR_DATA_DIR ?? '.inspector-agent',
     // 파일 반영 후 HMR 이 끝나길 기다리는 시간(ms)
     settleMs: Number(process.env.INSPECTOR_SETTLE_MS ?? 800),
-    chromiumPath: process.env.INSPECTOR_CHROMIUM_PATH ?? ''
-  },
-  routeRules: {
-    // Chrome 확장 popup 에서 직접 호출할 수 있도록 API 에 CORS 허용
-    '/api/**': { cors: true }
+    chromiumPath: process.env.INSPECTOR_CHROMIUM_PATH ?? '',
+    // 로컬 주소 밖에서 대시보드를 열 때 허용할 호스트 이름(쉼표 구분). 확장 popup 은 host_permissions 로 호출하므로 CORS 는 열지 않는다
+    allowedHosts: process.env.INSPECTOR_ALLOWED_HOSTS ?? ''
   },
   nitro: {
     externals: {

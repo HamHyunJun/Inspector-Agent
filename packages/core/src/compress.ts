@@ -22,6 +22,8 @@ export interface AgentDefectPayload {
   summary: string
   node: AgentNodePayload
   parent: AgentNodePayload
+  /** 오버플로우 결함에서만: 이 결함이 밀어낸 뒤쪽 형제(연쇄 결함). 원인을 고치면 같이 사라진다 */
+  cascaded?: Array<{ selector: string; source?: string; overflowPx: number }>
   /** 포커스 이탈 결함에서만: 모달 판정 근거와 Tab 시험 결과 */
   focus?: {
     trigger: string
@@ -87,7 +89,8 @@ const describeFocusDirections = (metrics: FocusMetrics): string =>
 export const formatMagnitude = (defect: Defect): string => {
   if (defect.kind === 'occluded') return `가려짐 ${Math.round(defect.metrics.coveredRatio * 100)}% (${defect.metrics.cause})`
   if (defect.kind === 'focus-escape') return `포커스 이탈 (${describeFocusDirections(defect.metrics)})`
-  return `${defect.metrics.mode} +${Math.round(defect.metrics.overflowPx)}px`
+  const cascade = defect.metrics.cascaded?.length ? ` · 연쇄 ${defect.metrics.cascaded.length}건` : ''
+  return `${defect.metrics.mode} +${Math.round(defect.metrics.overflowPx)}px${cascade}`
 }
 
 export const describeDefect = (defect: Defect): string => {
@@ -102,7 +105,7 @@ export const describeDefect = (defect: Defect): string => {
   }
   const { metrics } = defect
   const subject = metrics.mode === 'box' ? '요소 박스' : '요소 내부 텍스트'
-  return `${defect.viewport.width}px 뷰포트에서 부모 콘텐츠 너비 ${Math.round(metrics.parentContentWidth)}px, ${subject} 너비 ${Math.round(metrics.nodeWidth)}px로 ${Math.round(metrics.overflowPx)}px 가로 오버플로우`
+  return `${defect.viewport.width}px 뷰포트에서 부모 콘텐츠 너비 ${Math.round(metrics.parentContentWidth)}px, ${subject} 너비 ${Math.round(metrics.nodeWidth)}px로 ${Math.round(metrics.overflowPx)}px 가로 오버플로우${metrics.cascaded?.length ? ` (이 결함이 밀어낸 연쇄 결함 ${metrics.cascaded.length}건 포함)` : ''}`
 }
 
 const payloadKind = (defect: Defect): string => {
@@ -129,6 +132,14 @@ export const toAgentPayload = (defect: Defect): AgentDefectPayload => {
             occluderLayer: describeLayer(defect.metrics.occluderLayer),
             clippedBy: defect.metrics.clippedBy ? `${defect.metrics.clippedBy.selector} (overflow: ${defect.metrics.clippedBy.overflow})` : undefined
           }
+        : undefined,
+    cascaded:
+      defect.kind === 'overflow-x' && defect.metrics.cascaded?.length
+        ? defect.metrics.cascaded.map((item) => ({
+            selector: item.selector,
+            source: item.source ? formatSource(item.source) : undefined,
+            overflowPx: Math.round(item.overflowPx)
+          }))
         : undefined,
     focus:
       defect.kind === 'focus-escape'

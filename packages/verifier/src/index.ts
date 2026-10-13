@@ -2,9 +2,10 @@ import { readFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import { chromium } from 'playwright-core'
 import type { Browser } from 'playwright-core'
-import { DEFAULT_MIN_COVERED_RATIO, defectMagnitude } from '@inspector-agent/core'
+import { DEFAULT_MIN_COVERED_RATIO, defectMagnitude, qualifyDefectId, scenarioKey } from '@inspector-agent/core'
 import { scanFocusEscapes } from './focus'
-import type { Defect, DetectOptions, ScanResult, Viewport } from '@inspector-agent/core'
+import { runScenarioSteps, seedContext } from './scenario'
+import type { Defect, DetectOptions, Scenario, ScanResult, Viewport } from '@inspector-agent/core'
 
 export interface VerifierOptions {
   /** Chromium 실행 파일 경로. 미지정 시 INSPECTOR_CHROMIUM_PATH, 그다음 Playwright 기본 설치본 */
@@ -12,6 +13,8 @@ export interface VerifierOptions {
   detect?: DetectOptions
   /** 페이지 로드 후 레이아웃 안정화를 기다리는 시간(ms). 기본 300 */
   settleMs?: number
+  /** 스캔 전에 시드를 심고 단계를 실행할 시나리오. 스캔과 패치 후 재측정이 같은 값을 넘기면 같은 상태에서 잰다 */
+  scenario?: Scenario
 }
 
 export interface DefectMeasurement {
@@ -62,9 +65,16 @@ const scanWithBrowser = async (
 ): Promise<ScanResult> => {
   const context = await browser.newContext({ viewport })
   try {
+    const { scenario } = options
+    if (scenario) await seedContext(context, url, scenario)
     const page = await context.newPage()
     await page.goto(url, { waitUntil: 'networkidle' })
     await page.waitForTimeout(options.settleMs ?? 300)
+    if (scenario?.steps?.length) {
+      await runScenarioSteps(page, scenario.steps)
+      // 클릭 직후의 전환(transition)이 끝난 뒤에 잰다
+      await page.waitForTimeout(options.settleMs ?? 300)
+    }
     await page.addScriptTag({ content: await loadDetectorSource() })
     const result = await page.evaluate((detectOptions): ScanResult => {
       const agent = window.__INSPECTOR_AGENT__
@@ -73,7 +83,15 @@ const scanWithBrowser = async (
     }, options.detect ?? {})
     // 키 입력이 페이지 상태를 바꾸므로 레이아웃 탐지가 끝난 뒤에 포커스 검사를 한다
     const focusDefects = await scanFocusEscapes(page, result.url, viewport, options.detect)
-    return { ...result, defects: [...result.defects, ...focusDefects] }
+    const defects = [...result.defects, ...focusDefects]
+    if (!scenario) return { ...result, defects }
+    // 같은 URL 이라도 시나리오가 다르면 다른 결함이다: id 에 시나리오 키를 섞고 결함마다 키를 남긴다
+    const key = scenarioKey(scenario)
+    return {
+      ...result,
+      scenarioKey: key,
+      defects: defects.map((defect): Defect => ({ ...defect, id: qualifyDefectId(defect.id, key), scenarioKey: key }))
+    }
   } finally {
     await context.close()
   }

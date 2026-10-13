@@ -75,6 +75,12 @@ export const applyPatch = async (patchId: string, options: { autoRollback?: bool
   const defect = store.defects[patch.defectId]
   if (!defect) throw createError({ statusCode: 404, statusMessage: '패치 대상 결함이 사라졌습니다.' })
 
+  // 시나리오로 스캔한 결함은 같은 시나리오로 재측정해야 한다. 없으면 일반 화면을 재서 "고쳐졌다"고 잘못 판정하므로 파일을 쓰기 전에 거부한다
+  const scenario = defect.scenarioKey ? store.scenarios[defect.scenarioKey] : undefined
+  if (defect.scenarioKey && !scenario) {
+    throw createError({ statusCode: 409, statusMessage: `이 결함을 스캔한 시나리오(${defect.scenarioKey})를 찾을 수 없어 재측정할 수 없습니다. 같은 시나리오로 다시 스캔하세요.` })
+  }
+
   const original = await readProjectFile(patch.file)
   if (hashContent(original) !== patch.originalHash) {
     throw createError({ statusCode: 409, statusMessage: '제안 이후 파일이 바뀌었습니다. 컨텍스트를 다시 읽고 패치를 새로 제안하세요.' })
@@ -89,11 +95,11 @@ export const applyPatch = async (patchId: string, options: { autoRollback?: bool
 
   // 개발 서버 HMR 이 변경을 반영할 시간을 준 뒤 새 페이지로 다시 측정한다
   await wait(config.settleMs)
-  const baseline = store.baselines[baselineKey(defect.url, defect.viewport.width)] ?? [defect]
+  const baseline = store.baselines[baselineKey(defect.url, defect.viewport.width, defect.scenarioKey)] ?? [defect]
 
   let next: Patch
   try {
-    const verification = await measureDefect(defect, baseline, { executablePath: config.chromiumPath })
+    const verification = await measureDefect(defect, baseline, { executablePath: config.chromiumPath, scenario })
     const rollback = !verification.passed && autoRollback
     if (rollback) await restoreProjectFile(patch.file, patch.id)
     next = {
