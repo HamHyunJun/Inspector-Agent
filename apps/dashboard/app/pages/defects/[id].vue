@@ -155,7 +155,13 @@
     </section>
 
     <section class="defect-detail__panel defect-detail__panel--wide" aria-labelledby="patches-heading">
-      <h2 id="patches-heading" class="defect-detail__heading">패치 ({{ patches.length }})</h2>
+      <header class="defect-detail__patches-header">
+        <h2 id="patches-heading" class="defect-detail__heading">패치 ({{ patches.length }})</h2>
+        <button v-if="disposableCount > 0" type="button" class="defect-detail__button" :disabled="isPruning" @click="handlePrune">
+          처리된 패치 정리 ({{ disposableCount }})
+        </button>
+      </header>
+      <p class="defect-detail__muted">거절·롤백된 패치 기록은 처리된 지 7일이 지나면 자동으로 삭제됩니다.</p>
       <p v-if="patches.length === 0" class="defect-detail__muted">
         아직 제안된 패치가 없습니다. Claude Code 에서 MCP 도구 <code>propose_patch</code> 를 호출하거나 위의 규칙 기반 제안을 사용하세요.
       </p>
@@ -178,6 +184,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, ref } from 'vue'
 import type { DefectContext, DefectGroupMember, Patch, StoredDefect } from '~~/shared/types/inspector'
+import { selectDisposable } from '~~/shared/patch-cleanup'
 import { OCCLUSION_CAUSE_LABEL, TARGET_LABEL, formatPercent, formatPx, formatSourceRef, formatUrlPath } from '~/utils/format'
 
 const route = useRoute()
@@ -197,6 +204,8 @@ let toastTimer: ReturnType<typeof setTimeout> | undefined
 const defectId = computed((): string => String(route.params.id))
 const patches = computed((): Patch[] => detail.value?.patches ?? [])
 const sameLocation = computed((): DefectGroupMember[] => detail.value?.sameLocation ?? [])
+const isPruning = ref<boolean>(false)
+const disposableCount = computed((): number => selectDisposable(patches.value, { defectId: defectId.value }).length)
 const payloadJson = computed((): string => JSON.stringify(context.value?.payload, undefined, 2))
 
 const formatDeclarations = (declarations: Record<string, string>): string =>
@@ -238,6 +247,21 @@ const handleRulePatch = async (suggestionIndex: number): Promise<void> => {
     proposeError.value = data?.statusMessage ?? (error as Error).message
   } finally {
     isProposing.value = false
+  }
+}
+
+const handlePrune = async (): Promise<void> => {
+  if (!window.confirm(`거절·롤백된 패치 기록 ${disposableCount.value}개를 삭제할까요? 되돌릴 수 없습니다.`)) return
+  isPruning.value = true
+  try {
+    const result = await $fetch<{ deleted: number }>('/api/patches/prune', { method: 'POST', body: { defectId: defectId.value } })
+    await refreshDetail()
+    showToast(`처리된 패치 ${result.deleted}개를 정리했습니다.`)
+  } catch (error) {
+    const data = (error as { data?: { statusMessage?: string } }).data
+    proposeError.value = data?.statusMessage ?? (error as Error).message
+  } finally {
+    isPruning.value = false
   }
 }
 
@@ -451,5 +475,12 @@ useHead({ title: computed((): string => `결함 ${defectId.value} · Inspector-A
   .toast-leave-active {
     transition: opacity 0.01s;
   }
+}
+.defect-detail__patches-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 </style>

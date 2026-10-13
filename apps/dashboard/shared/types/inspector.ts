@@ -50,6 +50,7 @@ export interface Patch {
   createdAt: string
   appliedAt?: string
   rolledBackAt?: string
+  rejectedAt?: string
   verification?: VerificationResult
   /** 검증 실패로 자동 롤백되었는지 */
   autoRolledBack?: boolean

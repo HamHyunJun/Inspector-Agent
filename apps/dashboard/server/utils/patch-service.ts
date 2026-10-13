@@ -2,12 +2,14 @@ import { applyEdits } from '@inspector-agent/core'
 import type { PatchEdit } from '@inspector-agent/core'
 import { measureDefect } from '@inspector-agent/verifier'
 import { createTwoFilesPatch } from 'diff'
+import { canDelete, selectDisposable } from '../../shared/patch-cleanup'
 import type { Patch } from '../../shared/types/inspector'
 import { getInspectorConfig } from './config'
 import {
   backupProjectFile,
   hashContent,
   readProjectFile,
+  removePatchBackup,
   restoreProjectFile,
   writeProjectFile
 } from './project-files'
@@ -152,9 +154,32 @@ export const rejectPatch = async (patchId: string): Promise<Patch> => {
   if (patch.status !== 'proposed') {
     throw createError({ statusCode: 409, statusMessage: '제안 상태의 패치만 거절할 수 있습니다.' })
   }
-  const next: Patch = { ...patch, status: 'rejected' }
+  const next: Patch = { ...patch, status: 'rejected', rejectedAt: new Date().toISOString() }
   await updateStore((data): void => {
     data.patches[next.id] = next
   })
   return next
+}
+
+/** 패치 기록과 백업을 삭제한다. 적용된 상태의 패치는 롤백 기준이 사라지므로 거부한다 */
+export const deletePatch = async (patchId: string): Promise<void> => {
+  const patch = await getPatchOrThrow(patchId)
+  if (!canDelete(patch)) {
+    throw createError({ statusCode: 409, statusMessage: '소스에 적용된 패치는 삭제할 수 없습니다. 먼저 롤백하세요.' })
+  }
+  await updateStore((data): void => {
+    delete data.patches[patchId]
+  })
+  await removePatchBackup(patchId)
+}
+
+/** 처리가 끝난 패치(거절·롤백·자동 롤백된 실패)를 일괄 삭제하고 지운 개수를 돌려준다 */
+export const pruneDisposablePatches = async (options: { olderThanMs?: number; defectId?: string } = {}): Promise<number> => {
+  const targets = await updateStore((data): Patch[] => {
+    const selected = selectDisposable(Object.values(data.patches), options)
+    for (const patch of selected) delete data.patches[patch.id]
+    return selected
+  })
+  await Promise.all(targets.map((patch): Promise<void> => removePatchBackup(patch.id)))
+  return targets.length
 }
