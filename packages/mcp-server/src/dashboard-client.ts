@@ -12,9 +12,8 @@ interface StyleRule {
   declarations: Array<{ property: string; value: string; line: number }>
 }
 
-export interface DefectSummary extends Defect {
-  status: string
-}
+/** Defect 가 kind 별 합집합이라 interface extends 대신 교차 타입으로 확장한다 */
+export type DefectSummary = Defect & { status: string }
 
 export interface DefectContextResponse {
   defect: DefectSummary
@@ -43,6 +42,7 @@ export interface PatchResponse {
   verification?: {
     passed: boolean
     verdict: string
+    unit?: 'px' | 'ratio' | 'count'
     beforePx: number
     afterPx: number
     regressions: Defect[]

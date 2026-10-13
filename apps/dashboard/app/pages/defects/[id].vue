@@ -15,12 +15,41 @@
       <dl class="defect-detail__metrics">
         <dt>뷰포트</dt>
         <dd>{{ context.payload.viewport }}</dd>
-        <dt>형태</dt>
-        <dd>{{ context.defect.metrics.mode === 'box' ? '박스가 부모를 넘침' : '내부 텍스트가 박스를 넘침' }}</dd>
-        <dt>오버플로우</dt>
-        <dd>+{{ formatPx(context.defect.metrics.overflowPx) }} ({{ formatPercent(context.defect.metrics.overflowRatio) }})</dd>
-        <dt>부모 콘텐츠 / 노드 너비</dt>
-        <dd>{{ formatPx(context.defect.metrics.parentContentWidth) }} / {{ formatPx(context.defect.metrics.nodeWidth) }}</dd>
+        <template v-if="context.defect.kind === 'occluded'">
+          <dt>형태</dt>
+          <dd>{{ OCCLUSION_CAUSE_LABEL[context.defect.metrics.cause] }}</dd>
+          <dt>가려진 비율</dt>
+          <dd>{{ formatPercent(context.defect.metrics.coveredRatio) }} (표본점 {{ context.defect.metrics.sampledPoints }}개)</dd>
+          <dt>가린 요소</dt>
+          <dd><code>{{ context.defect.metrics.occluder.selector }}</code></dd>
+          <dt>stacking 비교</dt>
+          <dd>
+            {{ context.defect.metrics.nodeLayer.selector }} (z-index {{ context.defect.metrics.nodeLayer.zIndex ?? 'auto' }}, {{ context.defect.metrics.nodeLayer.reason }})
+            ↔ {{ context.defect.metrics.occluderLayer.selector }} (z-index {{ context.defect.metrics.occluderLayer.zIndex ?? 'auto' }}, {{ context.defect.metrics.occluderLayer.reason }})
+          </dd>
+        </template>
+        <template v-else-if="context.defect.kind === 'focus-escape'">
+          <dt>형태</dt>
+          <dd>Tab 키 포커스가 모달 밖으로 빠져나감</dd>
+          <dt>이탈 방향</dt>
+          <dd>
+            <template v-if="context.defect.metrics.escapesForward">Tab {{ context.defect.metrics.tabsToEscape }}번째에서 이탈</template>
+            <template v-if="context.defect.metrics.escapesForward && context.defect.metrics.escapesBackward"> · </template>
+            <template v-if="context.defect.metrics.escapesBackward">Shift+Tab 으로 이탈</template>
+          </dd>
+          <dt>모달 / 포커스 가능 요소</dt>
+          <dd>{{ context.defect.metrics.trigger }} / {{ context.defect.metrics.focusableCount }}개</dd>
+          <dt>포커스 도착 지점</dt>
+          <dd><code>{{ context.defect.metrics.escapedTo?.selector ?? '-' }}</code></dd>
+        </template>
+        <template v-else>
+          <dt>형태</dt>
+          <dd>{{ context.defect.metrics.mode === 'box' ? '박스가 부모를 넘침' : '내부 텍스트가 박스를 넘침' }}</dd>
+          <dt>오버플로우</dt>
+          <dd>+{{ formatPx(context.defect.metrics.overflowPx) }} ({{ formatPercent(context.defect.metrics.overflowRatio) }})</dd>
+          <dt>부모 콘텐츠 / 노드 너비</dt>
+          <dd>{{ formatPx(context.defect.metrics.parentContentWidth) }} / {{ formatPx(context.defect.metrics.nodeWidth) }}</dd>
+        </template>
         <dt>셀렉터</dt>
         <dd><code>{{ context.defect.node.selector }}</code></dd>
         <dt>페이지</dt>
@@ -34,13 +63,20 @@
       <article v-for="(suggestion, index) in context.defect.suggestions" :key="suggestion.hint" class="defect-detail__suggestion">
         <header class="defect-detail__suggestion-header">
           <code>{{ suggestion.hint }}</code>
-          <span class="defect-detail__muted">{{ suggestion.target === 'node' ? '노드' : '부모' }}에 적용</span>
+          <span class="defect-detail__muted">{{ TARGET_LABEL[suggestion.target] }}에 적용</span>
         </header>
         <p class="defect-detail__suggestion-reason">{{ suggestion.reason }}</p>
         <p class="defect-detail__suggestion-css"><code>{{ formatDeclarations(suggestion.declarations) }}</code></p>
-        <button type="button" class="defect-detail__button" :disabled="isProposing" @click="handleRulePatch(index)">
+        <button
+          v-if="Object.keys(suggestion.declarations).length > 0 && suggestion.target !== 'ancestor'"
+          type="button"
+          class="defect-detail__button"
+          :disabled="isProposing"
+          @click="handleRulePatch(index)"
+        >
           이 규칙으로 패치 제안
         </button>
+        <p v-else class="defect-detail__muted">선언만으로 고칠 수 없어 규칙 기반 패치를 만들지 않습니다. 에이전트 패치로 구조를 바꿔 주세요.</p>
       </article>
       <p v-if="proposeError" class="defect-detail__error" role="alert">{{ proposeError }}</p>
     </section>
@@ -83,7 +119,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import type { DefectContext, Patch, StoredDefect } from '~~/shared/types/inspector'
-import { formatPercent, formatPx, formatSourceRef } from '~/utils/format'
+import { OCCLUSION_CAUSE_LABEL, TARGET_LABEL, formatPercent, formatPx, formatSourceRef } from '~/utils/format'
 
 const route = useRoute()
 const { data: context, refresh: refreshContext } = await useFetch<DefectContext>(

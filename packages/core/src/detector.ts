@@ -1,11 +1,35 @@
-import { classifySeverity, diagnose } from './diagnose'
+import { classifySeverity, diagnose, diagnoseOcclusion } from './diagnose'
 import { createDefectId, createFingerprint, parseSourceAttribute } from './fingerprint'
-import type { Defect, DetectOptions, NodeSnapshot, OverflowMetrics, Rect, ScanResult } from './types'
+import { classifyOcclusionSeverity, compareStacking, effectiveZIndex, stackingReason } from './occlusion'
+import type { ChainLayer, StackStyle } from './occlusion'
+import type {
+  Defect,
+  DetectOptions,
+  NodeSnapshot,
+  OcclusionDefect,
+  OcclusionMetrics,
+  OverflowDefect,
+  OverflowMetrics,
+  Rect,
+  ScanResult,
+  StackingLayer
+} from './types'
 
 /**
  * 브라우저 안에서 실행되는 결정론적 가로 오버플로우 탐지기.
  * LLM 없이 렌더 트리 수치(getBoundingClientRect, scrollWidth, ComputedStyle)만으로 판정한다.
  */
+
+/** "다른 요소 위에 보여야 하는" 팝업으로 보는 role. tooltip 은 장식이라 제외한다 */
+const POPUP_ROLES = new Set(['dialog', 'alertdialog', 'menu', 'listbox'])
+const POPUP_SELECTOR = 'dialog[open], [popover], [aria-modal="true"]'
+const MODAL_LAYER_SELECTOR = 'dialog[open], [aria-modal="true"], [role="dialog"], [role="alertdialog"]'
+const INTERACTIVE_SELECTOR = 'a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])'
+/** 표본점 5개 중 이 비율 이상 가려져야 결함으로 본다 (모서리 몇 px 겹침은 무시) */
+export const DEFAULT_MIN_COVERED_RATIO = 0.6
+const MIN_SAMPLED_POINTS = 3
+// shortcut: 후보가 많은 페이지에서 elementFromPoint 로 레이아웃을 강제하지 않도록 20개까지만 본다, 더 필요하면 뷰포트 안 요소 우선 정렬로 업그레이드
+const MAX_OCCLUSION_CANDIDATES = 20
 
 const SKIPPED_TAGS = new Set(['script', 'style', 'link', 'meta', 'noscript', 'template', 'br', 'wbr'])
 
@@ -47,6 +71,10 @@ const toRect = (rect: DOMRect): Rect => ({
   right: round(rect.right),
   bottom: round(rect.bottom)
 })
+
+/** transform/rotate/scale/translate 가 걸렸는지. getBoundingClientRect 는 변환 후 사각형이라 레이아웃 박스와 달라진다 */
+const isTransformed = (style: CSSStyleDeclaration): boolean =>
+  [style.transform, style.rotate, style.scale, style.translate].some((value): boolean => value !== '' && value !== 'none')
 
 const isFlexDisplay = (display: string): boolean => display === 'flex' || display === 'inline-flex'
 
@@ -103,11 +131,37 @@ const buildSelector = (element: Element): string => {
   return parts.join(' > ')
 }
 
+/** 요소 하나를 압축 스냅샷으로 만든다. detect 와 포커스 탐침(focus.ts)이 같은 모양을 쓰도록 공유한다 */
+export const createSnapshotter =
+  (styleOf: (element: Element) => CSSStyleDeclaration, sourceAttribute: string) =>
+  (element: Element): NodeSnapshot => {
+    const style = styleOf(element)
+    const parentStyle = element.parentElement ? styleOf(element.parentElement) : undefined
+    const ownSource = element.getAttribute(sourceAttribute)
+    const borrowed = ownSource ? undefined : element.closest(`[${sourceAttribute}]`)?.getAttribute(sourceAttribute)
+    const sourceValue = ownSource ?? borrowed
+    const text = ownText(element)
+    return {
+      selector: buildSelector(element),
+      tag: element.tagName.toLowerCase(),
+      classes: Array.from(element.classList),
+      source: sourceValue ? parseSourceAttribute(sourceValue, ownSource !== null) : undefined,
+      rect: toRect(element.getBoundingClientRect()),
+      scrollWidth: element.scrollWidth,
+      clientWidth: element.clientWidth,
+      styles: pickStyles(style, parentStyle),
+      childElementCount: element.childElementCount,
+      childClasses: collectChildClasses(element),
+      text: text ? text.slice(0, 60) : undefined
+    }
+  }
+
 export const detect = (options: DetectOptions = {}): ScanResult => {
   const startedAt = performance.now()
   const thresholdPx = options.thresholdPx ?? 1
   const maxDefects = options.maxDefects ?? 50
   const sourceAttribute = options.sourceAttribute ?? 'data-ia-src'
+  const minCoveredRatio = options.minCoveredRatio ?? DEFAULT_MIN_COVERED_RATIO
   const root = document.documentElement
   const viewport = { width: root.clientWidth, height: window.innerHeight }
   const styleCache = new Map<Element, CSSStyleDeclaration>()
@@ -131,27 +185,7 @@ export const detect = (options: DetectOptions = {}): ScanResult => {
     return false
   }
 
-  const snapshot = (element: HTMLElement): NodeSnapshot => {
-    const style = styleOf(element)
-    const parentStyle = element.parentElement ? styleOf(element.parentElement) : undefined
-    const ownSource = element.getAttribute(sourceAttribute)
-    const borrowed = ownSource ? undefined : element.closest(`[${sourceAttribute}]`)?.getAttribute(sourceAttribute)
-    const sourceValue = ownSource ?? borrowed
-    const text = ownText(element)
-    return {
-      selector: buildSelector(element),
-      tag: element.tagName.toLowerCase(),
-      classes: Array.from(element.classList),
-      source: sourceValue ? parseSourceAttribute(sourceValue, ownSource !== null) : undefined,
-      rect: toRect(element.getBoundingClientRect()),
-      scrollWidth: element.scrollWidth,
-      clientWidth: element.clientWidth,
-      styles: pickStyles(style, parentStyle),
-      childElementCount: element.childElementCount,
-      childClasses: collectChildClasses(element),
-      text: text ? text.slice(0, 60) : undefined
-    }
-  }
+  const snapshot = createSnapshotter(styleOf, sourceAttribute)
 
   interface Candidate {
     element: HTMLElement
@@ -183,12 +217,14 @@ export const detect = (options: DetectOptions = {}): ScanResult => {
     const parentContentWidth = Math.max(parentContentRight - parentContentLeft, 1)
 
     // 1) 박스 자체가 부모 콘텐츠 영역을 넘는 경우
-    const boxOverflow = rect.right - parentContentRight
+    // shortcut: 자신이나 부모에 transform 이 있으면 박스 판정을 건너뛴다(회전 아이콘 오탐 방지). 변환된 요소의 진짜 오버플로우는 2) 만 본다, 레이아웃 좌표(offset*)로 판정하게 되면 업그레이드
+    const boxOverflow = isTransformed(style) || isTransformed(parentStyle) ? 0 : rect.right - parentContentRight
     if (boxOverflow > thresholdPx) {
       candidates.push({
         element,
         parent,
         metrics: {
+          kind: 'overflow-x',
           mode: 'box',
           overflowPx: round(boxOverflow),
           overflowRatio: round(boxOverflow / parentContentWidth),
@@ -206,6 +242,7 @@ export const detect = (options: DetectOptions = {}): ScanResult => {
         element,
         parent,
         metrics: {
+          kind: 'overflow-x',
           mode: 'content',
           overflowPx: round(contentOverflow),
           overflowRatio: round(contentOverflow / Math.max(element.clientWidth, 1)),
@@ -232,9 +269,9 @@ export const detect = (options: DetectOptions = {}): ScanResult => {
   const detectedAt = new Date().toISOString()
 
   const seenFingerprints = new Set<string>()
-  const defects: Defect[] = culprits
+  const overflowDefects: OverflowDefect[] = culprits
     .sort((a, b): number => b.metrics.overflowPx - a.metrics.overflowPx)
-    .map((candidate): Defect => {
+    .map((candidate): OverflowDefect => {
       const node = snapshot(candidate.element)
       const parent = snapshot(candidate.parent)
       const visibleRight = candidate.metrics.mode === 'box' ? node.rect.right : node.rect.x + node.scrollWidth
@@ -261,6 +298,224 @@ export const detect = (options: DetectOptions = {}): ScanResult => {
       return true
     })
     .slice(0, maxDefects)
+
+  // 가려짐 결함: 위에 있어야 할 팝업이 elementFromPoint 로 확인한 실제 최상단 요소에 가려지는지 본다
+  const documentOrder = new Map<Element, number>([root, document.body, ...elements].map((element, index): [Element, number] => [element, index]))
+  const orderedElements = Array.from(documentOrder.keys())
+
+  const stackStyleOf = (element: Element): StackStyle => {
+    const style = styleOf(element)
+    return {
+      position: style.position,
+      zIndex: style.zIndex,
+      opacity: style.opacity,
+      transform: style.transform,
+      rotate: style.rotate,
+      scale: style.scale,
+      translate: style.translate,
+      filter: style.filter,
+      backdropFilter: style.getPropertyValue('backdrop-filter'),
+      perspective: style.perspective,
+      clipPath: style.clipPath,
+      isolation: style.isolation,
+      mixBlendMode: style.mixBlendMode,
+      willChange: style.willChange,
+      contain: style.getPropertyValue('contain'),
+      parentDisplay: element.parentElement ? styleOf(element.parentElement).display : ''
+    }
+  }
+
+  /** html → element 순서의 조상 체인 */
+  const chainOf = (element: Element): ChainLayer[] => {
+    const chain: ChainLayer[] = []
+    for (let current: Element | null = element; current; current = current.parentElement) {
+      const stack = stackStyleOf(current)
+      chain.unshift({
+        id: String(documentOrder.get(current)),
+        selector: buildSelector(current),
+        zIndex: effectiveZIndex(stack),
+        reason: stackingReason(stack),
+        order: documentOrder.get(current) ?? 0
+      })
+    }
+    return chain
+  }
+
+  const toStackingLayer = (layer: ChainLayer): StackingLayer => {
+    const element = orderedElements[Number(layer.id)]
+    const sourceValue = element?.closest(`[${sourceAttribute}]`)?.getAttribute(sourceAttribute)
+    return {
+      selector: layer.selector,
+      zIndex: layer.zIndex,
+      reason: layer.reason ?? 'none',
+      source: sourceValue ? parseSourceAttribute(sourceValue, element?.getAttribute(sourceAttribute) !== null) : undefined
+    }
+  }
+
+  const isPopupCandidate = (element: HTMLElement, style: CSSStyleDeclaration): boolean => {
+    if (style.display === 'none' || style.visibility !== 'visible' || style.pointerEvents === 'none') return false
+    if (Number(style.opacity) === 0 || element.closest('[data-ia-ignore]') || SKIPPED_TAGS.has(element.tagName.toLowerCase())) return false
+    if (element.closest('svg') !== null) return false
+    const role = element.getAttribute('role') ?? ''
+    if (element.matches(POPUP_SELECTOR) || POPUP_ROLES.has(role)) return true
+    // z-index 가 음수이면 부모 뒤에 두려는 장식이므로 가려져도 결함이 아니다
+    return (style.position === 'absolute' || style.position === 'fixed') && style.zIndex !== 'auto' && Number(style.zIndex) >= 0
+  }
+
+  /** 모달 레이어(dialog, aria-modal, 뷰포트를 덮는 fixed 백드롭) 안의 요소인지. 있으면 그 최상위를 반환한다 */
+  const modalLayerOf = (element: Element): Element | undefined => {
+    let found: Element | undefined
+    for (let current: Element | null = element; current && current !== document.body; current = current.parentElement) {
+      const style = styleOf(current)
+      const rect = current.getBoundingClientRect()
+      const coversViewport = style.position === 'fixed' && rect.width >= viewport.width * 0.9 && rect.height >= viewport.height * 0.9
+      if (current.matches(MODAL_LAYER_SELECTOR) || coversViewport) found = current
+    }
+    return found
+  }
+
+  /**
+   * 요소를 잘라내는 조상. 일반 흐름이면 모든 조상이, absolute 이면 containing block 이상의 조상만 자른다.
+   * shortcut: fixed 요소는 transform 이 있는 조상에 갇히는 경우를 무시한다(자르는 조상 없음으로 본다), 필요하면 containing block 계산을 추가
+   */
+  const clippingAncestor = (element: Element, rect: DOMRect): Element | undefined => {
+    const position = styleOf(element).position
+    if (position === 'fixed') return undefined
+    let reachedContainingBlock = position !== 'absolute'
+    for (let current = element.parentElement; current && current !== document.body && current !== root; current = current.parentElement) {
+      const style = styleOf(current)
+      if (!reachedContainingBlock) {
+        if (style.position === 'static') continue
+        reachedContainingBlock = true
+      }
+      if (style.overflowX === 'visible' && style.overflowY === 'visible') continue
+      const bounds = current.getBoundingClientRect()
+      if (rect.right > bounds.right + 1 || rect.bottom > bounds.bottom + 1 || rect.left < bounds.left - 1 || rect.top < bounds.top - 1) return current
+    }
+    return undefined
+  }
+
+  /** 중심 + 네 모서리(안쪽으로 인셋) 중 뷰포트 안에 있는 점 */
+  const samplePoints = (rect: DOMRect): number[][] => {
+    const inset = Math.min(4, rect.width / 4, rect.height / 4)
+    return [
+      [rect.left + rect.width / 2, rect.top + rect.height / 2],
+      [rect.left + inset, rect.top + inset],
+      [rect.right - inset, rect.top + inset],
+      [rect.left + inset, rect.bottom - inset],
+      [rect.right - inset, rect.bottom - inset]
+    ].filter(([x = -1, y = -1]): boolean => x >= 0 && y >= 0 && x < viewport.width && y < viewport.height)
+  }
+
+  const detectOcclusions = (): OcclusionDefect[] => {
+    const scrollX = window.scrollX
+    const scrollY = window.scrollY
+    try {
+      return collectOcclusions()
+    } finally {
+      window.scrollTo({ top: scrollY, left: scrollX, behavior: 'instant' })
+    }
+  }
+
+  const collectOcclusions = (): OcclusionDefect[] => {
+    const found: Array<{ element: HTMLElement; defect: OcclusionDefect }> = []
+    let inspected = 0
+    for (const element of elements) {
+      if (inspected >= MAX_OCCLUSION_CANDIDATES) break
+      const parent = element.parentElement
+      const style = styleOf(element)
+      if (!parent || !isPopupCandidate(element, style)) continue
+      let rect = element.getBoundingClientRect()
+      if (rect.width < 1 || rect.height < 1) continue
+      inspected++
+
+      let points = samplePoints(rect)
+      if (points.length < MIN_SAMPLED_POINTS) {
+        // elementFromPoint 는 뷰포트 안에서만 동작하므로 화면 밖 팝업은 위쪽에 맞춰 스크롤해 다시 잰다 (끝나면 원위치)
+        window.scrollTo({ top: window.scrollY + rect.top - 16, left: window.scrollX, behavior: 'instant' })
+        rect = element.getBoundingClientRect()
+        points = samplePoints(rect)
+      }
+      if (points.length < MIN_SAMPLED_POINTS) continue
+
+      const covered = points
+        .map(([x = 0, y = 0]) => ({ x, y, top: document.elementFromPoint(x, y) }))
+        .filter((hit): hit is { x: number; y: number; top: Element } => hit.top !== null && hit.top !== element && !element.contains(hit.top))
+      const coveredRatio = covered.length / points.length
+      const occluder = covered[0]?.top
+      if (!occluder || coveredRatio < minCoveredRatio) continue
+
+      // 모달이 페이지를 덮는 것은 정상이다 (모달 안의 요소끼리 가리는 경우만 결함)
+      const modal = modalLayerOf(occluder)
+      if (modal && !modal.contains(element)) continue
+
+      const clipper = clippingAncestor(element, rect)
+      const clipperBounds = clipper?.getBoundingClientRect()
+      const clippedOnly =
+        clipper !== undefined &&
+        clipperBounds !== undefined &&
+        covered.every(({ x, y }): boolean => x < clipperBounds.left || x >= clipperBounds.right || y < clipperBounds.top || y >= clipperBounds.bottom)
+
+      const nodeChain = chainOf(element)
+      const occluderChain = chainOf(occluder)
+      // 가린 요소가 자기 조상이면 겹침이 아니라 자체 배경이므로 잘림이 원인일 때만 본다
+      if (!clippedOnly && occluder.contains(element)) continue
+      const comparison = compareStacking(nodeChain, occluderChain)
+
+      let cause: OcclusionMetrics['cause'] = 'unknown'
+      if (clippedOnly) cause = 'overflow-clip'
+      else if (!comparison.nodeAbove) cause = comparison.trapped ? 'stacking-context' : 'z-index'
+
+      const metrics: OcclusionMetrics = {
+        kind: 'occluded',
+        coveredRatio: round(coveredRatio),
+        sampledPoints: points.length,
+        occluder: snapshot(occluder),
+        nodeLayer: toStackingLayer(comparison.nodeRep),
+        occluderLayer: toStackingLayer(comparison.occluderRep),
+        cause,
+        clippedBy:
+          clippedOnly && clipper
+            ? {
+                selector: buildSelector(clipper),
+                overflow: styleOf(clipper).overflowX !== 'visible' ? styleOf(clipper).overflowX : styleOf(clipper).overflowY,
+                source: snapshot(clipper).source
+              }
+            : undefined
+      }
+      const node = snapshot(element)
+      const fingerprint = createFingerprint('occluded', node.source, node.selector, viewport.width)
+      const interactive = element.matches(INTERACTIVE_SELECTOR) || element.querySelector(INTERACTIVE_SELECTOR) !== null
+      found.push({
+        element,
+        defect: {
+          id: createDefectId(url, fingerprint),
+          fingerprint,
+          kind: 'occluded',
+          severity: classifyOcclusionSeverity(coveredRatio, interactive),
+          url,
+          viewport,
+          node,
+          parent: snapshot(parent),
+          metrics,
+          suggestions: diagnoseOcclusion(node, metrics),
+          detectedAt
+        }
+      })
+    }
+    // 팝업이 가려지면 그 안의 자식도 같이 가려지므로 가장 바깥 요소만 남긴다. 같은 소스에서 나온 중복(v-for)도 하나로 줄인다
+    const seen = new Set<string>()
+    return found
+      .filter(({ element }): boolean => !found.some((other): boolean => other.element !== element && other.element.contains(element)))
+      .map(({ defect }): OcclusionDefect => defect)
+      .filter((defect): boolean => {
+        if (seen.has(defect.fingerprint)) return false
+        seen.add(defect.fingerprint)
+        return true
+      })
+  }
+
+  const defects: Defect[] = [...overflowDefects, ...detectOcclusions()].slice(0, maxDefects)
 
   return {
     url,

@@ -35,8 +35,8 @@
               <span class="defect-table__selector">{{ defect.node.selector }}</span>
             </th>
             <td>{{ defect.viewport.width }}px</td>
-            <td>{{ defect.metrics.mode === 'box' ? '박스' : '콘텐츠' }}</td>
-            <td class="defect-table__number">+{{ formatPx(defect.metrics.overflowPx) }}</td>
+            <td>{{ kindLabel(defect) }}</td>
+            <td class="defect-table__number">{{ sizeLabel(defect) }}</td>
             <td>
               <code v-for="suggestion in defect.suggestions" :key="suggestion.hint" class="defect-table__hint">
                 {{ suggestion.hint }}
@@ -53,7 +53,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import type { DefectStatus, StoredDefect } from '~~/shared/types/inspector'
-import { DEFECT_STATUS_LABEL, formatPx, formatSourceRef } from '~/utils/format'
+import { DEFECT_STATUS_LABEL, formatPercent, formatPx, formatSourceRef } from '~/utils/format'
 
 defineProps<{
   defects: StoredDefect[]
@@ -62,6 +62,17 @@ defineProps<{
 const emit = defineEmits<{
   filter: [status: DefectStatus | '']
 }>()
+
+const KIND_LABEL: Record<StoredDefect['kind'], string> = { 'overflow-x': '오버플로우', occluded: '가려짐', 'focus-escape': '포커스 이탈' }
+
+const kindLabel = (defect: StoredDefect): string =>
+  defect.kind === 'overflow-x' ? (defect.metrics.mode === 'box' ? '박스' : '콘텐츠') : KIND_LABEL[defect.kind]
+
+const sizeLabel = (defect: StoredDefect): string => {
+  if (defect.kind === 'occluded') return formatPercent(defect.metrics.coveredRatio)
+  if (defect.kind === 'focus-escape') return `${Number(defect.metrics.escapesForward) + Number(defect.metrics.escapesBackward)}방향`
+  return `+${formatPx(defect.metrics.overflowPx)}`
+}
 
 const selectedStatus = ref<DefectStatus | ''>('')
 

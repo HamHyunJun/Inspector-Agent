@@ -15,7 +15,14 @@ const snapshot = (overrides: Partial<NodeSnapshot>): NodeSnapshot => ({
   ...overrides
 })
 
-const boxMetrics: OverflowMetrics = { mode: 'box', overflowPx: 60, overflowRatio: 0.19, parentContentWidth: 320, nodeWidth: 380 }
+const boxMetrics: OverflowMetrics = {
+  kind: 'overflow-x',
+  mode: 'box',
+  overflowPx: 60,
+  overflowRatio: 0.19,
+  parentContentWidth: 320,
+  nodeWidth: 380
+}
 
 describe('diagnose', () => {
   it('flex item의 min-width:auto 를 첫 번째 원인으로 진단한다', () => {

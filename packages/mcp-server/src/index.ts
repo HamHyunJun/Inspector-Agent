@@ -37,7 +37,7 @@ server.registerTool(
   'scan_page',
   {
     title: '페이지 스캔',
-    description: '헤드리스 Chromium 으로 URL 을 여러 뷰포트에서 스캔해 레이아웃 오버플로우 결함을 결정론적으로 탐지하고 대시보드에 저장합니다.',
+    description: '헤드리스 Chromium 으로 URL 을 여러 뷰포트에서 스캔해 레이아웃 오버플로우와 모달·드롭다운 가려짐 결함을 결정론적으로 탐지하고 대시보드에 저장합니다.',
     inputSchema: {
       url: z.string().url().describe('스캔할 개발 서버 URL (예: http://localhost:5173/)'),
       viewports: z.array(z.number().int().min(240).max(3840)).optional().describe('뷰포트 너비 목록. 기본 [375, 768, 1280]')
@@ -82,7 +82,7 @@ server.registerTool(
   {
     title: '패치 제안',
     description:
-      '결함을 고치는 소스 편집을 제안합니다. 파일은 바로 바뀌지 않고, 대시보드에서 사람이 Diff 를 검토한 뒤 적용합니다. 적용 시 같은 뷰포트에서 재측정해 오버플로우가 0이 아니거나 새 결함이 생기면 자동 롤백됩니다.',
+      '결함을 고치는 소스 편집을 제안합니다. 파일은 바로 바뀌지 않고, 대시보드에서 사람이 Diff 를 검토한 뒤 적용합니다. 적용 시 같은 뷰포트에서 재측정해 오버플로우 또는 가려진 비율이 0이 아니거나 새 결함이 생기면 자동 롤백됩니다.',
     inputSchema: {
       defectId: z.string(),
       file: z.string().describe('대상 프로젝트 루트 기준 경로 (get_defect_context 의 소스 경로)'),

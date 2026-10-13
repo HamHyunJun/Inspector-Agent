@@ -22,7 +22,13 @@ const renderDefects = (result: ScanResult): void => {
     ...result.defects.map((defect): HTMLLIElement => {
       const item = document.createElement('li')
       const source = defect.node.source ? `${defect.node.source.file}:${defect.node.source.line}` : defect.node.selector
-      item.textContent = `[${defect.severity}] ${source} +${Math.round(defect.metrics.overflowPx)}px`
+      const size =
+        defect.kind === 'occluded'
+          ? `가려짐 ${Math.round(defect.metrics.coveredRatio * 100)}%`
+          : defect.kind === 'focus-escape'
+            ? '모달 포커스 이탈'
+            : `+${Math.round(defect.metrics.overflowPx)}px`
+      item.textContent = `[${defect.severity}] ${source} ${size}`
       return item
     })
   )

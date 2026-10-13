@@ -3,8 +3,12 @@
  * 결함 페이로드는 "LLM에 보낼 최소 정보"를 기준으로 설계한다.
  */
 
-/** 1차 범위: 가로 레이아웃 오버플로우 */
-export type DefectKind = 'overflow-x'
+/**
+ * - overflow-x: 가로 레이아웃 오버플로우
+ * - occluded: 모달/드롭다운 같은 "위에 있어야 할" 요소가 다른 요소에 가려짐
+ * - focus-escape: 모달이 열려 있는데 Tab 키 포커스가 모달 밖으로 빠져나감 (실제 키 입력이 필요해 verifier 가 탐지한다)
+ */
+export type DefectKind = 'overflow-x' | 'occluded' | 'focus-escape'
 
 /**
  * 오버플로우 발생 형태
@@ -65,16 +69,21 @@ export type FixHint =
   | 'unbreakable-text'
   | 'fixed-width'
   | 'media-max-width'
+  | 'stacking-context-trap'
+  | 'z-index-too-low'
+  | 'overflow-clipped-popup'
+  | 'focus-trap-missing'
 
 export interface FixSuggestion {
   hint: FixHint
-  /** 선언을 추가할 대상 */
-  target: 'node' | 'parent'
+  /** 선언을 추가할 대상. ancestor 는 직계 부모가 아닌 조상(스택킹 컨텍스트를 만든 요소, overflow 로 자르는 요소) */
+  target: 'node' | 'parent' | 'ancestor'
   declarations: Record<string, string>
   reason: string
 }
 
 export interface OverflowMetrics {
+  kind: 'overflow-x'
   mode: OverflowMode
   /** 넘친 양(px). 패치 후 0이 되어야 한다 */
   overflowPx: number
@@ -84,21 +93,86 @@ export interface OverflowMetrics {
   nodeWidth: number
 }
 
-export interface Defect {
+/** 한 stacking context(또는 그 안에서 겨루는 대표 요소)의 요약 */
+export interface StackingLayer {
+  selector: string
+  /** auto 이면 undefined */
+  zIndex?: number
+  /** 이 요소가 stacking context 를 만드는 이유 (예: transform, opacity<1, position+z-index). 만들지 않으면 'none' */
+  reason: string
+  source?: SourceLocation
+}
+
+export interface OcclusionMetrics {
+  kind: 'occluded'
+  /** 표본점 중 가려진 비율 (0~1). 패치 후 0이 되어야 한다 */
+  coveredRatio: number
+  sampledPoints: number
+  /** 가린 요소 */
+  occluder: NodeSnapshot
+  /** 공통 조상 stacking context 안에서 서로 겨루는 대표 요소. node 가 조상 컨텍스트에 갇혔으면 nodeLayer 는 그 조상이다 */
+  nodeLayer: StackingLayer
+  occluderLayer: StackingLayer
+  /**
+   * 가려진 원인
+   * - stacking-context: node 가 조상이 만든 stacking context 에 갇혀 자기 z-index 를 올려도 소용없음
+   * - z-index: 같은 컨텍스트에서 z-index/DOM 순서가 밀림
+   * - overflow-clip: 조상의 overflow 가 잘라냄
+   * - unknown: 규칙으로 분류하지 못함 (원인을 단정하지 않는다)
+   */
+  cause: 'stacking-context' | 'z-index' | 'overflow-clip' | 'unknown'
+  /** overflow 로 잘려 가려진 경우 잘라내는 조상 */
+  clippedBy?: { selector: string; overflow: string; source?: SourceLocation }
+}
+
+/** 모달로 판정한 근거 */
+export type ModalTrigger = 'aria-modal' | 'alertdialog' | 'fixed-dialog'
+
+export interface FocusMetrics {
+  kind: 'focus-escape'
+  trigger: ModalTrigger
+  /** 모달 안 포커스 가능한 요소 수 */
+  focusableCount: number
+  /** 첫 요소에서 Tab 을 누르다 모달 밖으로 나갔는가 / Shift+Tab 으로 나갔는가 */
+  escapesForward: boolean
+  escapesBackward: boolean
+  /** 앞으로 몇 번째 Tab 에서 빠져나갔는지 (escapesForward 일 때) */
+  tabsToEscape?: number
+  /** 포커스가 도착한 모달 밖 요소. body 이면 문서 처음/브라우저 UI 로 나간 것 */
+  escapedTo?: NodeSnapshot
+}
+
+interface DefectBase {
   /** url + fingerprint 기반의 결정론적 id (재스캔 시 동일) */
   id: string
   /** 같은 결함을 패치 전후에 대조하기 위한 키: 종류 | 소스 위치(또는 셀렉터) | 뷰포트 너비 */
   fingerprint: string
-  kind: DefectKind
   severity: Severity
   url: string
   viewport: Viewport
   node: NodeSnapshot
   parent: NodeSnapshot
-  metrics: OverflowMetrics
   suggestions: FixSuggestion[]
   detectedAt: string
 }
+
+export interface OverflowDefect extends DefectBase {
+  kind: 'overflow-x'
+  metrics: OverflowMetrics
+}
+
+export interface OcclusionDefect extends DefectBase {
+  kind: 'occluded'
+  metrics: OcclusionMetrics
+}
+
+export interface FocusDefect extends DefectBase {
+  kind: 'focus-escape'
+  metrics: FocusMetrics
+}
+
+/** kind 로 좁힐 수 있는 합집합. 소비처는 defect.kind 로 분기한다 */
+export type Defect = OverflowDefect | OcclusionDefect | FocusDefect
 
 export interface ScanResult {
   url: string
@@ -119,6 +193,8 @@ export interface DetectOptions {
   maxDefects?: number
   /** 소스 위치 속성 이름. 기본 data-ia-src */
   sourceAttribute?: string
+  /** 표본점 중 이 비율 이상 가려져야 가려짐 결함으로 본다. 기본 0.6. 검증기가 "완전히 사라졌는가"를 볼 때 낮춘다 */
+  minCoveredRatio?: number
 }
 
 /** 에이전트가 제안하는 검색/치환 방식의 편집 단위 */
@@ -128,9 +204,28 @@ export interface PatchEdit {
   newText: string
 }
 
+/** 모달 하나의 포커스 탐침 정보. 키 입력은 Playwright 가 하고, 페이지 안에서는 상태만 조회한다 */
+export interface ModalProbe {
+  index: number
+  trigger: ModalTrigger
+  focusableCount: number
+  node: NodeSnapshot
+  parent: NodeSnapshot
+}
+
+export interface FocusState {
+  /** 현재 포커스가 모달 안에 있는가 (body 는 밖으로 본다) */
+  inside: boolean
+  active?: NodeSnapshot
+}
+
 /** IIFE 탐지기 번들이 노출하는 전역 API */
 export interface InspectorAgentGlobal {
   detect: (options?: DetectOptions) => ScanResult
+  /** 열려 있는 모달을 찾아 이후 focusFirstInModal/modalFocusState 에서 index 로 가리킨다 */
+  findModals: (options?: Pick<DetectOptions, 'sourceAttribute'>) => ModalProbe[]
+  focusFirstInModal: (index: number) => boolean
+  modalFocusState: (index: number, options?: Pick<DetectOptions, 'sourceAttribute'>) => FocusState
   version: string
 }
 

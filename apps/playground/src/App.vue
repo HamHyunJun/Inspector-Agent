@@ -12,14 +12,28 @@
     <PromoBanner />
     <ShareLink url="https://example.com/campaign/2026/autumn/landing?utm_source=newsletter&utm_medium=email&utm_campaign=inspector_agent_demo" />
     <OrderTable :orders="orders" />
+    <SortMenu />
+    <BadgeCard />
+    <ModalControl />
+    <ShareSheet />
+    <ClippedMenu />
+    <FilterDropdown />
+    <ConfirmDialog />
   </main>
 </template>
 
 <script setup lang="ts">
 import OrderTable from './components/OrderTable.vue'
+import BadgeCard from './components/BadgeCard.vue'
+import ClippedMenu from './components/ClippedMenu.vue'
+import ConfirmDialog from './components/ConfirmDialog.vue'
+import FilterDropdown from './components/FilterDropdown.vue'
+import ModalControl from './components/ModalControl.vue'
+import ShareSheet from './components/ShareSheet.vue'
 import ProductCard from './components/ProductCard.vue'
 import PromoBanner from './components/PromoBanner.vue'
 import ShareLink from './components/ShareLink.vue'
+import SortMenu from './components/SortMenu.vue'
 import TagList from './components/TagList.vue'
 import type { Order } from './components/OrderTable.vue'
 

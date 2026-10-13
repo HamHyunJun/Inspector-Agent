@@ -6,7 +6,8 @@ import type { VerificationResult } from '@inspector-agent/verifier'
 
 export type DefectStatus = 'open' | 'patched' | 'resolved'
 
-export interface StoredDefect extends Defect {
+/** Defect 가 kind 별 합집합이라 interface extends 대신 교차 타입으로 확장한다 */
+export type StoredDefect = Defect & {
   status: DefectStatus
   firstSeenAt: string
   lastSeenAt: string

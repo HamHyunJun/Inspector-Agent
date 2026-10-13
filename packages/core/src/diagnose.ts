@@ -1,4 +1,4 @@
-import type { FixSuggestion, NodeSnapshot, OverflowMetrics, Severity } from './types'
+import type { FixSuggestion, FocusMetrics, NodeSnapshot, OcclusionMetrics, OverflowMetrics, Severity } from './types'
 
 const MEDIA_TAGS = new Set(['img', 'video', 'canvas', 'iframe', 'svg', 'picture'])
 
@@ -99,4 +99,60 @@ export const classifySeverity = (overflowPx: number, causesPageScroll: boolean):
   if (overflowPx >= 24 || causesPageScroll) return 'high'
   if (overflowPx >= 8) return 'medium'
   return 'low'
+}
+
+/**
+ * 가려짐 결함의 원인별 후보 패치. 원인을 모르면(unknown) 단정하지 않고 빈 배열을 반환한다.
+ * stacking-context-trap 은 선언만으로 고칠 수 없는 경우가 많아 declarations 가 비어 있고, 규칙 기반 자동 패치 대상이 아니다.
+ */
+export const diagnoseOcclusion = (node: NodeSnapshot, metrics: OcclusionMetrics): FixSuggestion[] => {
+  const { cause, nodeLayer, occluderLayer, clippedBy } = metrics
+  if (cause === 'stacking-context') {
+    return [
+      {
+        hint: 'stacking-context-trap',
+        target: 'ancestor',
+        declarations: {},
+        reason: `${nodeLayer.selector} 가 ${nodeLayer.reason} 로 만든 stacking context 안에 갇혀 있어, 안쪽 z-index 를 올려도 ${occluderLayer.selector}(z-index ${occluderLayer.zIndex ?? 'auto'}) 위로 올라가지 못합니다. 해당 조상의 ${nodeLayer.reason} 를 없애거나 팝업을 body 로 옮기세요(<Teleport to="body">).`
+      }
+    ]
+  }
+  if (cause === 'z-index') {
+    const needsPosition = (node.styles.position ?? 'static') === 'static'
+    return [
+      {
+        hint: 'z-index-too-low',
+        target: 'node',
+        declarations: { ...(needsPosition ? { position: 'relative' } : {}), 'z-index': String((occluderLayer.zIndex ?? 0) + 1) },
+        reason: `같은 stacking context 에서 ${occluderLayer.selector}(z-index ${occluderLayer.zIndex ?? 'auto'}) 가 위에 그려집니다. z-index 를 ${(occluderLayer.zIndex ?? 0) + 1} 이상으로 올리세요.`
+      }
+    ]
+  }
+  if (cause === 'overflow-clip' && clippedBy) {
+    return [
+      {
+        hint: 'overflow-clipped-popup',
+        target: 'ancestor',
+        declarations: { overflow: 'visible' },
+        reason: `조상 ${clippedBy.selector} 의 overflow: ${clippedBy.overflow} 가 경계 밖 팝업을 잘라냅니다. overflow 를 풀거나 팝업을 body 로 옮기세요.`
+      }
+    ]
+  }
+  return []
+}
+
+/**
+ * 포커스 이탈은 CSS 선언으로 고칠 수 없다. 키보드 이동을 가두는 동작(JS)이나 배경 비활성화가 필요해 declarations 는 비어 있다.
+ * 도착 지점(escapedTo)이 body 이면 문서 처음이나 브라우저 UI 로 나간 것이다.
+ */
+export const diagnoseFocus = (metrics: FocusMetrics): FixSuggestion[] => {
+  const where = metrics.escapedTo ? (metrics.escapedTo.tag === 'body' ? '문서/브라우저 UI' : metrics.escapedTo.selector) : '모달 밖'
+  return [
+    {
+      hint: 'focus-trap-missing',
+      target: 'node',
+      declarations: {},
+      reason: `모달에서 Tab 으로 ${where} 로 포커스가 빠져나갑니다. aria-modal 은 포커스를 가두지 않습니다. 마지막 요소에서 Tab 은 첫 요소로, 첫 요소에서 Shift+Tab 은 마지막 요소로 순환시키거나(keydown 핸들러), 모달 밖 영역에 inert 를 걸거나, 네이티브 <dialog>.showModal() 을 쓰세요. 닫을 때 열기 전 요소로 포커스를 돌려주세요.`
+    }
+  ]
 }

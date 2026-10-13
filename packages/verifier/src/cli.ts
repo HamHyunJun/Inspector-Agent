@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { formatMagnitude } from '@inspector-agent/core'
 import { DEFAULT_VIEWPORTS, parseViewports, scanPage } from './index'
 
 /**
@@ -27,7 +28,7 @@ const main = async (): Promise<void> => {
     for (const defect of result.defects) {
       const source = defect.node.source ? `${defect.node.source.file}:${defect.node.source.line}` : defect.node.selector
       const hints = defect.suggestions.map((suggestion): string => suggestion.hint).join(', ')
-      console.log(`  - [${defect.severity}] ${source} ${defect.metrics.mode} +${defect.metrics.overflowPx}px (${hints})`)
+      console.log(`  - [${defect.severity}] ${source} ${formatMagnitude(defect)} (${hints})`)
     }
   }
 
