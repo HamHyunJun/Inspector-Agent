@@ -1,7 +1,7 @@
 # 다음 단계 요청 가이드 (Claude Code CLI)
 
 한 번에 기능 하나씩 요청하고, 끝나면 diff를 직접 읽고 커밋하세요.
-각 단계는 그대로 복사해 붙여 넣으면 됩니다.
+각 단계는 그대로 복사해 붙여 넣으면 됩니다. `<...>` 로 표시된 부분만 직접 채우세요.
 
 ## 요청할 때의 공통 규칙
 
@@ -30,14 +30,15 @@ get_defect_context를 읽어 propose_patch로 패치를 제안해줘. 파일은 
 ## 1단계: 실제 프로젝트 검증 (가장 중요)
 
 ```
-/경로/내-프로젝트 에 @inspector-agent/vite-plugin 을 붙이는 방법을 정리하고 적용해줘.
+<내 Vue 프로젝트 절대 경로, 예: /Users/hyunjun/Camping-Joy> 에 @inspector-agent/vite-plugin 을 붙이는 방법을 정리하고 적용해줘.
 INSPECTOR_PROJECT_ROOT 를 그 경로로 대시보드를 띄워 375/768/1280px로 스캔한 뒤,
 오탐(실제로는 문제없는 것)과 미탐(눈으로 보이는데 못 잡은 것)을
 docs/real-world-report.md 에 표로 정리해줘. 탐지 규칙은 아직 고치지 마.
 ```
 
 ```
-docs/real-world-report.md 의 오탐 N번을 없애도록 detector.ts 규칙을 고치고,
+docs/real-world-report.md 에 정리된 오탐을 원인별로 묶어 우선순위를 정하고,
+가장 많이 나온 원인부터 하나씩 detector.ts 규칙을 고쳐줘.
 같은 상황을 재현하는 정상 대조군 컴포넌트를 playground 에 추가해줘.
 벤치마크에서 대조군 오탐 0건이 유지되는지까지 확인해줘.
 ```
