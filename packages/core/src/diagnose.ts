@@ -197,6 +197,16 @@ export const diagnoseVertical = (node: NodeSnapshot, metrics: VerticalOverflowMe
  * 텍스트 잘림의 후보 패치. 한 줄 라벨이면 말줄임으로 잘린 것을 드러내고, 내용이 중요하면 줄바꿈해서 다 보여 준다.
  * text-overflow: ellipsis 는 줄바꿈 없는 한 줄(white-space: nowrap)에서만 동작한다.
  */
+/** 위치를 정하는 CSS 는 앵커마다 달라 선언만으로 고치기 어려우므로 declarations 를 비워 규칙 기반 자동 패치 대상에서 뺀다 */
+export const diagnoseViewportEscape = (_node: NodeSnapshot, metrics: OverflowMetrics): FixSuggestion[] => [
+  {
+    hint: 'keep-in-viewport',
+    target: 'node',
+    declarations: {},
+    reason: `절대/고정 위치 요소가 화면 밖으로 ${Math.round(metrics.overflowPx)}px 나가 일부가 보이지 않습니다. 너비를 뷰포트 안으로 제한(max-width: calc(100vw - 2rem))하고, 앵커 기준 한쪽 정렬(right: 0 / left: 0)이 좁은 화면에서 반대편으로 나가지 않게 작은 화면에서는 left/right 를 뷰포트 여백에 맞추거나 position: fixed 로 바꾸세요.`
+  }
+]
+
 export const diagnoseClippedText = (_node: NodeSnapshot, metrics: ClippedTextMetrics): FixSuggestion[] => {
   const clippedPercent = Math.round(metrics.hiddenRatio * 100)
   const nowrap = metrics.whiteSpace === 'nowrap' || metrics.whiteSpace === 'pre'
