@@ -6,9 +6,9 @@ describe('parseScenario', () => {
     const scenario = parseScenario({
       name: '드롭다운 열기',
       seed: { localStorage: { user: { name: '함현준' } }, sessionStorage: { tab: '2' }, cookies: [{ name: 'sid', value: 'x', path: '/' }] },
-      steps: [{ action: 'click', selector: '.trigger' }, { action: 'fill', selector: 'input', value: 'a' }, { action: 'wait', ms: 300 }, { action: 'wait', selector: '.menu' }]
+      steps: [{ action: 'click', selector: '.trigger' }, { action: 'hover', selector: '.tip-trigger' }, { action: 'fill', selector: 'input', value: 'a' }, { action: 'wait', ms: 300 }, { action: 'wait', selector: '.menu' }]
     })
-    expect(scenario.steps).toHaveLength(4)
+    expect(scenario.steps).toHaveLength(5)
     expect(scenario.seed?.cookies?.[0]).toEqual({ name: 'sid', value: 'x', path: '/' })
   })
 
@@ -23,7 +23,8 @@ describe('parseScenario', () => {
     [{}, 'seed 또는 steps'],
     [{ steps: [] }, 'seed 또는 steps'],
     [{ stepz: [] }, '알 수 없는 필드 "stepz"'],
-    [{ steps: [{ action: 'hover', selector: 'a' }] }, '"click", "fill", "wait"'],
+    [{ steps: [{ action: 'drag', selector: 'a' }] }, '"click", "hover", "fill", "wait"'],
+    [{ steps: [{ action: 'hover' }] }, 'selector'],
     [{ steps: [{ action: 'click' }] }, 'selector'],
     [{ steps: [{ action: 'click', selector: 'a', extra: 1 }] }, '알 수 없는 필드 "extra"'],
     [{ steps: [{ action: 'fill', selector: 'a' }] }, 'value'],
