@@ -171,7 +171,7 @@ Chrome 확장은 `packages/extension/dist`를 `chrome://extensions` → **압축
 
 준비물은 Node 22, pnpm 10, Chromium(`pnpm dlx playwright@1.56.1 install chromium`, 또는 `INSPECTOR_CHROMIUM_PATH`)입니다.
 
-**1) 플러그인을 내 프로젝트에 설치** — 패키지가 아직 레지스트리에 올라가 있지 않으므로 이 저장소의 빌드 결과를 링크합니다.
+**1) 플러그인을 내 프로젝트에 설치** — npm 에 배포된 뒤에는 `pnpm add -D @inspector-agent/vite-plugin` 으로 설치합니다(배포 절차는 [`docs/releasing.md`](docs/releasing.md), 현재 **아직 npm 에 올라가 있지 않습니다**). 그 전에는 이 저장소의 빌드 결과를 링크합니다.
 
 ```bash
 # Inspector-Agent 저장소에서 (한 번)
@@ -301,7 +301,7 @@ node packages/verifier/dist/cli.js http://localhost:5174/camps/c1/distribute --v
 - 요약은 실패해도 항상 남습니다. 표의 **위치**(`파일:라인`)로 바로 이동해 고치면 됩니다.
 - CI 도 5.6 의 한계를 그대로 가집니다. 빈 상태 화면은 CI 에서도 빈 상태로 검사됩니다.
 - PR 코멘트 게시와 기존 결함 기준선(허용 목록) 파일은 아직 없습니다.
-- 위 예시는 이 저장소(`Inspector-Agent`)의 빌드 결과를 쓰므로, 내 앱의 CI 에서는 이 저장소를 함께 체크아웃해 `pnpm install && pnpm build` 한 뒤 경로를 맞춰야 합니다(패키지가 아직 레지스트리에 게시되지 않았습니다).
+- 위 예시는 이 저장소(`Inspector-Agent`)의 빌드 결과를 쓰므로, 내 앱의 CI 에서는 이 저장소를 함께 체크아웃해 `pnpm install && pnpm build` 한 뒤 경로를 맞춰야 합니다. npm 에 배포된 뒤(`docs/releasing.md`)에는 `npm install -D @inspector-agent/verifier` 후 `npx inspector-scan <url> --fail-on high` 만으로 됩니다.
 
 ### 5.8 데이터와 상태 관리
 
@@ -428,6 +428,7 @@ PromoBanner.vue  +109px  fixed-width ✓
 
 - [x] z-index / stacking context 충돌 탐지 (`elementFromPoint` 표본점 가림 검사). 스캔 시점에 열려 있는 UI 만 검사합니다
 - [x] 접근성: 모달 포커스 트랩 (verifier 가 실제 Tab 키로 검사). 대비, 라벨 누락 규칙은 아직 없습니다
+- [x] npm 배포 준비: 패키지 메타데이터·README·LICENSE, changesets, 태그 push 자동 배포 워크플로, tarball 설치 스모크 테스트 (`docs/releasing.md`). **실제 `npm publish` 는 아직 하지 않았습니다**
 - [x] 닫혀 있는 팝업·데이터가 있어야 그려지는 화면을 스캔하기 위한 시나리오(시드 + 클릭/입력/대기 단계)
 - [ ] 로그인이 필요한 화면(세션 쿠키·토큰을 안전하게 다루는 시나리오 저장 방식)
 - [ ] React(`__source`/소스맵) 매핑, CSS Modules·Tailwind 클래스 → 소스 매핑

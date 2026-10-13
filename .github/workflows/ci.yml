@@ -36,9 +36,18 @@ jobs:
 
       - run: pnpm test
 
+      - run: pnpm test:scripts
+
       - run: pnpm --filter dashboard test
 
       - run: pnpm --filter @inspector-agent/benchmarks test
+
+      # 배포될 패키지의 메타데이터와 tarball 을 PR 마다 검증한다 (실제 배포는 release.yml)
+      - name: 배포 전 검증
+        run: pnpm release:check
+
+      - name: tarball 스모크 테스트
+        run: pnpm release:smoke
 
       - name: 탐지 회귀 벤치마크
         run: pnpm bench

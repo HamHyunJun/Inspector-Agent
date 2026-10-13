@@ -8,3 +8,4 @@ dist
 benchmarks/results/*.json
 !benchmarks/results/.gitkeep
 .omc/
+*.tgz

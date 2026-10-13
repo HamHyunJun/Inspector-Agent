@@ -1,6 +1,7 @@
 {
   "name": "@inspector-agent/source-locator",
   "version": "0.1.0",
+  "private": true,
   "description": "결함 노드를 .vue 템플릿 라인과 SCSS 규칙 라인에 연결하는 소스 탐색기",
   "type": "module",
   "main": "./dist/index.js",
@@ -11,7 +12,9 @@
       "import": "./dist/index.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts --clean",
     "test": "vitest run",
