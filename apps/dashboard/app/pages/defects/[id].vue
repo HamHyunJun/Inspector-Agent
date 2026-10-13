@@ -66,7 +66,7 @@
         </template>
         <template v-else>
           <dt>형태</dt>
-          <dd>{{ context.defect.metrics.mode === 'box' ? '박스가 부모를 넘침' : '내부 텍스트가 박스를 넘침' }}</dd>
+          <dd>{{ OVERFLOW_MODE_DESCRIPTION[context.defect.metrics.mode] }}</dd>
           <dt>오버플로우</dt>
           <dd>+{{ formatPx(context.defect.metrics.overflowPx) }} ({{ formatPercent(context.defect.metrics.overflowRatio) }})</dd>
           <dt>부모 콘텐츠 / 노드 너비</dt>
@@ -194,6 +194,8 @@ const { data: context, refresh: refreshContext } = await useFetch<DefectContext>
 const { data: detail, refresh: refreshDetail } = await useFetch<{ defect: StoredDefect; patches: Patch[]; sameLocation: DefectGroupMember[]; scenarioName?: string }>(
   (): string => `/api/defects/${String(route.params.id)}`
 )
+
+const OVERFLOW_MODE_DESCRIPTION = { box: '박스가 부모를 넘침', content: '내부 텍스트가 박스를 넘침', viewport: '팝업이 화면 좌우 경계를 넘음' } as const
 
 const isProposing = ref<boolean>(false)
 const proposeError = ref<string>('')

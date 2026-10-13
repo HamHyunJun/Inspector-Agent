@@ -16,8 +16,9 @@ export type DefectKind = 'overflow-x' | 'overflow-y' | 'clipped-text' | 'occlude
  * 오버플로우 발생 형태
  * - box: 요소의 박스 자체가 부모 콘텐츠 영역 밖으로 밀려남 (예: flex item min-width:auto)
  * - content: 요소 박스는 맞지만 내부 텍스트/인라인 콘텐츠가 박스를 넘침 (예: nowrap, 긴 URL)
+ * - viewport: 절대/고정 위치로 띄운 툴팁·팝오버가 화면 좌우 경계 밖으로 나감 (부모가 아니라 뷰포트가 기준)
  */
-export type OverflowMode = 'box' | 'content'
+export type OverflowMode = 'box' | 'content' | 'viewport'
 
 export type Severity = 'low' | 'medium' | 'high'
 
@@ -79,6 +80,7 @@ export type FixHint =
   | 'vertical-scroll'
   | 'text-ellipsis'
   | 'text-wrap'
+  | 'keep-in-viewport'
 
 export interface FixSuggestion {
   hint: FixHint

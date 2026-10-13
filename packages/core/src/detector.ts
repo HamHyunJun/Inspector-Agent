@@ -2,6 +2,7 @@ import { classifySeverity, diagnose, diagnoseOcclusion } from './diagnose'
 import { createDefectId, createFingerprint, parseSourceAttribute } from './fingerprint'
 import { buildSelector, isTransformed, ownText, round, toRect } from './dom-utils'
 import { detectClippedText } from './rules/clipped-text'
+import { detectViewportEscape } from './rules/viewport-escape'
 import type { RuleContext } from './rules/context'
 import { detectVerticalOverflow } from './rules/vertical-overflow'
 import { groupCascades } from './cascade'
@@ -536,7 +537,7 @@ export const detect = (options: DetectOptions = {}): ScanResult => {
 
   // 가려짐 검사는 화면 밖 팝업을 보려고 스크롤하므로, 좌표를 읽는 규칙들을 먼저 실행한다
   const ruleContext: RuleContext = { elements, styleOf, snapshot, viewport, url, detectedAt }
-  const defects: Defect[] = [...overflowDefects, ...detectVerticalOverflow(ruleContext), ...detectClippedText(ruleContext), ...detectOcclusions()].slice(0, maxDefects)
+  const defects: Defect[] = [...overflowDefects, ...detectVerticalOverflow(ruleContext), ...detectClippedText(ruleContext), ...detectViewportEscape(ruleContext), ...detectOcclusions()].slice(0, maxDefects)
 
   return {
     url,

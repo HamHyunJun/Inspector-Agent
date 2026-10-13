@@ -85,8 +85,9 @@ const KIND_LABEL: Record<StoredDefect['kind'], string> = {
   'focus-escape': '포커스 이탈'
 }
 
-const kindLabel = (defect: StoredDefect): string =>
-  defect.kind === 'overflow-x' ? (defect.metrics.mode === 'box' ? '박스' : '콘텐츠') : KIND_LABEL[defect.kind]
+const OVERFLOW_MODE_LABEL = { box: '박스', content: '콘텐츠', viewport: '화면 이탈' } as const
+
+const kindLabel = (defect: StoredDefect): string => (defect.kind === 'overflow-x' ? OVERFLOW_MODE_LABEL[defect.metrics.mode] : KIND_LABEL[defect.kind])
 
 const sizeLabel = (defect: StoredDefect): string => {
   if (defect.kind === 'occluded') return formatPercent(defect.metrics.coveredRatio)

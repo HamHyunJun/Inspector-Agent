@@ -65,3 +65,20 @@ node packages/verifier/dist/cli.js http://localhost:5174/camps/c1/distribute --v
 1. **시드**: 브라우저 개발자 도구 Application 탭에서 앱이 쓰는 `localStorage` 키와 값 모양을 확인합니다(상태 라이브러리 영속 저장소는 보통 스토어 이름이 키). 값 모양을 복사해 긴 문자열 등 깨지기 쉬운 데이터로 바꿉니다.
 2. **단계**: 열고 싶은 UI 의 트리거 셀렉터를 정하고(`data-*` 속성이나 안정적인 클래스), 열린 뒤에만 나타나는 요소를 `wait selector` 로 기다립니다. `ms` 대기는 애니메이션 전환 때만 쓰세요.
 3. CLI 로 먼저 돌려 `시나리오 steps[N] … 실패` 없이 끝나는지 확인한 뒤 대시보드·MCP 에서 같은 파일을 씁니다.
+
+## 열린 툴팁·팝오버가 화면 밖으로 나가는지 검사
+
+`click`/`hover` 로 툴팁이나 팝오버를 연 상태에서 스캔하면, 절대/고정 위치 요소가 화면 좌우 경계를 넘는 경우를 **뷰포트 이탈**(`overflow-x` 의 `viewport` 모드, 진단 `keep-in-viewport`)로 보고합니다.
+
+```json
+{ "steps": [
+  { "action": "click", "selector": ".security-badge__button" },
+  { "action": "wait", "selector": "#security-popover" },
+  { "action": "wait", "ms": 500 }
+] }
+```
+
+- 열림 애니메이션(transform, opacity)이 끝나기 전에는 건너뛰므로 마지막에 `wait` 를 둡니다.
+- 화면 밖으로 완전히 치워 둔 요소(오프캔버스 메뉴, 스킵 링크), `hidden`/`aria-hidden`/`inert`, `overflow` 로 자르는 조상 안의 요소는 의도된 것으로 보고 제외합니다.
+- 위치를 정하는 CSS 는 앵커마다 달라 규칙 기반 자동 패치(선언)는 제안하지 않고 원인과 수정 방향만 안내합니다.
+- 실측: TaxKit 의 "100% 로컬 연산" 팝오버는 390~480px 에서 최대 38px 화면 밖으로 나가는 것을 탐지했습니다(360px 이하, 600px 이상은 정상).
