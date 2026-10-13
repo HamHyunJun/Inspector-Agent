@@ -1,4 +1,5 @@
-import { relative } from 'node:path'
+import { existsSync } from 'node:fs'
+import { dirname, join, relative } from 'node:path'
 import type { Plugin } from 'vite'
 import { injectSourceAttributes } from './inject'
 
@@ -9,6 +10,17 @@ export interface InspectorAgentPluginOptions {
   includeBuild?: boolean
   /** 주입 대상에서 제외할 경로 조건 */
   exclude?: (id: string) => boolean
+}
+
+/**
+ * data-ia-src 경로의 기준 폴더. Vite root 에서 위로 올라가며 package.json 이 있는 첫 폴더를 쓴다.
+ * Nuxt 4 는 Vite root 를 srcDir(app/) 로 잡아 `app/` 접두어가 빠지는데, 대시보드는 프로젝트 루트 기준으로 파일을 찾는다.
+ */
+export const resolveProjectRoot = (viteRoot: string): string => {
+  for (let dir = viteRoot; ; dir = dirname(dir)) {
+    if (existsSync(join(dir, 'package.json'))) return dir
+    if (dirname(dir) === dir) return viteRoot
+  }
 }
 
 /**
@@ -24,7 +36,7 @@ const inspectorAgent = (options: InspectorAgentPluginOptions = {}): Plugin => {
     enforce: 'pre',
     apply: options.includeBuild ? undefined : 'serve',
     configResolved: (config): void => {
-      root = config.root
+      root = resolveProjectRoot(config.root)
     },
     transform: (code, id) => {
       const [filepath = ''] = id.split('?')

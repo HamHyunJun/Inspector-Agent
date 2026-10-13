@@ -20,6 +20,9 @@ export default defineEventHandler(async (event): Promise<Patch> => {
 
   const context = await buildDefectContext(defect)
   if (!context.file) throw createError({ statusCode: 422, statusMessage: '소스 위치가 없어 패치를 만들 수 없습니다.' })
+  if (suggestion.target === 'ancestor' || Object.keys(suggestion.declarations).length === 0) {
+    throw createError({ statusCode: 422, statusMessage: '조상 요소 또는 구조 변경이 필요한 제안이라 규칙 기반 패치를 만들 수 없습니다.' })
+  }
   if (suggestion.target === 'parent' && defect.parent.source?.file !== context.file) {
     throw createError({ statusCode: 422, statusMessage: '부모 요소가 다른 컴포넌트에 있어 규칙 기반 패치를 만들 수 없습니다.' })
   }

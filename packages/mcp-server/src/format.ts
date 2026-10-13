@@ -1,3 +1,4 @@
+import { formatMagnitude } from '@inspector-agent/core'
 import type { DefectContextResponse, DefectSummary, PatchResponse } from './dashboard-client'
 
 /** MCP 응답 텍스트 포맷터. 에이전트가 읽기 쉬우면서 토큰을 아끼는 형태를 유지한다 */
@@ -20,7 +21,7 @@ export const formatDefectList = (defects: DefectSummary[]): string => {
     .map((defect): string => {
       const source = defect.node.source ? `${defect.node.source.file}:${defect.node.source.line}` : defect.node.selector
       const hints = defect.suggestions.map((suggestion): string => suggestion.hint).join(',') || '-'
-      return `${defect.id} [${defect.severity}/${defect.status}] ${source} @${defect.viewport.width}px ${defect.metrics.mode} +${Math.round(defect.metrics.overflowPx)}px hints=${hints}`
+      return `${defect.id} [${defect.severity}/${defect.status}] ${source} @${defect.viewport.width}px ${formatMagnitude(defect)} hints=${hints}`
     })
     .join('\n')
 }
@@ -31,7 +32,7 @@ export const formatContext = (context: DefectContextResponse): string => {
     context.payload.summary,
     '',
     '## 런타임 페이로드',
-    JSON.stringify({ node: context.payload.node, parent: context.payload.parent, suggestions: context.payload.suggestions }),
+    JSON.stringify({ node: context.payload.node, parent: context.payload.parent, occlusion: context.payload.occlusion, focus: context.payload.focus, suggestions: context.payload.suggestions }),
     '',
     `## 소스 (${context.file ?? '소스 위치 없음'})`
   ]
@@ -52,16 +53,35 @@ export const formatContext = (context: DefectContextResponse): string => {
     '- 기존 SCSS 규칙(scoped, BEM 중첩)에 선언을 추가하는 최소 변경을 우선하세요. 템플릿 구조 변경은 최후의 수단입니다.',
     '- 원인이 자식에 있으면(예: nowrap 제목) 노드와 자식을 함께 고치세요. 적용 후 같은 뷰포트에서 재측정되며, 새 오버플로우가 생기면 자동 롤백됩니다.'
   )
+  if (context.payload.focus) {
+    sections.push(
+      '- 포커스 이탈 결함: CSS 로는 고칠 수 없습니다. 모달 안 keydown 핸들러로 Tab/Shift+Tab 을 순환시키거나 배경에 inert 를 거세요. aria-modal 만으로는 포커스가 갇히지 않습니다.',
+      '- 재측정은 실제 Tab/Shift+Tab 을 눌러 포커스가 모달 안에 머무는지 확인하며, 두 방향 모두 0이어야 통과합니다.'
+    )
+  }
+  if (context.payload.occlusion) {
+    sections.push(
+      '- 가려짐 결함: occlusion.cause 가 stacking-context 이면 z-index 를 올려도 소용없습니다. 갇힌 조상(nodeLayer)의 stacking context 원인을 없애거나 팝업을 body 로 옮기세요.',
+      '- 가려짐은 재측정에서 가려진 비율이 0% 가 되어야 통과합니다(일부만 풀려도 실패).'
+    )
+  }
   return sections.join('\n')
 }
 
 export const formatPatch = (patch: PatchResponse, dashboardUrl: string): string => {
   const lines = [`패치 ${patch.id} 상태: ${patch.status}`, `대상: ${patch.file}`]
   if (patch.verification) {
-    lines.push(`재측정: ${patch.verification.verdict} (${Math.round(patch.verification.beforePx)}px → ${Math.round(patch.verification.afterPx)}px)`)
+    const { beforePx, afterPx, unit } = patch.verification
+    const measured =
+      unit === 'ratio'
+        ? `${Math.round(beforePx * 100)}% → ${Math.round(afterPx * 100)}%`
+        : unit === 'count'
+          ? `${beforePx}방향 → ${afterPx}방향`
+          : `${Math.round(beforePx)}px → ${Math.round(afterPx)}px`
+    lines.push(`재측정: ${patch.verification.verdict} (${measured})`)
     for (const regression of patch.verification.regressions) {
       const source = regression.node.source ? `${regression.node.source.file}:${regression.node.source.line}` : regression.node.selector
-      lines.push(`  회귀: ${source} ${regression.metrics.mode} +${Math.round(regression.metrics.overflowPx)}px`)
+      lines.push(`  회귀: ${source} ${formatMagnitude(regression)}`)
     }
   }
   if (patch.autoRolledBack) lines.push('검증 실패로 자동 롤백되었습니다. 원인을 다시 분석해 새 패치를 제안하세요.')

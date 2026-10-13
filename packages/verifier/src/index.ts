@@ -2,6 +2,8 @@ import { readFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import { chromium } from 'playwright-core'
 import type { Browser } from 'playwright-core'
+import { DEFAULT_MIN_COVERED_RATIO, defectMagnitude } from '@inspector-agent/core'
+import { scanFocusEscapes } from './focus'
 import type { Defect, DetectOptions, ScanResult, Viewport } from '@inspector-agent/core'
 
 export interface VerifierOptions {
@@ -15,6 +17,8 @@ export interface VerifierOptions {
 export interface DefectMeasurement {
   /** 같은 fingerprint(또는 셀렉터)의 결함이 아직 남아 있는지 */
   stillPresent: boolean
+  /** 패치 전/후 측정값. unit 이 px 이면 오버플로우 양, ratio 이면 가려진 비율(0~1), count 이면 포커스가 빠져나가는 방향 수(0~2) */
+  unit: 'px' | 'ratio' | 'count'
   beforePx: number
   afterPx: number
   /** 패치 후 같은 뷰포트에 새로 생긴 결함 (회귀) */
@@ -62,11 +66,14 @@ const scanWithBrowser = async (
     await page.goto(url, { waitUntil: 'networkidle' })
     await page.waitForTimeout(options.settleMs ?? 300)
     await page.addScriptTag({ content: await loadDetectorSource() })
-    return await page.evaluate((detectOptions): ScanResult => {
+    const result = await page.evaluate((detectOptions): ScanResult => {
       const agent = window.__INSPECTOR_AGENT__
       if (!agent) throw new Error('Inspector-Agent 탐지기 주입에 실패했습니다.')
       return agent.detect(detectOptions)
     }, options.detect ?? {})
+    // 키 입력이 페이지 상태를 바꾸므로 레이아웃 탐지가 끝난 뒤에 포커스 검사를 한다
+    const focusDefects = await scanFocusEscapes(page, result.url, viewport, options.detect)
+    return { ...result, defects: [...result.defects, ...focusDefects] }
   } finally {
     await context.close()
   }
@@ -93,9 +100,19 @@ export const scanPage = async (
 const isSameDefect = (target: Defect, candidate: Defect): boolean =>
   candidate.fingerprint === target.fingerprint || candidate.node.selector === target.node.selector
 
+const MEASURE_UNIT: Record<Defect['kind'], VerificationResult['unit']> = { 'overflow-x': 'px', occluded: 'ratio', 'focus-escape': 'count' }
+const SUBJECT: Record<Defect['kind'], string> = { 'overflow-x': '오버플로우', occluded: '가려짐', 'focus-escape': '포커스 이탈' }
+
+const describeMagnitude = (defect: Defect, value: number): string => {
+  const unit = MEASURE_UNIT[defect.kind]
+  return unit === 'ratio' ? `${Math.round(value * 100)}%` : unit === 'count' ? `${value}방향` : `${Math.round(value)}px`
+}
+
 /**
  * 패치 적용 후 같은 URL·뷰포트에서 다시 측정한다.
- * "LLM이 고쳤다고 주장"하는 대신 오버플로우 수치가 실제로 0이 되었는지, 새 결함이 생기지 않았는지로 판정한다.
+ * "LLM이 고쳤다고 주장"하는 대신 수치가 실제로 0이 되었는지, 새 결함이 생기지 않았는지로 판정한다.
+ * - overflow-x: 오버플로우 px 가 0
+ * - occluded: 가려진 비율이 0. 일부만 풀린 경우(클릭이 여전히 막힘)는 실패이므로 탐지 임계값을 낮춰 잔여 가려짐까지 본다
  * baseline 은 패치 전 같은 뷰포트의 결함 목록이며, 여기에 없던 결함은 회귀로 본다.
  */
 export const measureDefect = async (
@@ -105,25 +122,32 @@ export const measureDefect = async (
 ): Promise<VerificationResult> => {
   const browser = await launch(options)
   try {
-    const result = await scanWithBrowser(browser, target.url, target.viewport, options)
+    const detect = target.kind === 'occluded' ? { ...options.detect, minCoveredRatio: 0.01 } : options.detect
+    const result = await scanWithBrowser(browser, target.url, target.viewport, { ...options, detect })
     const remaining = result.defects.find((defect): boolean => isSameDefect(target, defect))
+    // 낮춘 임계값으로 잡힌 약한 가려짐은 대상 잔여 확인에만 쓰고, 회귀는 기본 임계값 기준으로만 센다
     const regressions = result.defects.filter(
       (defect): boolean =>
-        !isSameDefect(target, defect) && !baseline.some((known): boolean => isSameDefect(known, defect))
+        !isSameDefect(target, defect) &&
+        !baseline.some((known): boolean => isSameDefect(known, defect)) &&
+        (defect.kind !== 'occluded' || defect.metrics.coveredRatio >= DEFAULT_MIN_COVERED_RATIO)
     )
-    const afterPx = remaining?.metrics.overflowPx ?? 0
+    const before = defectMagnitude(target)
+    const after = remaining ? defectMagnitude(remaining) : 0
     const passed = remaining === undefined && regressions.length === 0
+    const subject = SUBJECT[target.kind]
     const verdict = passed
-      ? `오버플로우 ${Math.round(target.metrics.overflowPx)}px → 0px, 새 결함 없음`
+      ? `${subject} ${describeMagnitude(target, before)} → ${describeMagnitude(target, 0)}, 새 결함 없음`
       : remaining
-        ? `오버플로우가 ${Math.round(target.metrics.overflowPx)}px → ${Math.round(afterPx)}px로 남아 있습니다`
+        ? `${subject} ${describeMagnitude(target, before)} → ${describeMagnitude(target, after)}로 남아 있습니다`
         : `대상 결함은 사라졌지만 새 결함 ${regressions.length}건이 생겼습니다`
     return {
       passed,
       verdict,
       stillPresent: remaining !== undefined,
-      beforePx: target.metrics.overflowPx,
-      afterPx,
+      unit: MEASURE_UNIT[target.kind],
+      beforePx: before,
+      afterPx: after,
       regressions,
       documentOverflowPx: result.documentOverflowPx,
       measuredAt: new Date().toISOString()

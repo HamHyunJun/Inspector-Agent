@@ -1,0 +1,20 @@
+{
+  "name": "playground-nuxt",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Nuxt 4(app/ 디렉터리, layouts, 자동 import 컴포넌트)에서 data-ia-src 매핑이 맞는지 확인하는 앱",
+  "type": "module",
+  "scripts": {
+    "dev": "nuxt dev --port 5180",
+    "postinstall": "nuxt prepare",
+    "check:mapping": "node check-mapping.mjs"
+  },
+  "dependencies": {
+    "nuxt": "^4.6.1",
+    "vue": "^3.5.0"
+  },
+  "devDependencies": {
+    "@inspector-agent/vite-plugin": "workspace:*",
+    "sass": "^1.90.0"
+  }
+}

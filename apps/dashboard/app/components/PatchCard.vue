@@ -12,15 +12,17 @@
       <h4 class="patch-card__verification-heading">재측정 결과</h4>
       <p v-if="patch.verification" class="patch-card__verdict">{{ patch.verification.verdict }}</p>
       <p v-if="patch.verification" class="patch-card__metric">
-        <span>전 {{ formatPx(patch.verification.beforePx) }}</span>
+        <span>전 {{ formatMeasure(patch.verification.beforePx, patch.verification.unit) }}</span>
         <span aria-hidden="true">→</span>
-        <span>후 {{ formatPx(patch.verification.afterPx) }}</span>
+        <span>후 {{ formatMeasure(patch.verification.afterPx, patch.verification.unit) }}</span>
         <span>· 문서 가로 스크롤 {{ formatPx(patch.verification.documentOverflowPx) }}</span>
       </p>
       <ul v-if="patch.verification?.regressions.length" class="patch-card__regressions">
         <li v-for="regression in patch.verification.regressions" :key="regression.id">
           회귀: {{ formatSourceRef(regression.node.source?.file, regression.node.source?.line) }}
-          +{{ formatPx(regression.metrics.overflowPx) }} ({{ regression.metrics.mode }})
+          <template v-if="regression.kind === 'occluded'">가려짐 {{ formatPercent(regression.metrics.coveredRatio) }} ({{ regression.metrics.cause }})</template>
+          <template v-else-if="regression.kind === 'focus-escape'">모달 포커스 이탈</template>
+          <template v-else>+{{ formatPx(regression.metrics.overflowPx) }} ({{ regression.metrics.mode }})</template>
         </li>
       </ul>
       <p v-if="patch.error" class="patch-card__verdict">{{ patch.error }}</p>
@@ -44,7 +46,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import type { Patch } from '~~/shared/types/inspector'
-import { formatDateTime, formatPx, formatSourceRef } from '~/utils/format'
+import { formatDateTime, formatMeasure, formatPercent, formatPx, formatSourceRef } from '~/utils/format'
 
 const props = defineProps<{
   patch: Patch

@@ -1,3 +1,4 @@
+import { defectMagnitude } from '@inspector-agent/core'
 import type { Severity } from '@inspector-agent/core'
 import type { DefectStatus, StoredDefect } from '../../../shared/types/inspector'
 import { readStore } from '../../utils/store'
@@ -11,6 +12,6 @@ export default defineEventHandler(async (event): Promise<StoredDefect[]> => {
     .filter((defect): boolean => !status || defect.status === status)
     .sort(
       (a, b): number =>
-        SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity] || b.metrics.overflowPx - a.metrics.overflowPx
+        SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity] || defectMagnitude(b) - defectMagnitude(a)
     )
 })
