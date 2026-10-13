@@ -167,6 +167,8 @@ INSPECTOR_PROJECT_ROOT=/path/to/my-app pnpm dev:dashboard
 | `INSPECTOR_ALLOW_AGENT_APPLY` | 미설정 | `1`이면 MCP에 `apply_patch` 노출 (자율 모드) |
 | `INSPECTOR_ALLOWED_HOSTS` | 미설정 | 대시보드는 `localhost`/`127.0.0.1`/`[::1]` 로 들어온 요청만 받습니다. 다른 호스트 이름으로 열 때 쉼표로 추가 |
 
+**패치 기록 정리**: 결함 상세의 패치 카드에서 **삭제**(대기·거절·롤백된 패치)와 **처리된 패치 정리**(거절·롤백·자동 롤백된 실패를 한 번에)를 쓸 수 있습니다. 처리가 끝난 지 **7일이 지난** 패치는 대시보드가 시작할 때와 1시간마다 자동으로 삭제되며, 원복용 백업도 함께 지웁니다. 소스에 적용된 패치(검증 통과, 자동 롤백되지 않은 실패)는 롤백 기준이라 삭제하지 않습니다.
+
 Chrome 확장은 `packages/extension/dist`를 `chrome://extensions` → **압축해제된 확장 프로그램 로드**로 불러옵니다.
 
 ---

@@ -40,6 +40,9 @@
       <button v-if="canRollback" type="button" class="patch-card__button" :disabled="isBusy" @click="handleAction('rollback')">
         롤백
       </button>
+      <button v-if="deletable" type="button" class="patch-card__button patch-card__button--danger" :disabled="isBusy" @click="handleDelete">
+        삭제
+      </button>
     </footer>
     <p v-if="errorMessage" class="patch-card__error" role="alert">{{ errorMessage }}</p>
   </article>
@@ -48,6 +51,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import type { Patch } from '~~/shared/types/inspector'
+import { canDelete } from '~~/shared/patch-cleanup'
 import { formatDateTime, formatMeasure, formatPercent, formatPx, formatSourceRef } from '~/utils/format'
 
 const props = defineProps<{
@@ -72,6 +76,7 @@ const errorMessage = ref<string>('')
 const canRollback = computed(
   (): boolean => (props.patch.status === 'verified' || props.patch.status === 'failed') && !props.patch.autoRolledBack
 )
+const deletable = computed((): boolean => canDelete(props.patch))
 const verificationClass = computed((): string =>
   props.patch.verification?.passed ? 'patch-card__verification--passed' : 'patch-card__verification--failed'
 )
@@ -82,6 +87,21 @@ const handleAction = async (action: PatchAction): Promise<void> => {
   try {
     const updated = await $fetch<Patch>(`/api/patches/${props.patch.id}/${action}`, { method: 'POST' })
     emit('changed', updated)
+  } catch (error) {
+    const data = (error as { data?: { statusMessage?: string } }).data
+    errorMessage.value = data?.statusMessage ?? (error as Error).message
+  } finally {
+    isBusy.value = false
+  }
+}
+
+const handleDelete = async (): Promise<void> => {
+  if (!window.confirm('이 패치 기록을 삭제할까요? 되돌릴 수 없습니다.')) return
+  isBusy.value = true
+  errorMessage.value = ''
+  try {
+    await $fetch(`/api/patches/${props.patch.id}`, { method: 'DELETE' })
+    emit('changed', props.patch)
   } catch (error) {
     const data = (error as { data?: { statusMessage?: string } }).data
     errorMessage.value = data?.statusMessage ?? (error as Error).message
@@ -191,6 +211,11 @@ const handleAction = async (action: PatchAction): Promise<void> => {
       color: #0b0d12;
       background: var(--color-success);
       border-color: var(--color-success);
+    }
+
+    &--danger {
+      color: var(--color-danger);
+      border-color: var(--color-danger);
     }
 
     &:disabled {

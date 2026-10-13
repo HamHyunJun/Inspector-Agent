@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises'
+import { copyFile, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path'
 import { getInspectorConfig } from './config'
 
@@ -45,4 +45,9 @@ export const backupProjectFile = async (file: string, patchId: string): Promise<
 
 export const restoreProjectFile = async (file: string, patchId: string): Promise<void> => {
   await copyFile(backupPath(patchId), resolveProjectPath(file))
+}
+
+/** 패치 기록을 지울 때 원복용 백업도 함께 지운다. 없으면 조용히 넘어간다 */
+export const removePatchBackup = async (patchId: string): Promise<void> => {
+  await rm(backupPath(patchId), { force: true })
 }
