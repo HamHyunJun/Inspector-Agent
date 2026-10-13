@@ -118,8 +118,8 @@ export const scanPage = async (
 const isSameDefect = (target: Defect, candidate: Defect): boolean =>
   candidate.fingerprint === target.fingerprint || candidate.node.selector === target.node.selector
 
-const MEASURE_UNIT: Record<Defect['kind'], VerificationResult['unit']> = { 'overflow-x': 'px', occluded: 'ratio', 'focus-escape': 'count' }
-const SUBJECT: Record<Defect['kind'], string> = { 'overflow-x': '오버플로우', occluded: '가려짐', 'focus-escape': '포커스 이탈' }
+const MEASURE_UNIT: Record<Defect['kind'], VerificationResult['unit']> = { 'overflow-x': 'px', 'overflow-y': 'px', 'clipped-text': 'px', occluded: 'ratio', 'focus-escape': 'count' }
+const SUBJECT: Record<Defect['kind'], string> = { 'overflow-x': '오버플로우', 'overflow-y': '세로 오버플로우', 'clipped-text': '텍스트 잘림', occluded: '가려짐', 'focus-escape': '포커스 이탈' }
 
 const describeMagnitude = (defect: Defect, value: number): string => {
   const unit = MEASURE_UNIT[defect.kind]

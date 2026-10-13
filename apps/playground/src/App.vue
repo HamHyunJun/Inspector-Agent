@@ -14,12 +14,16 @@
       />
       <TagList :tags="tags" />
       <PromoBanner />
+      <FixedHeightCard />
+      <ClippedLabel />
       <MemberRow />
       <SeededChip />
       <ShareLink url="https://example.com/campaign/2026/autumn/landing?utm_source=newsletter&utm_medium=email&utm_campaign=inspector_agent_demo" />
       <OrderTable :orders="orders" />
       <SortMenu />
       <BadgeCard />
+      <HeightControls />
+      <TextClipControls />
       <ModalControl />
       <ShareSheet />
       <OpenMenu />
@@ -33,10 +37,13 @@
 <script setup lang="ts">
 import OrderTable from './components/OrderTable.vue'
 import BadgeCard from './components/BadgeCard.vue'
+import ClippedLabel from './components/ClippedLabel.vue'
 import ClippedMenu from './components/ClippedMenu.vue'
 import ConfirmDialog from './components/ConfirmDialog.vue'
 import DecorDots from './components/DecorDots.vue'
 import FilterDropdown from './components/FilterDropdown.vue'
+import FixedHeightCard from './components/FixedHeightCard.vue'
+import HeightControls from './components/HeightControls.vue'
 import MemberRow from './components/MemberRow.vue'
 import ModalControl from './components/ModalControl.vue'
 import OpenMenu from './components/OpenMenu.vue'
@@ -46,6 +53,7 @@ import ProductCard from './components/ProductCard.vue'
 import PromoBanner from './components/PromoBanner.vue'
 import ShareLink from './components/ShareLink.vue'
 import SortMenu from './components/SortMenu.vue'
+import TextClipControls from './components/TextClipControls.vue'
 import TagList from './components/TagList.vue'
 import type { Order } from './components/OrderTable.vue'
 

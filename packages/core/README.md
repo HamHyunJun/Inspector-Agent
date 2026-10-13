@@ -35,7 +35,7 @@ console.log(result.defects.map((defect) => `${defect.severity} ${defect.node.sel
 await browser.close()
 ```
 
-탐지 종류는 `overflow-x`(가로 넘침, 같은 줄의 연쇄 결함 묶음 포함), `occluded`(팝업이 다른 요소에 가려짐, stacking context 원인 분석)입니다. 모달 포커스 이탈(`focus-escape`)은 실제 키 입력이 필요해 `@inspector-agent/verifier` 가 검사합니다.
+탐지 종류는 `overflow-x`(가로 넘침, 같은 줄의 연쇄 결함 묶음 포함), `overflow-y`(높이가 고정된 컨테이너 밖으로 세로 넘침), `clipped-text`(말줄임 없이 잘리는 텍스트), `occluded`(팝업이 다른 요소에 가려짐, stacking context 원인 분석)입니다. 모달 포커스 이탈(`focus-escape`)은 실제 키 입력이 필요해 `@inspector-agent/verifier` 가 검사합니다.
 
 ## 주요 API
 

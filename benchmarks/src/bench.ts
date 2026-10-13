@@ -316,7 +316,13 @@ const main = async (): Promise<void> => {
         expected: EXPECTED_AT_MOBILE.length,
         detected: mobile.defects.length,
         recall: truePositives.length / EXPECTED_AT_MOBILE.length,
-        recallByKind: { 'overflow-x': recallOf('overflow-x'), occluded: recallOf('occluded'), 'focus-escape': recallOf('focus-escape') },
+        recallByKind: {
+          'overflow-x': recallOf('overflow-x'),
+          'overflow-y': recallOf('overflow-y'),
+          'clipped-text': recallOf('clipped-text'),
+          occluded: recallOf('occluded'),
+          'focus-escape': recallOf('focus-escape')
+        },
         precision: mobile.defects.length === 0 ? 1 : (mobile.defects.length - falsePositives.length) / mobile.defects.length,
         negativeControlHits: negativeHits.length,
         desktopDefects: desktop.defects.length,
@@ -362,7 +368,8 @@ const main = async (): Promise<void> => {
     console.log(`재현율 ${percent(summary.detection.recall)} · 정밀도 ${percent(summary.detection.precision)} · 대조군 오탐 ${negativeHits.length}건 · 1280px 결함 ${desktop.defects.length}건`)
     console.log(`연쇄 결함 묶음 불일치 ${cascadeMismatches}건 · URL 그룹 불일치 ${groupingMismatches}건 (결함 ${mobile.defects.length + (secondPage?.defects.length ?? 0)}건 → URL 그룹 ${groups.length}개)`)
     console.log(`시나리오 전용 결함 불일치 ${scenarioMismatches}건 · 재측정 시나리오 반영 불일치 ${scenarioRemeasureMismatches}건 (시나리오 없이 재면 고치기 전에도 통과: ${falsePassWithoutScenario ? '예' : '아니오'})`)
-    console.log(`종류별 재현율: 오버플로우 ${percent(summary.detection.recallByKind['overflow-x'])} · 가려짐 ${percent(summary.detection.recallByKind.occluded)} · 포커스 이탈 ${percent(summary.detection.recallByKind['focus-escape'])}`)
+    const byKind = summary.detection.recallByKind
+    console.log(`종류별 재현율: 가로 오버플로우 ${percent(byKind['overflow-x'])} · 세로 오버플로우 ${percent(byKind['overflow-y'])} · 텍스트 잘림 ${percent(byKind['clipped-text'])} · 가려짐 ${percent(byKind.occluded)} · 포커스 이탈 ${percent(byKind['focus-escape'])}`)
     console.log(`1순위 원인 진단 일치 ${percent(summary.detection.primaryHintAccuracy)} · 노드 ${mobile.stats.scannedNodes}개 탐지 ${mobile.stats.durationMs}ms`)
     console.log('\n## 소스 매핑')
     console.log(`정확한 파일:라인:컬럼 매핑 ${exactMappings}/${mobile.defects.length}`)

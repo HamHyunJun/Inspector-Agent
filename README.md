@@ -91,7 +91,7 @@ flowchart LR
 | `packages/mcp-server` | stdio MCP 서버: `scan_page`, `list_defects`, `get_defect_context`, `propose_patch`, `get_patch_status` (+ 자율 모드 `apply_patch`) |
 | `packages/extension` | Chrome 확장 (MV3). 현재 탭의 실제 뷰포트에서 탐지해 대시보드로 전송 |
 | `apps/dashboard` | Nuxt 4 대시보드. 결함 현황, 소스 매핑, 에이전트 컨텍스트, Diff 검토, 적용/롤백 |
-| `apps/playground` | 정답 결함 9건(오버플로우 5, 가려짐 3, 포커스 이탈 1), 시나리오로만 보이는 정답 2건(클릭해야 열리는 메뉴, 시드가 있어야 그려지는 요소), 정상 대조군 6건을 심어 둔 Vue 3 데모 앱 (벤치마크 대상) |
+| `apps/playground` | 정답 결함 11건(가로 오버플로우 5, 세로 오버플로우 1, 텍스트 잘림 1, 가려짐 3, 포커스 이탈 1), 시나리오로만 보이는 정답 2건(클릭해야 열리는 메뉴, 시드가 있어야 그려지는 요소), 정상 대조군 8건을 심어 둔 Vue 3 데모 앱 (벤치마크 대상) |
 | `apps/playground-nuxt` | Nuxt 4(`app/`, layouts, 자동 import 컴포넌트)에서 `data-ia-src` 매핑이 맞는지 확인하는 최소 앱 |
 | `benchmarks` | 탐지·매핑·토큰·자가 치유 벤치마크 |
 
@@ -109,7 +109,7 @@ pnpm dev:playground        # http://localhost:5173  결함이 심어진 데모 �
 pnpm dev:dashboard         # http://localhost:3000  대시보드 (기본 패치 대상: apps/playground)
 ```
 
-대시보드에서 **스캔 실행**을 누르면 375px에서 결함 9건(오버플로우 5, 가려짐 3, 포커스 이탈 1)이 나타나고 768/1280px 에서는 0건입니다. 결함을 열어 소스 매핑을 확인하고, 규칙 기반 제안이나 에이전트 패치를 **적용하고 검증**해 보세요. 내 프로젝트에 붙여 매일 쓰는 방법은 [5. 운영 가이드](#5-운영-가이드)에 있습니다.
+대시보드에서 **스캔 실행**을 누르면 375px에서 결함 11건(가로 오버플로우 5, 세로 오버플로우 1, 텍스트 잘림 1, 가려짐 3, 포커스 이탈 1)이 나타나고 768/1280px 에서는 0건입니다. 결함을 열어 소스 매핑을 확인하고, 규칙 기반 제안이나 에이전트 패치를 **적용하고 검증**해 보세요. 내 프로젝트에 붙여 매일 쓰는 방법은 [5. 운영 가이드](#5-운영-가이드)에 있습니다.
 
 ### Claude Code 연결
 
@@ -239,6 +239,8 @@ pnpm dev:dashboard                      # http://localhost:3000
 | 종류 | 무엇이 문제인가 | 자동(규칙) 패치 | 처리 요령 | 재측정 통과 기준 |
 | --- | --- | --- | --- | --- |
 | `overflow-x` | 박스·텍스트가 부모 콘텐츠 영역을 넘음 | 대부분 가능 | 진단 1순위(`flex-item-min-width`, `flex-shrink-disabled`, `fixed-width`, `unbreakable-text`…)를 먼저 시도. 자식이 원인이면 노드와 자식을 함께 수정 | 넘친 px 가 0, 새 결함 없음 |
+| `overflow-y` | 높이가 고정된 컨테이너(`overflow-y: visible`) 밖으로 흐름 안 콘텐츠가 넘쳐 아래 요소와 겹침. 스크롤·잘림 컨테이너, 절대 위치 팝업, float 는 제외 | 대부분 가능 | `fixed-height`: `height: auto` + `min-height`(현재 높이를 유지). 높이를 유지해야 하면 `vertical-scroll`: `overflow-y: auto` | 넘친 px 가 0, 새 결함 없음 |
+| `clipped-text` | `overflow: hidden` 인데 `text-overflow: ellipsis` 가 없어 글자가 잘렸다는 표시 없이 사라짐. input, 말줄임, line-clamp, sr-only, 캐러셀 카드는 제외 | 가능 | `text-ellipsis`: 한 줄 라벨이면 말줄임(+ `white-space: nowrap`). 내용이 중요하면 `text-wrap`: `white-space: normal` + `overflow-wrap: anywhere` | 잘린 px 가 0 이거나 말줄임이 적용됨 |
 | `occluded` | 모달·드롭다운 같은 팝업이 다른 요소에 가려짐 | `z-index-too-low` 만 가능 | `stacking-context-trap` 은 z-index 를 올려도 소용없음. 갇힌 조상의 `transform`/`opacity`/`filter` 등을 없애거나 팝업을 `<Teleport to="body">` 로 옮김. `overflow-clipped-popup` 은 자르는 조상의 `overflow` 를 풀거나 팝업을 body 로 이동 | 가려진 비율이 **0%** (일부만 풀려도 실패) |
 | `focus-escape` | 열린 모달에서 Tab/Shift+Tab 으로 포커스가 모달 밖으로 나감 | 불가능(JS 필요) | 모달 안 `keydown` 핸들러로 첫/마지막 요소를 순환시키거나 배경에 `inert`, 네이티브 `<dialog>.showModal()` 사용. `aria-modal` 은 포커스를 가두지 않음 | 앞·뒤 **두 방향 모두** 모달 안에 머묾 |
 
@@ -324,7 +326,7 @@ node packages/verifier/dist/cli.js http://localhost:5174/camps/c1/distribute --v
 - **일시적으로 제외**: 검사에서 빼고 싶은 요소(또는 그 하위 전체)에 `data-ia-ignore` 속성을 붙입니다. 오버플로우, 가려짐, 모달 포커스 검사에 모두 적용됩니다. 의도한 겹침이나 스크롤이면 이유를 주석으로 남기세요.
 - **오탐을 발견했다면**: 재현 컴포넌트를 `apps/playground/src/components/` 에 **정상 대조군**으로 추가하고 `benchmarks/src/fixtures.ts` 의 `NEGATIVE_CONTROLS` 에 등록한 뒤, 탐지 규칙을 고치고 `pnpm bench` 에서 대조군 오탐 0건이 유지되는지 확인합니다(불변 조건이 깨지면 `pnpm bench` 가 종료 코드 1 로 끝나므로 CI 도 같은 기준으로 실패합니다). (회전한 아이콘 오탐을 이 순서로 고쳤습니다. 실서비스 사례는 `docs/real-world-report.md`.)
 - **탐지 규칙을 고칠 때의 최소 확인**: `pnpm test` → `pnpm typecheck` → `pnpm bench`. 토큰 수까지 재려면 `ANTHROPIC_API_KEY` 가 필요하고, 없으면 `INSPECTOR_BENCH_ESTIMATE=1` 로 근사 모드를 쓸 수 있습니다(결과에 `method: estimate` 표시).
-- **알려진 미탐 영역**: 세로 오버플로우, 텍스트 대비 등 접근성 일반, 시나리오(5.6)에 단계로 정의하지 않은 인터랙션 후의 UI, `transform` 이 걸린 요소의 박스 오버플로우. 로드맵(8)을 참고하세요.
+- **알려진 미탐 영역**: 세로 방향의 텍스트 잘림(고정 높이 + `overflow: hidden` 으로 글줄이 잘리는 경우), 텍스트 대비 등 접근성 일반, 시나리오(5.6)에 단계로 정의하지 않은 인터랙션 후의 UI, `transform` 이 걸린 요소의 박스 오버플로우. 로드맵(8)을 참고하세요.
 
 ### 5.10 문제 해결
 
@@ -429,6 +431,7 @@ PromoBanner.vue  +109px  fixed-width ✓
 - [x] z-index / stacking context 충돌 탐지 (`elementFromPoint` 표본점 가림 검사). 스캔 시점에 열려 있는 UI 만 검사합니다
 - [x] 접근성: 모달 포커스 트랩 (verifier 가 실제 Tab 키로 검사). 대비, 라벨 누락 규칙은 아직 없습니다
 - [x] npm 배포 준비: 패키지 메타데이터·README·LICENSE, changesets, 태그 push 자동 배포 워크플로, tarball 설치 스모크 테스트 (`docs/releasing.md`). **실제 `npm publish` 는 아직 하지 않았습니다**
+- [x] 세로 오버플로우(`overflow-y`)와 의도치 않은 텍스트 잘림(`clipped-text`) 탐지
 - [x] 닫혀 있는 팝업·데이터가 있어야 그려지는 화면을 스캔하기 위한 시나리오(시드 + 클릭/입력/대기 단계)
 - [ ] 로그인이 필요한 화면(세션 쿠키·토큰을 안전하게 다루는 시나리오 저장 방식)
 - [ ] React(`__source`/소스맵) 매핑, CSS Modules·Tailwind 클래스 → 소스 매핑

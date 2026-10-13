@@ -74,9 +74,10 @@ const OCCLUSION_CAUSE_LABEL: Record<OcclusionMetrics['cause'], string> = {
   unknown: '원인 미분류'
 }
 
-/** 결함의 크기 지표. 오버플로우는 넘친 px, 가려짐은 가려진 비율(0~1). 정렬과 재측정 비교에 쓴다 */
+/** 결함의 크기 지표. 오버플로우와 잘림은 px, 가려짐은 가려진 비율(0~1). 정렬과 재측정 비교에 쓴다 */
 export const defectMagnitude = (defect: Defect): number => {
   if (defect.kind === 'occluded') return defect.metrics.coveredRatio
+  if (defect.kind === 'clipped-text') return defect.metrics.clippedPx
   // 포커스 이탈: 빠져나가는 방향 수 (0~2)
   if (defect.kind === 'focus-escape') return Number(defect.metrics.escapesForward) + Number(defect.metrics.escapesBackward)
   return defect.metrics.overflowPx
@@ -87,6 +88,8 @@ const describeFocusDirections = (metrics: FocusMetrics): string =>
 
 /** 목록에 한 줄로 보여 줄 크기 표기. 예: `box +251px`, `가려짐 100% (z-index)` */
 export const formatMagnitude = (defect: Defect): string => {
+  if (defect.kind === 'overflow-y') return `세로 넘침 +${Math.round(defect.metrics.overflowPx)}px`
+  if (defect.kind === 'clipped-text') return `텍스트 잘림 ${Math.round(defect.metrics.hiddenRatio * 100)}% (${Math.round(defect.metrics.clippedPx)}px)`
   if (defect.kind === 'occluded') return `가려짐 ${Math.round(defect.metrics.coveredRatio * 100)}% (${defect.metrics.cause})`
   if (defect.kind === 'focus-escape') return `포커스 이탈 (${describeFocusDirections(defect.metrics)})`
   const cascade = defect.metrics.cascaded?.length ? ` · 연쇄 ${defect.metrics.cascaded.length}건` : ''
@@ -94,6 +97,17 @@ export const formatMagnitude = (defect: Defect): string => {
 }
 
 export const describeDefect = (defect: Defect): string => {
+  if (defect.kind === 'overflow-y') {
+    const { metrics } = defect
+    const label = defect.node.classes[0] ? `.${defect.node.classes[0]}` : defect.node.tag
+    const culprit = metrics.culprit ? ` (${metrics.culprit.selector} 가 가장 많이 넘침)` : ''
+    return `${defect.viewport.width}px 뷰포트에서 ${label} 의 높이 ${Math.round(metrics.containerHeight)}px 가 콘텐츠 ${Math.round(metrics.contentHeight)}px 보다 작아 ${Math.round(metrics.overflowPx)}px 세로로 넘침${culprit}`
+  }
+  if (defect.kind === 'clipped-text') {
+    const { metrics } = defect
+    const label = defect.node.classes[0] ? `.${defect.node.classes[0]}` : defect.node.tag
+    return `${defect.viewport.width}px 뷰포트에서 ${label} 의 텍스트 "${metrics.text}" 가 너비 ${Math.round(metrics.visibleWidth)}px 에서 ${Math.round(metrics.clippedPx)}px(${Math.round(metrics.hiddenRatio * 100)}%) 잘리는데 말줄임(text-overflow: ellipsis)이 없음`
+  }
   if (defect.kind === 'focus-escape') {
     const label = defect.node.classes[0] ? `.${defect.node.classes[0]}` : defect.node.tag
     return `${defect.viewport.width}px 뷰포트에서 모달 ${label} 이 열려 있는데 ${describeFocusDirections(defect.metrics)} 로 포커스가 모달 밖으로 빠져나감 (포커스 가능 요소 ${defect.metrics.focusableCount}개)`
@@ -109,6 +123,7 @@ export const describeDefect = (defect: Defect): string => {
 }
 
 const payloadKind = (defect: Defect): string => {
+  if (defect.kind === 'overflow-y' || defect.kind === 'clipped-text') return defect.kind
   if (defect.kind === 'occluded') return `${defect.kind}/${defect.metrics.cause}`
   if (defect.kind === 'focus-escape') return `${defect.kind}/${defect.metrics.trigger}`
   return `${defect.kind}/${defect.metrics.mode}`

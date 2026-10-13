@@ -31,7 +31,9 @@ const renderDefects = (result: ScanResult): void => {
           ? `가려짐 ${Math.round(defect.metrics.coveredRatio * 100)}%`
           : defect.kind === 'focus-escape'
             ? '모달 포커스 이탈'
-            : `+${Math.round(defect.metrics.overflowPx)}px`
+            : defect.kind === 'clipped-text'
+              ? `텍스트 잘림 ${Math.round(defect.metrics.clippedPx)}px`
+              : `${defect.kind === 'overflow-y' ? '세로 ' : ''}+${Math.round(defect.metrics.overflowPx)}px`
       item.textContent = `[${defect.severity}] ${source} ${size}`
       return item
     })
