@@ -11,6 +11,7 @@ import { createServer } from 'vite'
 import type { ViteDevServer } from 'vite'
 import { DESKTOP_VIEWPORT, EXPECTED_AT_MOBILE, MOBILE_VIEWPORT, NEGATIVE_CONTROLS } from './fixtures'
 import type { ExpectedDefect } from './fixtures'
+import { findDetectionRegressions } from './gate'
 import { createTokenCounter } from './tokens'
 import type { TokenCounter } from './tokens'
 
@@ -324,6 +325,13 @@ const main = async (): Promise<void> => {
     }
     console.log(`성공 ${healed}/${patchable.length} (첫 시도 성공 ${firstTry}) · 구조 변경 필요 ${manualOnly}건 중 참조 패치 검증 통과 ${referenceVerified}건 · 재측정으로 잡아낸 회귀 ${caughtRegressions}건`)
     console.log('\n결과 파일: benchmarks/results/latest.json')
+
+    // 탐지 규칙 회귀 게이트: CI 가 규칙 변경 PR 을 막을 수 있도록 불변 조건이 깨지면 종료 코드 1
+    const regressions = findDetectionRegressions(summary.detection)
+    if (regressions.length > 0) {
+      console.error(`\n탐지 회귀 ${regressions.length}건:\n${regressions.map((problem): string => `- ${problem}`).join('\n')}`)
+      process.exitCode = 1
+    }
   } finally {
     await server.close()
     await rm(workdir, { recursive: true, force: true })

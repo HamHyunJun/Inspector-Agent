@@ -1,0 +1,45 @@
+name: ci
+
+# 모든 PR 과 main 에서 타입체크, 단위 테스트, 탐지 회귀 벤치마크를 돌린다.
+# 벤치마크는 정답표와 정상 대조군(benchmarks/src/fixtures.ts)을 기준으로, 재현율/정밀도 100%,
+# 대조군 오탐 0건, 1280px 결함 0건이 깨지면 실패한다. 토큰 계측은 API 키가 필요 없도록 근사 모드로 돌린다.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      # pnpm 버전은 package.json 의 packageManager 를 따른다
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      # prepare 단계에서 packages/* 가 자동 빌드된다
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm -r typecheck
+
+      - run: pnpm test
+
+      - run: pnpm --filter dashboard test
+
+      - run: pnpm --filter @inspector-agent/benchmarks test
+
+      - run: pnpm dlx playwright@1.56.1 install --with-deps chromium
+
+      - name: 탐지 회귀 벤치마크
+        run: pnpm bench
+        env:
+          INSPECTOR_BENCH_ESTIMATE: '1'

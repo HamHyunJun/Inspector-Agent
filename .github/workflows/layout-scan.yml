@@ -1,10 +1,10 @@
 name: layout-scan
 
 # playground 를 띄워 375/768/1280px 로 스캔한다. 기준 이상의 결함이 있으면 실패하고 요약을 job summary 에 남긴다.
-# 주의: apps/playground 는 벤치마크 정답용 결함을 일부러 심어 둔 앱이라 이 저장소에서는 실패가 정상이다.
-# 실제 앱에 쓸 때는 PLAYGROUND 를 앱 실행 명령과 주소로 바꾼다.
+# 주의: apps/playground 는 벤치마크 정답용 결함을 일부러 심어 둔 앱이라 이 저장소에서는 항상 실패한다.
+# 그래서 PR 마다 돌리지 않고 수동 실행으로만 둔다(PR 검증은 ci.yml). 내 앱에 쓸 때는 "playground 실행" 단계와
+# SCAN_URL 을 앱 실행 명령과 주소로 바꾸고, 트리거에 pull_request 를 추가한다.
 on:
-  pull_request:
   workflow_dispatch:
     inputs:
       fail-on:

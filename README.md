@@ -91,7 +91,7 @@ flowchart LR
 | `packages/mcp-server` | stdio MCP 서버: `scan_page`, `list_defects`, `get_defect_context`, `propose_patch`, `get_patch_status` (+ 자율 모드 `apply_patch`) |
 | `packages/extension` | Chrome 확장 (MV3). 현재 탭의 실제 뷰포트에서 탐지해 대시보드로 전송 |
 | `apps/dashboard` | Nuxt 4 대시보드. 결함 현황, 소스 매핑, 에이전트 컨텍스트, Diff 검토, 적용/롤백 |
-| `apps/playground` | 정답 결함 8건(오버플로우 4, 가려짐 3, 포커스 이탈 1)과 정상 대조군 5건을 심어 둔 Vue 3 데모 앱 (벤치마크 대상) |
+| `apps/playground` | 정답 결함 8건(오버플로우 4, 가려짐 3, 포커스 이탈 1)과 정상 대조군 6건을 심어 둔 Vue 3 데모 앱 (벤치마크 대상) |
 | `apps/playground-nuxt` | Nuxt 4(`app/`, layouts, 자동 import 컴포넌트)에서 `data-ia-src` 매핑이 맞는지 확인하는 최소 앱 |
 | `benchmarks` | 탐지·매핑·토큰·자가 치유 벤치마크 |
 
@@ -145,6 +145,7 @@ INSPECTOR_PROJECT_ROOT=/path/to/my-app pnpm dev:dashboard
 | `INSPECTOR_CHROMIUM_PATH` | Playwright 기본 | 헤드리스 Chromium 실행 파일 |
 | `INSPECTOR_DASHBOARD_URL` | `http://localhost:3000` | MCP 서버가 호출할 대시보드 주소 |
 | `INSPECTOR_ALLOW_AGENT_APPLY` | 미설정 | `1`이면 MCP에 `apply_patch` 노출 (자율 모드) |
+| `INSPECTOR_ALLOWED_HOSTS` | 미설정 | 대시보드는 `localhost`/`127.0.0.1`/`[::1]` 로 들어온 요청만 받습니다. 다른 호스트 이름으로 열 때 쉼표로 추가 |
 
 Chrome 확장은 `packages/extension/dist`를 `chrome://extensions` → **압축해제된 확장 프로그램 로드**로 불러옵니다.
 
@@ -254,7 +255,7 @@ pnpm dev:dashboard                      # http://localhost:3000
 자율 모드는 켜기 전에 아래를 지키는 것을 권장합니다.
 
 - **전용 브랜치에서, 작업 트리를 깨끗하게 한 뒤** 켭니다. 끝난 뒤 `git diff` 가 곧 에이전트가 한 일의 전부입니다.
-- 대시보드의 **안전장치**는 이렇습니다: 모든 경로가 `INSPECTOR_PROJECT_ROOT` 안으로 제한되고 `node_modules` 는 거부, 반영 전 백업, 제안 이후 파일이 바뀌었으면 적용 거부(409), 재측정 실패 시 자동 롤백.
+- 대시보드의 **안전장치**는 이렇습니다: 모든 경로가 `INSPECTOR_PROJECT_ROOT` 안으로 제한되고 `node_modules` 는 거부, 반영 전 백업, 제안 이후 파일이 바뀌었으면 적용 거부(409), 재측정 실패 시 자동 롤백. API 는 CORS 를 열지 않고, 로컬 주소가 아닌 Host(DNS 리바인딩)와 다른 웹사이트에서 온 쓰기 요청(Origin 불일치)을 403 으로 거부합니다. MCP 서버, CLI, 대시보드 화면, Chrome 확장은 그대로 동작합니다.
 - 하지만 **검증은 "대상 결함이 사라졌고, 같은 뷰포트에 새 결함이 없다"까지만** 봅니다. 다른 페이지, 다른 뷰포트, 열려야 보이는 UI 에서 생긴 회귀와 디자인 의도는 못 봅니다. 자율 모드가 끝나면 사람이 diff 를 훑고, 모든 뷰포트로 다시 스캔하세요.
 - **시도 횟수 제한은 코드에 없습니다.** 에이전트에게 "결함당 최대 3회, 그래도 안 되면 멈추고 보고"처럼 지시하세요(벤치마크 실측도 이 조건이었습니다).
 - 대상은 로컬 개발 서버와 로컬 프로젝트 루트입니다. 원격·프로덕션 URL 을 스캔할 수는 있어도 거기에는 `data-ia-src` 가 없어 소스 매핑이 안 됩니다.
@@ -272,7 +273,10 @@ pnpm dev:dashboard                      # http://localhost:3000
 
 ### 5.7 CI 운영
 
-`.github/workflows/layout-scan.yml` 은 playground 를 띄워 스캔하고, 기준 이상 결함이 있으면 실패하며 결과 표를 job summary 에 남깁니다. **이 저장소의 playground 는 벤치마크용 결함이 일부러 심겨 있어 항상 실패하는 것이 정상**입니다.
+이 저장소에는 워크플로가 둘 있습니다.
+
+- `.github/workflows/ci.yml` (모든 PR, `main`): 타입체크, 단위 테스트, 탐지 회귀 벤치마크(`pnpm bench`, 근사 토큰 모드). 정답표·대조군의 불변 조건(재현율·정밀도 100%, 대조군 오탐 0건, 1280px 결함 0건)이 깨지면 실패하므로 탐지 규칙을 바꾸는 PR 이 회귀를 만들면 막힙니다.
+- `.github/workflows/layout-scan.yml` (수동 실행): playground 를 띄워 스캔하고, 기준 이상 결함이 있으면 실패하며 결과 표를 job summary 에 남깁니다. **이 저장소의 playground 는 벤치마크용 결함이 일부러 심겨 있어 항상 실패하는 것이 정상**이라 PR 마다 돌리지 않습니다. 내 앱에 쓸 때는 아래처럼 바꾸고 트리거에 `pull_request` 를 추가하세요.
 
 내 앱에 쓰려면 워크플로의 "playground 실행" 단계와 `SCAN_URL` 을 내 앱의 실행 명령·주소로 바꿉니다.
 
@@ -309,7 +313,7 @@ pnpm dev:dashboard                      # http://localhost:3000
 ### 5.9 오탐·미탐 대응
 
 - **일시적으로 제외**: 검사에서 빼고 싶은 요소(또는 그 하위 전체)에 `data-ia-ignore` 속성을 붙입니다. 오버플로우, 가려짐, 모달 포커스 검사에 모두 적용됩니다. 의도한 겹침이나 스크롤이면 이유를 주석으로 남기세요.
-- **오탐을 발견했다면**: 재현 컴포넌트를 `apps/playground/src/components/` 에 **정상 대조군**으로 추가하고 `benchmarks/src/fixtures.ts` 의 `NEGATIVE_CONTROLS` 에 등록한 뒤, 탐지 규칙을 고치고 `pnpm bench` 에서 대조군 오탐 0건이 유지되는지 확인합니다. (회전한 아이콘 오탐을 이 순서로 고쳤습니다. 실서비스 사례는 `docs/real-world-report.md`.)
+- **오탐을 발견했다면**: 재현 컴포넌트를 `apps/playground/src/components/` 에 **정상 대조군**으로 추가하고 `benchmarks/src/fixtures.ts` 의 `NEGATIVE_CONTROLS` 에 등록한 뒤, 탐지 규칙을 고치고 `pnpm bench` 에서 대조군 오탐 0건이 유지되는지 확인합니다(불변 조건이 깨지면 `pnpm bench` 가 종료 코드 1 로 끝나므로 CI 도 같은 기준으로 실패합니다). (회전한 아이콘 오탐을 이 순서로 고쳤습니다. 실서비스 사례는 `docs/real-world-report.md`.)
 - **탐지 규칙을 고칠 때의 최소 확인**: `pnpm test` → `pnpm typecheck` → `pnpm bench`. 토큰 수까지 재려면 `ANTHROPIC_API_KEY` 가 필요하고, 없으면 `INSPECTOR_BENCH_ESTIMATE=1` 로 근사 모드를 쓸 수 있습니다(결과에 `method: estimate` 표시).
 - **알려진 미탐 영역**: 세로 오버플로우, 텍스트 대비 등 접근성 일반, 인터랙션 후에만 나타나는 UI, `transform` 이 걸린 요소의 박스 오버플로우. 로드맵(8)을 참고하세요.
 
@@ -321,6 +325,7 @@ pnpm dev:dashboard                      # http://localhost:3000
 | 결함 컨텍스트에 템플릿·SCSS 규칙이 비어 있음 (`rawFile: 0`) | `INSPECTOR_PROJECT_ROOT` 가 `data-ia-src` 경로의 기준(프로젝트 루트)과 다름, 또는 플러그인이 옛 버전 | 루트를 `package.json` 이 있는 폴더로 지정, `pnpm build` 로 플러그인 재빌드 후 앱 개발 서버 재시작 |
 | 화면은 깨져 보이는데 스캔은 0건 | 빈 상태/로그인 필요/닫힌 팝업을 검사함, 또는 `data-ia-ignore` 로 제외됨 | 5.6 의 확장 스캔이나 시드 URL 사용 |
 | 결함에 소스 위치가 없음 | 플러그인이 안 켜졌거나(`apply: serve` 라 프로덕션 빌드 제외), 컴포넌트 태그(`<MyCard>`)에는 속성을 주입하지 않음 | 개발 서버로 스캔. 매핑은 각 컴포넌트 안의 일반 HTML 요소 기준 |
+| 대시보드 API 가 403 (`허용되지 않은 호스트`, `다른 출처의 쓰기 요청`) | `localhost` 가 아닌 호스트 이름으로 열었거나, 다른 웹사이트에서 보낸 쓰기 요청 | 다른 호스트로 열어야 하면 `INSPECTOR_ALLOWED_HOSTS` 에 추가. 대시보드 화면, MCP, CLI, 확장은 영향 없음 |
 | 대시보드 500, `does not provide an export named …` | 패키지를 재빌드했는데 대시보드가 옛 모듈을 들고 있음 | 대시보드 프로세스 재시작 |
 | 적용이 409 `제안 이후 파일이 바뀌었습니다` | 제안 뒤에 파일이 수정됨 | 컨텍스트를 다시 읽고 패치를 새로 제안 |
 | 재측정이 들쭉날쭉하거나 항상 실패 | HMR 이 `INSPECTOR_SETTLE_MS`(기본 800ms) 안에 끝나지 않음, 개발 서버가 내려감 | `INSPECTOR_SETTLE_MS=2000` 등으로 늘리기, 앱 개발 서버 상태 확인 |
