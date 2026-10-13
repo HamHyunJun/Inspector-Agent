@@ -1,0 +1,55 @@
+body {
+  width: 340px;
+  margin: 0;
+  font: 13px/1.5 system-ui, -apple-system, 'Apple SD Gothic Neo', sans-serif;
+  color: #e6e8ec;
+  background: #0f1115;
+}
+
+.popup {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+}
+
+.popup__title {
+  margin: 0;
+  font-size: 15px;
+}
+
+.popup__desc,
+.popup__status {
+  margin: 4px 0 0;
+  color: #9aa3b2;
+}
+
+.popup__form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.popup__form input {
+  padding: 6px 8px;
+  color: inherit;
+  background: #171a21;
+  border: 1px solid #2a2f3a;
+  border-radius: 6px;
+}
+
+.popup__form button {
+  padding: 8px;
+  font-weight: 700;
+  color: #0b0d12;
+  background: #7aa2ff;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.popup__defects {
+  margin: 0;
+  padding-left: 18px;
+  overflow-wrap: anywhere;
+}

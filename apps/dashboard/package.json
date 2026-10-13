@@ -1,0 +1,26 @@
+{
+  "name": "dashboard",
+  "private": true,
+  "version": "0.1.0",
+  "description": "결함 목록 시각화, 패치 Diff 검토, 적용/검증/롤백을 담당하는 Nuxt 4 대시보드",
+  "type": "module",
+  "scripts": {
+    "dev": "nuxt dev --port 3000",
+    "build": "nuxt build",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare",
+    "typecheck": "nuxt typecheck"
+  },
+  "dependencies": {
+    "@inspector-agent/core": "workspace:*",
+    "@inspector-agent/source-locator": "workspace:*",
+    "@inspector-agent/verifier": "workspace:*",
+    "diff": "^8.0.0",
+    "nuxt": "^4.6.1",
+    "vue": "^3.5.0"
+  },
+  "devDependencies": {
+    "sass": "^1.90.0",
+    "vue-tsc": "^3.0.0"
+  }
+}

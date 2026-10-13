@@ -1,0 +1,19 @@
+{
+  "name": "@inspector-agent/benchmarks",
+  "private": true,
+  "version": "0.1.0",
+  "description": "탐지 정확도, 소스 매핑 정확도, 토큰 효율, 측정 기반 자가 치유 루프 성공률 벤치마크",
+  "type": "module",
+  "scripts": {
+    "bench": "tsx src/bench.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@inspector-agent/core": "workspace:*",
+    "@inspector-agent/source-locator": "workspace:*",
+    "@inspector-agent/verifier": "workspace:*",
+    "playwright-core": "1.56.1",
+    "tsx": "^4.20.0",
+    "vite": "^7.0.0"
+  }
+}

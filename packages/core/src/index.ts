@@ -1,0 +1,8 @@
+export * from './types'
+export { detect } from './detector'
+export { diagnose, classifySeverity } from './diagnose'
+export { createDefectId, createFingerprint, formatSource, hashString, parseSourceAttribute } from './fingerprint'
+export { describeDefect, estimateTokens, toAgentPayload } from './compress'
+export type { AgentDefectPayload, AgentNodePayload } from './compress'
+export { applyEdits } from './patch'
+export type { ApplyEditsResult } from './patch'

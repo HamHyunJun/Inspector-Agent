@@ -1,0 +1,20 @@
+{
+  "name": "inspector-agent",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.28.0",
+  "scripts": {
+    "build": "pnpm --filter \"./packages/**\" build",
+    "dev:playground": "pnpm --filter playground dev",
+    "dev:dashboard": "pnpm --filter dashboard dev",
+    "test": "pnpm --filter \"./packages/**\" test",
+    "bench": "pnpm --filter @inspector-agent/benchmarks bench",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.0",
+    "vitest": "^4.0.0"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "name": "@inspector-agent/core",
+  "version": "0.1.0",
+  "description": "결정론적 런타임 결함 탐지 엔진, 공용 타입, 페이로드 압축 유틸",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./detector.global.js": "./dist/detector.global.js"
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  }
+}

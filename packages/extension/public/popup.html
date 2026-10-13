@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Inspector-Agent</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main class="popup">
+      <header class="popup__header">
+        <h1 class="popup__title">Inspector-Agent</h1>
+        <p class="popup__desc">현재 탭의 뷰포트 그대로 결함을 탐지합니다. 375px 검사는 DevTools 기기 모드에서 실행하세요.</p>
+      </header>
+      <form id="scan-form" class="popup__form">
+        <label for="dashboard-url">대시보드 URL</label>
+        <input id="dashboard-url" type="url" required value="http://localhost:3000" />
+        <button type="submit">현재 탭 스캔</button>
+      </form>
+      <section class="popup__result" aria-live="polite">
+        <p id="status" class="popup__status"></p>
+        <ul id="defects" class="popup__defects"></ul>
+      </section>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>

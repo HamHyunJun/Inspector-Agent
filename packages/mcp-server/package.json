@@ -1,0 +1,20 @@
+{
+  "name": "@inspector-agent/mcp-server",
+  "version": "0.1.0",
+  "description": "Claude Code 등 MCP 클라이언트가 결함 조회·컨텍스트·패치 제안을 하도록 대시보드 API를 노출하는 stdio MCP 서버",
+  "type": "module",
+  "bin": {
+    "inspector-agent-mcp": "./dist/index.js"
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --clean",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@inspector-agent/core": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.32.0",
+    "zod": "^3.25.0"
+  }
+}

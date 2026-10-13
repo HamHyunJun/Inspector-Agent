@@ -1,0 +1,30 @@
+{
+  "name": "@inspector-agent/vite-plugin",
+  "version": "0.1.0",
+  "description": ".vue 템플릿 요소에 data-ia-src(파일:라인:컬럼)를 주입해 DOM 노드를 소스 라인에 연결하는 Vite 플러그인",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts --clean",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@vue/compiler-sfc": "^3.5.0",
+    "magic-string": "^0.30.0"
+  },
+  "peerDependencies": {
+    "vite": ">=5.0.0"
+  },
+  "devDependencies": {
+    "vite": "^7.0.0"
+  }
+}

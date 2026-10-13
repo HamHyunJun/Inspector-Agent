@@ -1,0 +1,27 @@
+{
+  "name": "@inspector-agent/verifier",
+  "version": "0.1.0",
+  "description": "Playwright로 여러 뷰포트를 스캔하고 패치 전후를 재측정하는 검증기",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "inspector-scan": "./dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsup src/index.ts src/cli.ts --format esm --dts --clean",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@inspector-agent/core": "workspace:*",
+    "playwright-core": "1.56.1"
+  }
+}

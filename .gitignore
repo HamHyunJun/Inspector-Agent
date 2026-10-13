@@ -1,0 +1,9 @@
+node_modules
+dist
+.output
+.nuxt
+.data
+.inspector-agent
+*.log
+benchmarks/results/*.json
+!benchmarks/results/.gitkeep
