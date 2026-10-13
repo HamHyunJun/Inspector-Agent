@@ -9,3 +9,4 @@ benchmarks/results/*.json
 !benchmarks/results/.gitkeep
 .omc/
 *.tgz
+docs/assets/demo.webm

@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "bench": "tsx src/bench.ts",
+    "demo": "tsx src/record-demo.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
