@@ -119,6 +119,8 @@ flowchart LR
 
 ## 4. 빠른 시작
 
+> 처음 써 본다면 새 Vue 프로젝트로 설치부터 수정·롤백까지 따라 하는 [`docs/getting-started.md`](docs/getting-started.md)부터 보세요.
+
 ```bash
 pnpm install               # 설치 후 prepare 단계에서 packages/* 를 자동 빌드 (MCP 서버 dist 포함)
 
@@ -193,7 +195,7 @@ Chrome 확장은 `packages/extension/dist`를 `chrome://extensions` → **압축
 
 준비물은 Node 22, pnpm 10, Chromium(`pnpm dlx playwright@1.56.1 install chromium`, 또는 `INSPECTOR_CHROMIUM_PATH`)입니다.
 
-**1) 플러그인을 내 프로젝트에 설치** — npm 에 배포된 뒤에는 `pnpm add -D @inspector-agent/vite-plugin` 으로 설치합니다(배포 절차는 [`docs/releasing.md`](docs/releasing.md), 현재 **아직 npm 에 올라가 있지 않습니다**). 그 전에는 이 저장소의 빌드 결과를 링크합니다.
+**1) 플러그인을 내 프로젝트에 설치** — `pnpm add -D @inspector-agent/vite-plugin` (npm 배포 절차는 [`docs/releasing.md`](docs/releasing.md)). 이 저장소를 고치면서 바로 써 보려면 빌드 결과를 링크해도 됩니다.
 
 ```bash
 # Inspector-Agent 저장소에서 (한 번)
