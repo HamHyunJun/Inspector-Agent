@@ -2,6 +2,10 @@
 
 > 실제 브라우저 렌더링에서 깨진 레이아웃을 **규칙으로 찾아내고**, 그 DOM 노드를 **`.vue` 파일의 정확한 라인과 SCSS 규칙**에 연결한 뒤, 에이전트가 만든 패치를 **같은 뷰포트에서 다시 측정해 수치로 증명**하는 런타임 특화 자가 치유(Self-Healing) 개발 도구입니다.
 
+![스캔 → 결함 상세 → 패치 적용 → 재측정 0px 데모](docs/assets/demo.gif)
+
+*대시보드에서 375px 스캔 → `ShareLink.vue:4` 결함 상세(소스 매핑·진단) → 규칙 기반 패치 제안 → 적용하고 검증: 오버플로우 **251px → 0px, 새 결함 없음**. 재녹화는 `pnpm --filter @inspector-agent/benchmarks demo`.*
+
 ```
 375px 뷰포트 · src/components/ProductCard.vue:4
 부모 콘텐츠 311px, 요소 박스 473px → 230px 가로 오버플로우
@@ -40,6 +44,21 @@ Chrome DevTools MCP나 Playwright MCP를 붙이면 에이전트도 DOM과 스크
 2. **런타임 노드 → 소스 라인 매핑** (`packages/vite-plugin`, `packages/source-locator`): 개발 서버에서 `.vue` 템플릿의 모든 HTML 요소에 `data-ia-src="src/components/Card.vue:12:5"`를 주입합니다. 그다음 SCSS 중첩(`&__title`, 하위 선택자, `@media`)을 펼쳐 노드·부모·자식 클래스를 **실제로 스타일링하는 규칙의 라인**을 찾습니다.
 3. **측정 기반 검증 루프** (`packages/verifier`): 패치 적용 → HMR 대기 → 헤드리스 Chromium으로 같은 URL·뷰포트 재스캔 → 대상 결함이 사라졌고 **새 결함(회귀)이 없을 때만 통과**합니다. 실패하면 백업으로 자동 롤백합니다.
 4. **토큰 효율·성공률 벤치마크** (`benchmarks`): 정답표가 있는 데모 앱으로 탐지 정확도, 매핑 정확도, 토큰 절감률, 자가 치유 성공률을 재현 가능하게 측정합니다.
+
+면접 예상 질문과 근거 코드 위치는 [`docs/interview-qa.md`](docs/interview-qa.md) 에 정리했습니다.
+
+### 실서비스 적용 사례: Camping-Joy (오탐 발견 → 규칙 수정 → 재검증)
+
+내 Nuxt 4 앱 Camping-Joy(`ssr: false`)에 플러그인을 붙여 3개 뷰포트 × 13개 URL = 39회를 스캔하고, 같은 39장을 스크린샷으로 육안 대조했습니다. **탐지 규칙은 수정하지 않고 관찰한 그대로 먼저 기록**했습니다 (`docs/real-world-report.md`).
+
+| 관찰 | 결과 | 조치 |
+| --- | --- | --- |
+| 정탐 | 1개 원인: 1280px 에서 긴 영문 이름이 알약을 넘쳐 배지를 밀어냄 | 같은 줄 형제를 원인 하나 + 연쇄 결함으로 묶는 규칙 추가 (`cascade.ts`) |
+| **오탐** | 3개 원인(대시보드 12건): `transform: rotate()` 한 chevron 아이콘. `getBoundingClientRect` 가 변환 후 사각형을 돌려줘 박스가 부모 밖으로 보임 | 자신이나 부모에 `transform/rotate/scale/translate` 가 있으면 박스 판정 제외 + 재현 컴포넌트를 정상 대조군으로 추가 |
+| 통합 문제 | Nuxt 4 는 Vite root 가 `app/` 이라 소스 경로 접두어 불일치, 빈 상태(localStorage 없음) 스캔은 13개 URL 전부 0건 | 프로젝트 루트 기준 경로로 수정, 시드+클릭 **시나리오** 기능 추가 |
+| 재검증 | 수정 후 단위 테스트와 `pnpm bench` 의 정상 대조군 오탐 0건으로 확인 (Camping-Joy 재스캔은 하지 않음) | 불변 조건이 깨지면 CI 가 막도록 게이트에 고정 |
+
+확정 미탐은 0건이었고, 육안으로 의심스러운 2건은 의도된 스크롤/입력창이라 규칙 범위 밖으로 판단했습니다. 수치는 이 시드 데이터에 한정되며, 앱 한 곳의 사례라 일반화한 정확도가 아닙니다.
 
 ---
 
