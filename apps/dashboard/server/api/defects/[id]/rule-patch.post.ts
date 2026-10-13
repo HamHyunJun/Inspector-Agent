@@ -1,15 +1,17 @@
 import { buildDeclarationPatch } from '@inspector-agent/source-locator'
 import type { Patch } from '../../../../shared/types/inspector'
 import { buildDefectContext } from '../../../utils/context'
+import { findDuplicatePatch } from '../../../utils/patch-dedupe'
 import { proposePatch } from '../../../utils/patch-service'
-import { readProjectFile } from '../../../utils/project-files'
+import { hashContent, readProjectFile } from '../../../utils/project-files'
 import { readStore } from '../../../utils/store'
 
 /**
  * 결정론적 진단의 n번째 제안을 그대로 소스 편집으로 바꿔 "기준선 패치"로 제안한다.
  * LLM 없이도 단순 결함은 고칠 수 있는지, 그리고 LLM 패치가 기준선보다 나은지 비교하는 데 쓴다.
  */
-export default defineEventHandler(async (event): Promise<Patch> => {
+/** duplicated 가 true 면 새로 만들지 않고 이미 대기 중인 같은 패치를 돌려준 것이다 */
+export default defineEventHandler(async (event): Promise<Patch & { duplicated: boolean }> => {
   const id = getRouterParam(event, 'id') ?? ''
   const body = await readBody<{ suggestionIndex?: number } | undefined>(event).catch((): undefined => undefined)
   const defect = (await readStore()).defects[id]
@@ -40,11 +42,15 @@ export default defineEventHandler(async (event): Promise<Patch> => {
   )
   if (!result.ok) throw createError({ statusCode: 422, statusMessage: result.error })
 
-  return proposePatch({
+  const existing = findDuplicatePatch(Object.values((await readStore()).patches), { defectId: defect.id, file: targetFile, edits: result.edits }, hashContent(content))
+  if (existing) return { ...existing, duplicated: true }
+
+  const patch = await proposePatch({
     defectId: defect.id,
     file: targetFile,
     edits: result.edits,
     rationale: `[규칙 기반 ${suggestion.hint}] ${suggestion.reason} → ${result.summary}`,
     author: 'rule'
   })
+  return { ...patch, duplicated: false }
 })
