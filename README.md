@@ -99,8 +99,7 @@ flowchart LR
 ## 4. 빠른 시작
 
 ```bash
-pnpm install
-pnpm build                 # packages/* 빌드 (탐지기 번들, MCP 서버, 확장 포함)
+pnpm install               # 설치 후 prepare 단계에서 packages/* 를 자동 빌드 (MCP 서버 dist 포함)
 
 # Chromium 이 없다면 한 번 설치 (또는 INSPECTOR_CHROMIUM_PATH 로 경로 지정)
 pnpm dlx playwright@1.56.1 install chromium
@@ -113,7 +112,7 @@ pnpm dev:dashboard         # http://localhost:3000  대시보드 (기본 패치 
 
 ### Claude Code 연결
 
-저장소 루트의 `.mcp.json`이 MCP 서버를 등록합니다. Claude Code를 이 저장소에서 실행하고 이렇게 요청하면 됩니다.
+저장소 루트의 `.mcp.json`이 MCP 서버(`packages/mcp-server/dist/index.js`)를 등록합니다. `/mcp`에서 `CONNECTION_CLOSED`가 보이면 빌드 결과물이 없는 경우이니 `pnpm build` 후 Claude Code를 다시 시작하세요. Claude Code를 이 저장소에서 실행하고 이렇게 요청하면 됩니다.
 
 ```
 inspector-agent 로 http://localhost:5173 을 스캔하고, 미해결 결함마다 컨텍스트를 읽어 패치를 제안해줘.

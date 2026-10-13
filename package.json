@@ -4,6 +4,7 @@
   "type": "module",
   "packageManager": "pnpm@10.28.0",
   "scripts": {
+    "prepare": "pnpm build",
     "build": "pnpm --filter \"./packages/**\" build",
     "dev:playground": "pnpm --filter playground dev",
     "dev:dashboard": "pnpm --filter dashboard dev",
