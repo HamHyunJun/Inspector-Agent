@@ -9,11 +9,18 @@
     <main class="popup">
       <header class="popup__header">
         <h1 class="popup__title">Inspector-Agent</h1>
-        <p class="popup__desc">현재 탭의 뷰포트 그대로 결함을 탐지합니다. 375px 검사는 DevTools 기기 모드에서 실행하세요.</p>
+        <p class="popup__desc">현재 탭을 그대로 결함을 탐지합니다. 아래 옵션으로 뷰포트 폭을 바꿔(예: 375px) 검사할 수 있습니다.</p>
       </header>
       <form id="scan-form" class="popup__form">
         <label for="dashboard-url">대시보드 URL</label>
         <input id="dashboard-url" type="url" required value="http://localhost:3000" />
+        <fieldset class="popup__option">
+          <legend>뷰포트 에뮬레이션</legend>
+          <label class="popup__check"><input id="emulate" type="checkbox" /> 폭을 바꿔 검사 (chrome.debugger)</label>
+          <label for="emulate-width">폭(px)</label>
+          <input id="emulate-width" type="number" min="240" max="3840" step="1" value="375" />
+          <p class="popup__hint">스캔하는 동안 탭 위에 "디버깅 중" 안내줄이 잠깐 보이고, 끝나면 원래 크기로 돌아옵니다.</p>
+        </fieldset>
         <button type="submit">현재 탭 스캔</button>
       </form>
       <section class="popup__result" aria-live="polite">
