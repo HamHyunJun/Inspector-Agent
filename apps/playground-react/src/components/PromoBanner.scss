@@ -1,0 +1,19 @@
+// [심어 둔 결함] 데스크톱 기준 고정 너비 (일반 .scss)
+.promo-banner {
+  padding: 16px;
+  background: #fff;
+  border-radius: 12px;
+
+  &__box {
+    width: 420px;
+    padding: 16px;
+    color: #fff;
+    background: #8250df;
+    border-radius: 8px;
+  }
+
+  &__text {
+    margin: 0;
+    font-weight: 700;
+  }
+}

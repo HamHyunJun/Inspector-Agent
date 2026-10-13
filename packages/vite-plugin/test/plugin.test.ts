@@ -54,3 +54,14 @@ describe('inspectorAgent (Nuxt 4 app/ 구조)', () => {
     expect(transformWith(srcDir, join(srcDir, 'node_modules/x/Y.vue'))).toBeUndefined()
   })
 })
+
+describe('inspectorAgent React 변환', () => {
+  const jsx = 'export const A = () => <p>x</p>\n'
+
+  it('.tsx/.jsx 는 변환하고 ?raw 나 node_modules 는 건드리지 않는다', () => {
+    expect(transformWith('/proj', '/proj/src/A.tsx', jsx)).toContain('data-ia-src="src/A.tsx:1:24"')
+    expect(transformWith('/proj', '/proj/src/A.jsx?t=1', jsx)).toContain('data-ia-src')
+    expect(transformWith('/proj', '/proj/src/A.tsx?raw', jsx)).toBeUndefined()
+    expect(transformWith('/proj', '/proj/node_modules/x/A.tsx', jsx)).toBeUndefined()
+  })
+})

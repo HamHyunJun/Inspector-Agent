@@ -6,6 +6,7 @@ import type { AgentDefectPayload, Defect, PatchEdit, Viewport } from '@inspector
  */
 
 interface StyleRule {
+  file: string
   selector: string
   line: number
   atRules: string[]

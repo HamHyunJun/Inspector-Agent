@@ -27,11 +27,14 @@ export default defineEventHandler(async (event): Promise<Patch> => {
     throw createError({ statusCode: 422, statusMessage: '부모 요소가 다른 컴포넌트에 있어 규칙 기반 패치를 만들 수 없습니다.' })
   }
 
-  const content = await readProjectFile(context.file)
   const isNode = suggestion.target === 'node'
+  const rules = isNode ? context.nodeRules : context.parentRules
+  // 규칙이 별도 스타일시트(React)에 있으면 그 파일이 패치 대상이다. 규칙이 없으면 SFC 파일에 새 규칙을 추가한다
+  const targetFile = rules[0]?.file ?? context.file
+  const content = await readProjectFile(targetFile)
   const result = buildDeclarationPatch(
     content,
-    isNode ? context.nodeRules : context.parentRules,
+    rules.filter((rule): boolean => rule.file === targetFile),
     isNode ? defect.node.classes : defect.parent.classes,
     suggestion.declarations
   )
@@ -39,7 +42,7 @@ export default defineEventHandler(async (event): Promise<Patch> => {
 
   return proposePatch({
     defectId: defect.id,
-    file: context.file,
+    file: targetFile,
     edits: result.edits,
     rationale: `[규칙 기반 ${suggestion.hint}] ${suggestion.reason} → ${result.summary}`,
     author: 'rule'

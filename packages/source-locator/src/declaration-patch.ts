@@ -60,7 +60,7 @@ export const buildDeclarationPatch = (
   const className = classes.find((name): boolean => !name.startsWith('data-v-'))
   if (!className) return { ok: false, error: '대상 노드에 클래스가 없어 규칙을 만들 수 없습니다.' }
   const closingTags = content.match(/<\/style>/g) ?? []
-  if (closingTags.length !== 1) return { ok: false, error: '스타일 블록이 정확히 하나일 때만 새 규칙을 추가할 수 있습니다.' }
+  if (closingTags.length !== 1) return { ok: false, error: '일치하는 기존 규칙이 없고, 스타일 블록이 정확히 하나인 SFC 가 아니라서 새 규칙을 추가할 수 없습니다.' }
   const body = entries.map(([property, value]): string => `  ${property}: ${value};`).join('\n')
   return {
     ok: true,
