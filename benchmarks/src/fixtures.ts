@@ -2,7 +2,7 @@ import type { DefectKind, FixHint, PatchEdit, Scenario } from '@inspector-agent/
 
 /**
  * playground 앱에 심어 둔 결함의 정답표.
- * 375px 에서는 아래 9건(오버플로우 5 + 가려짐 3 + 포커스 이탈 1)만 탐지되어야 하고, 768px/1280px 에서는 0건이어야 한다.
+ * 375px 에서는 아래 11건(가로 오버플로우 5 + 세로 오버플로우 1 + 텍스트 잘림 1 + 가려짐 3 + 포커스 이탈 1)만 탐지되어야 하고, 768px/1280px 에서는 0건이어야 한다.
  * NEGATIVE_CONTROLS 의 컴포넌트는 정상 동작이므로 탐지되면 오탐이다.
  */
 export interface ExpectedDefect {
@@ -27,6 +27,8 @@ export const EXPECTED_AT_MOBILE: ExpectedDefect[] = [
   { file: 'src/components/TagList.vue', kind: 'overflow-x', primaryHint: 'flex-shrink-disabled', description: '줄바꿈 없는 flex + flex-shrink:0 태그' },
   { file: 'src/components/PromoBanner.vue', kind: 'overflow-x', primaryHint: 'fixed-width', description: '데스크톱 기준 고정 너비 420px' },
   { file: 'src/components/ShareLink.vue', kind: 'overflow-x', primaryHint: 'unbreakable-text', description: '공백 없는 긴 URL' },
+  { file: 'src/components/FixedHeightCard.vue', kind: 'overflow-y', primaryHint: 'fixed-height', description: '높이 64px 로 고정된 카드 밖으로 줄바꿈된 설명이 넘쳐 다음 요소와 겹침' },
+  { file: 'src/components/ClippedLabel.vue', kind: 'clipped-text', primaryHint: 'text-ellipsis', description: 'overflow:hidden + nowrap 라벨이 말줄임 없이 잘려 글자가 사라짐' },
   {
     file: 'src/components/MemberRow.vue',
     kind: 'overflow-x',
@@ -112,7 +114,9 @@ export const NEGATIVE_CONTROLS: string[] = [
   'src/components/SortMenu.vue',
   'src/components/BadgeCard.vue',
   'src/components/ModalControl.vue',
-  'src/components/DecorDots.vue'
+  'src/components/DecorDots.vue',
+  'src/components/HeightControls.vue',
+  'src/components/TextClipControls.vue'
 ]
 
 export const MOBILE_VIEWPORT = { width: 375, height: 812 }

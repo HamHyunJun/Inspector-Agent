@@ -5,10 +5,12 @@
 
 /**
  * - overflow-x: 가로 레이아웃 오버플로우
+ * - overflow-y: 높이가 제한된 컨테이너 밖으로 흐름 안의 콘텐츠가 세로로 넘쳐 아래 요소와 겹침
+ * - clipped-text: overflow 로 잘리는데 말줄임(text-overflow: ellipsis)이 없어 글자가 잘린 줄 모르게 사라짐
  * - occluded: 모달/드롭다운 같은 "위에 있어야 할" 요소가 다른 요소에 가려짐
  * - focus-escape: 모달이 열려 있는데 Tab 키 포커스가 모달 밖으로 빠져나감 (실제 키 입력이 필요해 verifier 가 탐지한다)
  */
-export type DefectKind = 'overflow-x' | 'occluded' | 'focus-escape'
+export type DefectKind = 'overflow-x' | 'overflow-y' | 'clipped-text' | 'occluded' | 'focus-escape'
 
 /**
  * 오버플로우 발생 형태
@@ -73,6 +75,10 @@ export type FixHint =
   | 'z-index-too-low'
   | 'overflow-clipped-popup'
   | 'focus-trap-missing'
+  | 'fixed-height'
+  | 'vertical-scroll'
+  | 'text-ellipsis'
+  | 'text-wrap'
 
 export interface FixSuggestion {
   hint: FixHint
@@ -110,6 +116,31 @@ export interface StackingLayer {
   /** 이 요소가 stacking context 를 만드는 이유 (예: transform, opacity<1, position+z-index). 만들지 않으면 'none' */
   reason: string
   source?: SourceLocation
+}
+
+export interface VerticalOverflowMetrics {
+  kind: 'overflow-y'
+  /** 컨테이너 아래로 넘친 양(px). 패치 후 0이 되어야 한다 */
+  overflowPx: number
+  containerHeight: number
+  /** 컨테이너 안 흐름(in-flow) 콘텐츠가 차지하는 높이 */
+  contentHeight: number
+  /** 가장 많이 넘친 자식 요소(텍스트가 직접 넘치면 없음) */
+  culprit?: { selector: string; source?: SourceLocation }
+}
+
+export interface ClippedTextMetrics {
+  kind: 'clipped-text'
+  /** 잘려서 보이지 않는 텍스트 너비(px). 패치 후 0이 되어야 한다 */
+  clippedPx: number
+  /** 전체 텍스트 너비 대비 잘린 비율 (0~1) */
+  hiddenRatio: number
+  /** 잘리는 요소의 보이는 너비 / 텍스트 전체 너비 */
+  visibleWidth: number
+  fullWidth: number
+  /** 잘리는 텍스트 일부 (최대 60자) */
+  text: string
+  whiteSpace: string
 }
 
 export interface OcclusionMetrics {
@@ -199,6 +230,16 @@ export interface OverflowDefect extends DefectBase {
   metrics: OverflowMetrics
 }
 
+export interface VerticalOverflowDefect extends DefectBase {
+  kind: 'overflow-y'
+  metrics: VerticalOverflowMetrics
+}
+
+export interface ClippedTextDefect extends DefectBase {
+  kind: 'clipped-text'
+  metrics: ClippedTextMetrics
+}
+
 export interface OcclusionDefect extends DefectBase {
   kind: 'occluded'
   metrics: OcclusionMetrics
@@ -210,7 +251,7 @@ export interface FocusDefect extends DefectBase {
 }
 
 /** kind 로 좁힐 수 있는 합집합. 소비처는 defect.kind 로 분기한다 */
-export type Defect = OverflowDefect | OcclusionDefect | FocusDefect
+export type Defect = OverflowDefect | VerticalOverflowDefect | ClippedTextDefect | OcclusionDefect | FocusDefect
 
 export interface ScanResult {
   /** 시나리오로 스캔했다면 그 키 (결함의 scenarioKey 와 같다) */

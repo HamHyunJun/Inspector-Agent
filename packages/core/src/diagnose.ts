@@ -1,4 +1,4 @@
-import type { FixSuggestion, FocusMetrics, NodeSnapshot, OcclusionMetrics, OverflowMetrics, Severity } from './types'
+import type { ClippedTextMetrics, FixSuggestion, FocusMetrics, NodeSnapshot, OcclusionMetrics, OverflowMetrics, Severity, VerticalOverflowMetrics } from './types'
 
 const MEDIA_TAGS = new Set(['img', 'video', 'canvas', 'iframe', 'svg', 'picture'])
 
@@ -153,6 +153,65 @@ export const diagnoseFocus = (metrics: FocusMetrics): FixSuggestion[] => {
       target: 'node',
       declarations: {},
       reason: `모달에서 Tab 으로 ${where} 로 포커스가 빠져나갑니다. aria-modal 은 포커스를 가두지 않습니다. 마지막 요소에서 Tab 은 첫 요소로, 첫 요소에서 Shift+Tab 은 마지막 요소로 순환시키거나(keydown 핸들러), 모달 밖 영역에 inert 를 걸거나, 네이티브 <dialog>.showModal() 을 쓰세요. 닫을 때 열기 전 요소로 포커스를 돌려주세요.`
+    }
+  ]
+}
+
+/** 24px 이상 넘치면 high, 8px 이상이면 medium (가로 오버플로우와 같은 기준) */
+export const classifyVerticalSeverity = (overflowPx: number): Severity => {
+  if (overflowPx >= 24) return 'high'
+  if (overflowPx >= 8) return 'medium'
+  return 'low'
+}
+
+/** 글자의 30% 이상이 사라지면 high(내용을 읽을 수 없음), 10% 이상이면 medium */
+export const classifyClippedSeverity = (hiddenRatio: number): Severity => {
+  if (hiddenRatio >= 0.3) return 'high'
+  if (hiddenRatio >= 0.1) return 'medium'
+  return 'low'
+}
+
+/**
+ * 세로 오버플로우의 후보 패치. 고정 높이를 늘어나게 바꾸는 것이 기본이고, 높이가 의도된 것이면 스크롤 영역으로 만든다.
+ * 현재 높이를 min-height 로 남겨 다른 화면 크기에서 레이아웃이 줄어드는 일을 막는다.
+ */
+export const diagnoseVertical = (node: NodeSnapshot, metrics: VerticalOverflowMetrics): FixSuggestion[] => {
+  const where = metrics.culprit ? `${metrics.culprit.selector} 가` : '콘텐츠가'
+  return [
+    {
+      hint: 'fixed-height',
+      target: 'node',
+      declarations: { height: 'auto', 'min-height': `${Math.round(metrics.containerHeight)}px` },
+      reason: `컨테이너 높이(${Math.round(metrics.containerHeight)}px)가 고정이라 ${where} 아래로 ${Math.round(metrics.overflowPx)}px 넘쳐 다음 요소와 겹칩니다. 높이를 콘텐츠에 맞게 늘어나게 하세요(height: auto + min-height).`
+    },
+    {
+      hint: 'vertical-scroll',
+      target: 'node',
+      declarations: { 'overflow-y': 'auto' },
+      reason: `높이를 유지해야 한다면 넘치는 ${Math.round(metrics.overflowPx)}px 를 스크롤로 보여 주세요(overflow-y: auto). ${node.selector} 는 지금 overflow: visible 이라 넘친 내용이 그대로 겹쳐 보입니다.`
+    }
+  ]
+}
+
+/**
+ * 텍스트 잘림의 후보 패치. 한 줄 라벨이면 말줄임으로 잘린 것을 드러내고, 내용이 중요하면 줄바꿈해서 다 보여 준다.
+ * text-overflow: ellipsis 는 줄바꿈 없는 한 줄(white-space: nowrap)에서만 동작한다.
+ */
+export const diagnoseClippedText = (_node: NodeSnapshot, metrics: ClippedTextMetrics): FixSuggestion[] => {
+  const clippedPercent = Math.round(metrics.hiddenRatio * 100)
+  const nowrap = metrics.whiteSpace === 'nowrap' || metrics.whiteSpace === 'pre'
+  return [
+    {
+      hint: 'text-ellipsis',
+      target: 'node',
+      declarations: nowrap ? { 'text-overflow': 'ellipsis' } : { 'text-overflow': 'ellipsis', 'white-space': 'nowrap' },
+      reason: `overflow 로 글자의 ${clippedPercent}%(${Math.round(metrics.clippedPx)}px)가 잘리는데 말줄임이 없어 잘린 줄 알 수 없습니다. text-overflow: ellipsis 로 잘렸음을 보여 주세요.`
+    },
+    {
+      hint: 'text-wrap',
+      target: 'node',
+      declarations: { 'white-space': 'normal', 'overflow-wrap': 'anywhere' },
+      reason: '내용을 모두 읽을 수 있어야 한다면 줄바꿈해서 다 보여 주세요(white-space: normal + overflow-wrap: anywhere).'
     }
   ]
 }

@@ -2,7 +2,7 @@
 
 헤드리스 Chromium(Playwright)으로 페이지를 **여러 뷰포트에서 스캔**해 레이아웃 결함을 규칙으로 탐지하고, 패치 전후를 **같은 상태에서 재측정**하는 검증기입니다. CI 에서 쓰는 `inspector-scan` CLI 를 포함합니다. [Inspector-Agent](https://github.com/HamHyunJun/Inspector-Agent) 의 일부입니다.
 
-탐지 종류: 가로 오버플로우(연쇄 결함 묶음), 팝업 가려짐(stacking context 원인), **모달 포커스 이탈**(실제 Tab/Shift+Tab 입력).
+탐지 종류: 가로·세로 오버플로우(연쇄 결함 묶음), 말줄임 없는 텍스트 잘림, 팝업 가려짐(stacking context 원인), **모달 포커스 이탈**(실제 Tab/Shift+Tab 입력).
 
 ## 설치
 

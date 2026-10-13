@@ -77,7 +77,13 @@ const emit = defineEmits<{
   filter: [status: DefectStatus | '']
 }>()
 
-const KIND_LABEL: Record<StoredDefect['kind'], string> = { 'overflow-x': '오버플로우', occluded: '가려짐', 'focus-escape': '포커스 이탈' }
+const KIND_LABEL: Record<StoredDefect['kind'], string> = {
+  'overflow-x': '오버플로우',
+  'overflow-y': '세로 오버플로우',
+  'clipped-text': '텍스트 잘림',
+  occluded: '가려짐',
+  'focus-escape': '포커스 이탈'
+}
 
 const kindLabel = (defect: StoredDefect): string =>
   defect.kind === 'overflow-x' ? (defect.metrics.mode === 'box' ? '박스' : '콘텐츠') : KIND_LABEL[defect.kind]
@@ -85,6 +91,7 @@ const kindLabel = (defect: StoredDefect): string =>
 const sizeLabel = (defect: StoredDefect): string => {
   if (defect.kind === 'occluded') return formatPercent(defect.metrics.coveredRatio)
   if (defect.kind === 'focus-escape') return `${Number(defect.metrics.escapesForward) + Number(defect.metrics.escapesBackward)}방향`
+  if (defect.kind === 'clipped-text') return `${formatPx(defect.metrics.clippedPx)} (${formatPercent(defect.metrics.hiddenRatio)})`
   return `+${formatPx(defect.metrics.overflowPx)}`
 }
 

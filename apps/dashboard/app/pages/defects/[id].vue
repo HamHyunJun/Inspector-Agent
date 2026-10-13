@@ -42,6 +42,28 @@
           <dt>포커스 도착 지점</dt>
           <dd><code>{{ context.defect.metrics.escapedTo?.selector ?? '-' }}</code></dd>
         </template>
+        <template v-else-if="context.defect.kind === 'overflow-y'">
+          <dt>형태</dt>
+          <dd>높이가 제한된 컨테이너 밖으로 콘텐츠가 세로로 넘쳐 아래 요소와 겹침</dd>
+          <dt>넘친 양</dt>
+          <dd>+{{ formatPx(context.defect.metrics.overflowPx) }}</dd>
+          <dt>컨테이너 높이 / 콘텐츠 높이</dt>
+          <dd>{{ formatPx(context.defect.metrics.containerHeight) }} / {{ formatPx(context.defect.metrics.contentHeight) }}</dd>
+          <template v-if="context.defect.metrics.culprit">
+            <dt>가장 많이 넘친 요소</dt>
+            <dd><code>{{ context.defect.metrics.culprit.selector }}</code></dd>
+          </template>
+        </template>
+        <template v-else-if="context.defect.kind === 'clipped-text'">
+          <dt>형태</dt>
+          <dd>overflow 로 글자가 잘리는데 말줄임(text-overflow: ellipsis)이 없어 잘린 줄 알 수 없음</dd>
+          <dt>잘린 양</dt>
+          <dd>{{ formatPx(context.defect.metrics.clippedPx) }} ({{ formatPercent(context.defect.metrics.hiddenRatio) }})</dd>
+          <dt>보이는 너비 / 전체 텍스트 너비</dt>
+          <dd>{{ formatPx(context.defect.metrics.visibleWidth) }} / {{ formatPx(context.defect.metrics.fullWidth) }}</dd>
+          <dt>잘리는 텍스트</dt>
+          <dd>{{ context.defect.metrics.text }}</dd>
+        </template>
         <template v-else>
           <dt>형태</dt>
           <dd>{{ context.defect.metrics.mode === 'box' ? '박스가 부모를 넘침' : '내부 텍스트가 박스를 넘침' }}</dd>

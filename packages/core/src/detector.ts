@@ -1,5 +1,9 @@
 import { classifySeverity, diagnose, diagnoseOcclusion } from './diagnose'
 import { createDefectId, createFingerprint, parseSourceAttribute } from './fingerprint'
+import { buildSelector, isTransformed, ownText, round, toRect } from './dom-utils'
+import { detectClippedText } from './rules/clipped-text'
+import type { RuleContext } from './rules/context'
+import { detectVerticalOverflow } from './rules/vertical-overflow'
 import { groupCascades } from './cascade'
 import type { CascadeEntry } from './cascade'
 import { classifyOcclusionSeverity, compareStacking, effectiveZIndex, stackingReason } from './occlusion'
@@ -31,6 +35,8 @@ const INTERACTIVE_SELECTOR = 'a[href], button, input, select, textarea, [tabinde
 /** 표본점 5개 중 이 비율 이상 가려져야 결함으로 본다 (모서리 몇 px 겹침은 무시) */
 export const DEFAULT_MIN_COVERED_RATIO = 0.6
 const MIN_SAMPLED_POINTS = 3
+/** 중심 + 네 모서리 */
+const SAMPLE_POINT_COUNT = 5
 /** 후보가 많은 페이지에서 elementFromPoint 로 레이아웃을 강제하지 않도록 이 개수까지만 본다. 의미(role 등)가 있는 후보를 먼저 채운다 */
 const MAX_OCCLUSION_CANDIDATES = 20
 /** 위치(absolute/fixed + z-index)만 근거인 후보는 이보다 작으면 장식(배지, 점, 아이콘)으로 보고 제외한다 */
@@ -66,21 +72,6 @@ const LAYOUT_PROPERTIES: Record<string, string> = {
 const FLEX_ITEM_PROPERTIES = new Set(['flex-grow', 'flex-shrink', 'flex-basis'])
 const FLEX_CONTAINER_PROPERTIES = new Set(['flex-direction', 'flex-wrap'])
 
-const round = (value: number): number => Math.round(value * 10) / 10
-
-const toRect = (rect: DOMRect): Rect => ({
-  x: round(rect.x),
-  y: round(rect.y),
-  width: round(rect.width),
-  height: round(rect.height),
-  right: round(rect.right),
-  bottom: round(rect.bottom)
-})
-
-/** transform/rotate/scale/translate 가 걸렸는지. getBoundingClientRect 는 변환 후 사각형이라 레이아웃 박스와 달라진다 */
-const isTransformed = (style: CSSStyleDeclaration): boolean =>
-  [style.transform, style.rotate, style.scale, style.translate].some((value): boolean => value !== '' && value !== 'none')
-
 const isFlexDisplay = (display: string): boolean => display === 'flex' || display === 'inline-flex'
 
 const pickStyles = (style: CSSStyleDeclaration, parentStyle: CSSStyleDeclaration | undefined): Record<string, string> => {
@@ -99,44 +90,11 @@ const pickStyles = (style: CSSStyleDeclaration, parentStyle: CSSStyleDeclaration
   return picked
 }
 
-const ownText = (element: Element): string => {
-  let text = ''
-  element.childNodes.forEach((child): void => {
-    if (child.nodeType === Node.TEXT_NODE) text += child.textContent ?? ''
-  })
-  return text.replace(/\s+/g, ' ').trim()
-}
-
 const collectChildClasses = (element: Element): string[] => {
   const classes = Array.from(element.children).flatMap((child): string[] => Array.from(child.classList))
   return Array.from(new Set(classes)).slice(0, 8)
 }
 
-const buildSelector = (element: Element): string => {
-  const parts: string[] = []
-  let current: Element | null = element
-  while (current && current !== document.body && parts.length < 4) {
-    const tag = current.tagName.toLowerCase()
-    if (current.id) {
-      parts.unshift(`${tag}#${current.id}`)
-      break
-    }
-    const classes = Array.from(current.classList)
-      .filter((name): boolean => !name.startsWith('data-v-'))
-      .slice(0, 2)
-    let part = classes.length > 0 ? `${tag}.${classes.join('.')}` : tag
-    const parentElement: Element | null = current.parentElement
-    if (parentElement) {
-      const sameTag = Array.from(parentElement.children).filter((child): boolean => child.tagName === current?.tagName)
-      if (sameTag.length > 1) part += `:nth-of-type(${sameTag.indexOf(current) + 1})`
-    }
-    parts.unshift(part)
-    current = parentElement
-  }
-  return parts.join(' > ')
-}
-
-/** 요소 하나를 압축 스냅샷으로 만든다. detect 와 포커스 탐침(focus.ts)이 같은 모양을 쓰도록 공유한다 */
 export const createSnapshotter =
   (styleOf: (element: Element) => CSSStyleDeclaration, sourceAttribute: string) =>
   (element: Element): NodeSnapshot => {
@@ -482,11 +440,20 @@ export const detect = (options: DetectOptions = {}): ScanResult => {
       let rect = element.getBoundingClientRect()
 
       let points = samplePoints(rect)
-      if (points.length < MIN_SAMPLED_POINTS) {
+      // 표본점이 일부만 화면 안이면 판정이 레이아웃(페이지 길이)에 따라 흔들리므로, 5개가 모두 보이도록 맞춘 뒤 잰다
+      if (points.length < SAMPLE_POINT_COUNT) {
         // elementFromPoint 는 뷰포트 안에서만 동작하므로 화면 밖 팝업은 위쪽에 맞춰 스크롤해 다시 잰다 (끝나면 원위치)
-        window.scrollTo({ top: window.scrollY + rect.top - 16, left: window.scrollX, behavior: 'instant' })
-        rect = element.getBoundingClientRect()
-        points = samplePoints(rect)
+        const before = { left: window.scrollX, top: window.scrollY }
+        window.scrollTo({ top: before.top + rect.top - 16, left: before.left, behavior: 'instant' })
+        const scrolledRect = element.getBoundingClientRect()
+        const scrolledPoints = samplePoints(scrolledRect)
+        // 화면보다 큰 팝업은 스크롤해도 보이는 점이 늘지 않을 수 있다. 더 많이 보이는 쪽을 쓴다
+        if (scrolledPoints.length >= points.length) {
+          rect = scrolledRect
+          points = scrolledPoints
+        } else {
+          window.scrollTo({ ...before, behavior: 'instant' })
+        }
       }
       if (points.length < MIN_SAMPLED_POINTS) continue
 
@@ -567,7 +534,9 @@ export const detect = (options: DetectOptions = {}): ScanResult => {
       })
   }
 
-  const defects: Defect[] = [...overflowDefects, ...detectOcclusions()].slice(0, maxDefects)
+  // 가려짐 검사는 화면 밖 팝업을 보려고 스크롤하므로, 좌표를 읽는 규칙들을 먼저 실행한다
+  const ruleContext: RuleContext = { elements, styleOf, snapshot, viewport, url, detectedAt }
+  const defects: Defect[] = [...overflowDefects, ...detectVerticalOverflow(ruleContext), ...detectClippedText(ruleContext), ...detectOcclusions()].slice(0, maxDefects)
 
   return {
     url,

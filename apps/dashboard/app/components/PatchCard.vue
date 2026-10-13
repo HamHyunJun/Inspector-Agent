@@ -22,6 +22,8 @@
           회귀: {{ formatSourceRef(regression.node.source?.file, regression.node.source?.line) }}
           <template v-if="regression.kind === 'occluded'">가려짐 {{ formatPercent(regression.metrics.coveredRatio) }} ({{ regression.metrics.cause }})</template>
           <template v-else-if="regression.kind === 'focus-escape'">모달 포커스 이탈</template>
+          <template v-else-if="regression.kind === 'overflow-y'">세로 넘침 +{{ formatPx(regression.metrics.overflowPx) }}</template>
+          <template v-else-if="regression.kind === 'clipped-text'">텍스트 잘림 {{ formatPx(regression.metrics.clippedPx) }}</template>
           <template v-else>+{{ formatPx(regression.metrics.overflowPx) }} ({{ regression.metrics.mode }})</template>
         </li>
       </ul>
