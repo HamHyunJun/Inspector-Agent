@@ -1,0 +1,10 @@
+# @inspector-agent/vite-plugin
+
+## 0.2.0
+
+### Minor Changes
+
+- 91c9a63: React(Vite) 프로젝트를 지원한다.
+  
+  - vite-plugin: `.jsx/.tsx` 의 소문자 JSX 요소에도 `data-ia-src="파일:라인:컬럼"` 을 주입한다. Vue 와 같은 속성·형식이라 탐지기는 그대로이고, `@vitejs/plugin-react` 의 버전·변환기(Babel/oxc)와 무관하다. `@babel/parser@7` 을 쓴다
+  - mcp-server: 스타일 규칙에 `file` 이 붙어, 규칙이 JSX 와 다른 스타일시트(CSS Modules/.css/.scss)에 있으면 파일명을 함께 보여 준다
