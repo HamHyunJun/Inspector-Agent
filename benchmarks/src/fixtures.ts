@@ -1,4 +1,4 @@
-import type { DefectKind, FixHint, PatchEdit } from '@inspector-agent/core'
+import type { DefectKind, FixHint, PatchEdit, Scenario } from '@inspector-agent/core'
 
 /**
  * playground 앱에 심어 둔 결함의 정답표.
@@ -77,6 +77,35 @@ const trapFocus = (event: KeyboardEvent): void => {
 
 /** 같은 컴포넌트를 다른 URL 에서 보여 주는 playground 화면 (URL 그룹핑 재현) */
 export const SECOND_PAGE_QUERY = '?page=members'
+
+/**
+ * 시나리오로만 보이는 결함. 기본 상태의 playground 에는 없다(메뉴가 닫혀 있고, 닉네임 시드가 없으면 렌더링되지 않는다).
+ * 시나리오로 스캔하면 검출되고, 같은 URL 을 일반 스캔하면 보이지 않아야 한다.
+ */
+export const PLAYGROUND_SCENARIO: Scenario = {
+  name: 'playground: 메뉴 열기 + 닉네임 시드',
+  seed: { localStorage: { 'ia-demo-nickname': 'ia_demo_nickname_with_a_very_long_unbroken_handle_that_cannot_wrap_anywhere_2026' } },
+  steps: [
+    { action: 'click', selector: '.open-menu__trigger' },
+    { action: 'wait', selector: '.open-menu__list' }
+  ]
+}
+
+export const SCENARIO_ONLY: ExpectedDefect[] = [
+  {
+    file: 'src/components/OpenMenu.vue',
+    kind: 'occluded',
+    primaryHint: 'stacking-context-trap',
+    description: '클릭해야 열리는 메뉴가 transform 카드의 stacking context 에 갇혀 막대에 가려짐 (열기 전에는 결함 없음)',
+    referenceEdits: [{ oldText: '\n    transform: translateY(0);', newText: '' }]
+  },
+  {
+    file: 'src/components/SeededChip.vue',
+    kind: 'overflow-x',
+    primaryHint: 'unbreakable-text',
+    description: 'localStorage 시드가 있어야 그려지는 긴 닉네임이 줄바꿈되지 않고 넘침 (시드 없으면 렌더링 안 됨)'
+  }
+]
 
 export const NEGATIVE_CONTROLS: string[] = [
   'src/components/OrderTable.vue',

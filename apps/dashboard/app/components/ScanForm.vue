@@ -11,6 +11,21 @@
         <label for="scan-viewports">뷰포트 너비(쉼표 구분)</label>
         <input id="scan-viewports" v-model="viewportText" type="text" required pattern="[0-9x ,]+" />
       </p>
+      <details class="scan-form__scenario">
+        <summary>시나리오 (선택): 시드 데이터와 클릭·입력·대기 단계</summary>
+        <p class="scan-form__hint">
+          데이터가 있어야 그려지는 화면이나 클릭해야 열리는 드롭다운·모달을 스캔할 때 JSON 으로 입력합니다.
+          비밀번호나 토큰은 넣지 마세요(대시보드 저장소에 평문으로 저장됩니다).
+        </p>
+        <label for="scan-scenario">시나리오 JSON</label>
+        <textarea
+          id="scan-scenario"
+          v-model="scenarioText"
+          rows="8"
+          spellcheck="false"
+          placeholder='{ "seed": { "localStorage": { "key": "value" } }, "steps": [{ "action": "click", "selector": ".trigger" }] }'
+        ></textarea>
+      </details>
       <button class="scan-form__submit" type="submit" :disabled="isScanning">
         {{ isScanning ? '스캔 중…' : '스캔 실행' }}
       </button>
@@ -30,6 +45,7 @@ const emit = defineEmits<{
 
 const url = ref<string>('http://localhost:5173')
 const viewportText = ref<string>('375, 768, 1280')
+const scenarioText = ref<string>('')
 const isScanning = ref<boolean>(false)
 const message = ref<string>('')
 
@@ -44,17 +60,27 @@ const parseViewports = (text: string): Viewport[] =>
     })
 
 const handleSubmit = async (): Promise<void> => {
-  isScanning.value = true
   message.value = ''
+  let scenario: unknown
+  if (scenarioText.value.trim() !== '') {
+    try {
+      scenario = JSON.parse(scenarioText.value)
+    } catch (error) {
+      message.value = `시나리오 JSON 을 읽을 수 없습니다: ${(error as Error).message}`
+      return
+    }
+  }
+  isScanning.value = true
   try {
     const result = await $fetch<ScanIngestResult & { defects: number }>('/api/scan', {
       method: 'POST',
-      body: { url: url.value, viewports: parseViewports(viewportText.value) }
+      body: { url: url.value, viewports: parseViewports(viewportText.value), scenario }
     })
     message.value = `결함 ${result.defects}건 탐지 (신규 ${result.created}, 갱신 ${result.updated}, 해소 ${result.resolved})`
     emit('scanned')
   } catch (error) {
-    message.value = `스캔 실패: ${(error as Error).message}`
+    const data = (error as { data?: { statusMessage?: string } }).data
+    message.value = `스캔 실패: ${data?.statusMessage ?? (error as Error).message}`
   } finally {
     isScanning.value = false
   }
@@ -88,6 +114,29 @@ const handleSubmit = async (): Promise<void> => {
     flex-wrap: wrap;
     align-items: flex-end;
     gap: 12px;
+  }
+
+  &__scenario {
+    flex: 1 1 100%;
+    font-size: 13px;
+
+    summary {
+      cursor: pointer;
+    }
+
+    textarea {
+      display: block;
+      width: 100%;
+      margin-top: 4px;
+      padding: 8px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+    }
+  }
+
+  &__hint {
+    margin: 6px 0;
+    color: var(--color-text-muted);
   }
 
   &__field {

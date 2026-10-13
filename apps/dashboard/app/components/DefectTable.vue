@@ -43,6 +43,7 @@
                 </ul>
               </details>
               <span v-else class="defect-table__selector">{{ formatUrlPath(group.defect.url) }}</span>
+              <span v-if="group.defect.scenarioKey" class="defect-table__cascade">시나리오 {{ group.defect.scenarioKey }}</span>
             </th>
             <td>{{ group.defect.viewport.width }}px</td>
             <td>{{ kindLabel(group.defect) }}</td>

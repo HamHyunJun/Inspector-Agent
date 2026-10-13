@@ -64,7 +64,7 @@ const pathOf = (url: string): string => {
 }
 
 export interface DashboardClient {
-  scan: (url: string, viewports?: Viewport[]) => Promise<{ defects: number; created: number; resolved: number }>
+  scan: (url: string, viewports?: Viewport[], scenario?: unknown) => Promise<{ defects: number; created: number; resolved: number }>
   listDefects: (status?: string) => Promise<DefectListItem[]>
   getContext: (defectId: string) => Promise<DefectContextResponse>
   proposePatch: (input: { defectId: string; file: string; edits: PatchEdit[]; rationale: string }) => Promise<PatchResponse>
@@ -90,8 +90,8 @@ export const createDashboardClient = (baseUrl: string): DashboardClient => {
   }
 
   return {
-    scan: (url: string, viewports?: Viewport[]): Promise<{ defects: number; created: number; resolved: number }> =>
-      request('/api/scan', { method: 'POST', body: { url, viewports } }),
+    scan: (url: string, viewports?: Viewport[], scenario?: unknown): Promise<{ defects: number; created: number; resolved: number }> =>
+      request('/api/scan', { method: 'POST', body: { url, viewports, scenario } }),
     listDefects: async (status?: string): Promise<DefectListItem[]> => {
       const groups = await request<Array<{ defect: Defect; status: string; members: Array<{ url: string }> }>>(
         `/api/defect-groups${status ? `?status=${encodeURIComponent(status)}` : ''}`

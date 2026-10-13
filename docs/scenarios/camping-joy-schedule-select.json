@@ -1,0 +1,900 @@
+{
+  "name": "Camping-Joy: 일정 화면의 시간 드롭다운 열기",
+  "description": "camping-joy.json 의 시드에 더해 /camps/c1/schedule 에서 시간 선택 드롭다운을 연 상태로 스캔한다.",
+  "seed": {
+    "localStorage": {
+      "camp": {
+        "camps": [
+          {
+            "id": "c1",
+            "name": "10월 가평 캠핑",
+            "place": {
+              "name": "가평 자라섬 오토캠핑장",
+              "address": "경기 가평군 가평읍 자라섬로 60"
+            },
+            "date": "2026-10-24",
+            "members": [
+              {
+                "id": "p1",
+                "name": "함현준",
+                "equipments": [
+                  {
+                    "id": "e1",
+                    "name": "텐트",
+                    "category": "shelter",
+                    "quantity": 1,
+                    "ownerId": "p1",
+                    "size": "2~3인용",
+                    "model": "코베아 고스트 쉘터 프리미엄 에디션"
+                  },
+                  {
+                    "id": "e2",
+                    "name": "접이식 캠핑 테이블",
+                    "category": "furniture",
+                    "quantity": 2,
+                    "ownerId": "p1",
+                    "size": "중"
+                  },
+                  {
+                    "id": "e3",
+                    "name": "랜턴",
+                    "category": "lighting",
+                    "quantity": 3,
+                    "ownerId": "p1"
+                  }
+                ]
+              },
+              {
+                "id": "p2",
+                "name": "김민지",
+                "equipments": [
+                  {
+                    "id": "e4",
+                    "name": "버너와 코펠 세트 (4인용 대형)",
+                    "category": "kitchen",
+                    "quantity": 1,
+                    "ownerId": "p2"
+                  },
+                  {
+                    "id": "e5",
+                    "name": "침낭",
+                    "category": "sleeping",
+                    "quantity": 2,
+                    "ownerId": "p2"
+                  }
+                ]
+              },
+              {
+                "id": "p3",
+                "name": "Alexandria-Montgomery",
+                "equipments": [
+                  {
+                    "id": "e6",
+                    "name": "Ultralight-Backpacking-Titanium-Cookset",
+                    "category": "kitchen",
+                    "quantity": 1,
+                    "ownerId": "p3"
+                  },
+                  {
+                    "id": "e7",
+                    "name": "아이스박스",
+                    "category": "etc",
+                    "quantity": 1,
+                    "ownerId": "p3",
+                    "size": "대"
+                  }
+                ]
+              },
+              {
+                "id": "p4",
+                "name": "박",
+                "equipments": []
+              }
+            ],
+            "requiredEquipments": [
+              {
+                "id": "r1",
+                "name": "텐트",
+                "category": "shelter",
+                "quantity": 1
+              },
+              {
+                "id": "r2",
+                "name": "테이블",
+                "category": "furniture",
+                "quantity": 2
+              },
+              {
+                "id": "r3",
+                "name": "랜턴",
+                "category": "lighting",
+                "quantity": 3
+              },
+              {
+                "id": "r4",
+                "name": "버너",
+                "category": "kitchen",
+                "quantity": 1
+              },
+              {
+                "id": "r5",
+                "name": "침낭",
+                "category": "sleeping",
+                "quantity": 4
+              },
+              {
+                "id": "r6",
+                "name": "아이스박스",
+                "category": "etc",
+                "quantity": 1
+              },
+              {
+                "id": "r7",
+                "name": "쓰레기 분리수거용 대형 봉투와 집게 세트",
+                "category": "etc",
+                "quantity": 1
+              },
+              {
+                "id": "r8",
+                "name": "https://example.com/very/long/link/for/campsite/reservation/2026",
+                "category": "etc",
+                "quantity": 1
+              }
+            ],
+            "assignments": [
+              {
+                "id": "a0",
+                "requiredEquipmentId": "r1",
+                "memberId": "p1",
+                "equipmentId": "e1",
+                "quantity": 1,
+                "status": "ready"
+              },
+              {
+                "id": "a1",
+                "requiredEquipmentId": "r2",
+                "memberId": "p2",
+                "equipmentId": "e2",
+                "quantity": 2,
+                "status": "assigned"
+              },
+              {
+                "id": "a2",
+                "requiredEquipmentId": "r3",
+                "memberId": "p3",
+                "equipmentId": "e3",
+                "quantity": 3,
+                "status": "assigned"
+              },
+              {
+                "id": "a3",
+                "requiredEquipmentId": "r4",
+                "memberId": "p4",
+                "equipmentId": "e4",
+                "quantity": 1,
+                "status": "ready"
+              },
+              {
+                "id": "a4",
+                "requiredEquipmentId": "r5",
+                "memberId": "p1",
+                "equipmentId": "e5",
+                "quantity": 4,
+                "status": "assigned"
+              },
+              {
+                "id": "a5",
+                "requiredEquipmentId": "r6",
+                "memberId": "p2",
+                "equipmentId": "e6",
+                "quantity": 1,
+                "status": "assigned"
+              },
+              {
+                "id": "a6",
+                "requiredEquipmentId": "r7",
+                "memberId": "p3",
+                "equipmentId": "e7",
+                "quantity": 1,
+                "status": "ready"
+              },
+              {
+                "id": "a7",
+                "requiredEquipmentId": "r8",
+                "memberId": "p4",
+                "equipmentId": null,
+                "quantity": 1,
+                "status": "missing"
+              }
+            ],
+            "readyItems": [
+              "p1:e1"
+            ],
+            "schedule": [
+              {
+                "id": "s0",
+                "day": 1,
+                "time": "09:00",
+                "title": "집합"
+              },
+              {
+                "id": "s1",
+                "day": 1,
+                "time": "10:00",
+                "title": "이동"
+              },
+              {
+                "id": "s2",
+                "day": 1,
+                "time": "11:00",
+                "title": "체크인"
+              },
+              {
+                "id": "s3",
+                "day": 1,
+                "time": "12:00",
+                "title": "저녁 바비큐 파티 준비 및 장작 불 피우기 그리고 레크리에이션 시간"
+              },
+              {
+                "id": "s4",
+                "day": 1,
+                "time": "13:00",
+                "title": "저녁"
+              },
+              {
+                "id": "s5",
+                "day": 1,
+                "time": "14:00",
+                "title": "불멍"
+              },
+              {
+                "id": "s6",
+                "day": 2,
+                "time": "15:00",
+                "title": "기상"
+              },
+              {
+                "id": "s7",
+                "day": 2,
+                "time": "16:00",
+                "title": "철수"
+              },
+              {
+                "id": "s8",
+                "day": 2,
+                "time": "17:00",
+                "title": "귀가"
+              }
+            ],
+            "synced": false,
+            "createdAt": "2026-09-01T00:00:00Z",
+            "updatedAt": "2026-09-01T00:00:00Z"
+          },
+          {
+            "id": "c2",
+            "name": "2026년 가을 시즌 오픈 기념 전국 캠핑 동호회 정기 모임 및 장비 교환 행사",
+            "place": {
+              "name": "강원도 평창군 대관령면 횡계리 알펜시아 인근 숲속 오토캠핑장 별빛마을",
+              "address": "강원특별자치도 평창군 대관령면 올림픽로 715"
+            },
+            "date": "2026-12-05",
+            "members": [
+              {
+                "id": "p1",
+                "name": "함현준",
+                "equipments": [
+                  {
+                    "id": "e1",
+                    "name": "텐트",
+                    "category": "shelter",
+                    "quantity": 1,
+                    "ownerId": "p1",
+                    "size": "2~3인용",
+                    "model": "코베아 고스트 쉘터 프리미엄 에디션"
+                  },
+                  {
+                    "id": "e2",
+                    "name": "접이식 캠핑 테이블",
+                    "category": "furniture",
+                    "quantity": 2,
+                    "ownerId": "p1",
+                    "size": "중"
+                  },
+                  {
+                    "id": "e3",
+                    "name": "랜턴",
+                    "category": "lighting",
+                    "quantity": 3,
+                    "ownerId": "p1"
+                  }
+                ]
+              },
+              {
+                "id": "p2",
+                "name": "김민지",
+                "equipments": [
+                  {
+                    "id": "e4",
+                    "name": "버너와 코펠 세트 (4인용 대형)",
+                    "category": "kitchen",
+                    "quantity": 1,
+                    "ownerId": "p2"
+                  },
+                  {
+                    "id": "e5",
+                    "name": "침낭",
+                    "category": "sleeping",
+                    "quantity": 2,
+                    "ownerId": "p2"
+                  }
+                ]
+              },
+              {
+                "id": "p3",
+                "name": "Alexandria-Montgomery",
+                "equipments": [
+                  {
+                    "id": "e6",
+                    "name": "Ultralight-Backpacking-Titanium-Cookset",
+                    "category": "kitchen",
+                    "quantity": 1,
+                    "ownerId": "p3"
+                  },
+                  {
+                    "id": "e7",
+                    "name": "아이스박스",
+                    "category": "etc",
+                    "quantity": 1,
+                    "ownerId": "p3",
+                    "size": "대"
+                  }
+                ]
+              },
+              {
+                "id": "p4",
+                "name": "박",
+                "equipments": []
+              }
+            ],
+            "requiredEquipments": [
+              {
+                "id": "r1",
+                "name": "텐트",
+                "category": "shelter",
+                "quantity": 1
+              },
+              {
+                "id": "r2",
+                "name": "테이블",
+                "category": "furniture",
+                "quantity": 2
+              },
+              {
+                "id": "r3",
+                "name": "랜턴",
+                "category": "lighting",
+                "quantity": 3
+              },
+              {
+                "id": "r4",
+                "name": "버너",
+                "category": "kitchen",
+                "quantity": 1
+              },
+              {
+                "id": "r5",
+                "name": "침낭",
+                "category": "sleeping",
+                "quantity": 4
+              },
+              {
+                "id": "r6",
+                "name": "아이스박스",
+                "category": "etc",
+                "quantity": 1
+              },
+              {
+                "id": "r7",
+                "name": "쓰레기 분리수거용 대형 봉투와 집게 세트",
+                "category": "etc",
+                "quantity": 1
+              },
+              {
+                "id": "r8",
+                "name": "https://example.com/very/long/link/for/campsite/reservation/2026",
+                "category": "etc",
+                "quantity": 1
+              }
+            ],
+            "assignments": [
+              {
+                "id": "a0",
+                "requiredEquipmentId": "r1",
+                "memberId": "p1",
+                "equipmentId": "e1",
+                "quantity": 1,
+                "status": "ready"
+              },
+              {
+                "id": "a1",
+                "requiredEquipmentId": "r2",
+                "memberId": "p2",
+                "equipmentId": "e2",
+                "quantity": 2,
+                "status": "assigned"
+              },
+              {
+                "id": "a2",
+                "requiredEquipmentId": "r3",
+                "memberId": "p3",
+                "equipmentId": "e3",
+                "quantity": 3,
+                "status": "assigned"
+              },
+              {
+                "id": "a3",
+                "requiredEquipmentId": "r4",
+                "memberId": "p4",
+                "equipmentId": "e4",
+                "quantity": 1,
+                "status": "ready"
+              },
+              {
+                "id": "a4",
+                "requiredEquipmentId": "r5",
+                "memberId": "p1",
+                "equipmentId": "e5",
+                "quantity": 4,
+                "status": "assigned"
+              },
+              {
+                "id": "a5",
+                "requiredEquipmentId": "r6",
+                "memberId": "p2",
+                "equipmentId": "e6",
+                "quantity": 1,
+                "status": "assigned"
+              },
+              {
+                "id": "a6",
+                "requiredEquipmentId": "r7",
+                "memberId": "p3",
+                "equipmentId": "e7",
+                "quantity": 1,
+                "status": "ready"
+              },
+              {
+                "id": "a7",
+                "requiredEquipmentId": "r8",
+                "memberId": "p4",
+                "equipmentId": null,
+                "quantity": 1,
+                "status": "missing"
+              }
+            ],
+            "readyItems": [
+              "p1:e1"
+            ],
+            "schedule": [
+              {
+                "id": "s0",
+                "day": 1,
+                "time": "09:00",
+                "title": "집합"
+              },
+              {
+                "id": "s1",
+                "day": 1,
+                "time": "10:00",
+                "title": "이동"
+              },
+              {
+                "id": "s2",
+                "day": 1,
+                "time": "11:00",
+                "title": "체크인"
+              },
+              {
+                "id": "s3",
+                "day": 1,
+                "time": "12:00",
+                "title": "저녁 바비큐 파티 준비 및 장작 불 피우기 그리고 레크리에이션 시간"
+              },
+              {
+                "id": "s4",
+                "day": 1,
+                "time": "13:00",
+                "title": "저녁"
+              },
+              {
+                "id": "s5",
+                "day": 1,
+                "time": "14:00",
+                "title": "불멍"
+              },
+              {
+                "id": "s6",
+                "day": 2,
+                "time": "15:00",
+                "title": "기상"
+              },
+              {
+                "id": "s7",
+                "day": 2,
+                "time": "16:00",
+                "title": "철수"
+              },
+              {
+                "id": "s8",
+                "day": 2,
+                "time": "17:00",
+                "title": "귀가"
+              }
+            ],
+            "synced": false,
+            "createdAt": "2026-09-01T00:00:00Z",
+            "updatedAt": "2026-09-01T00:00:00Z"
+          },
+          {
+            "id": "c3",
+            "name": "9월 양평",
+            "place": {
+              "name": "양평 들꽃수목원",
+              "address": "경기 양평군"
+            },
+            "date": "2026-09-12",
+            "members": [
+              {
+                "id": "p1",
+                "name": "함현준",
+                "equipments": [
+                  {
+                    "id": "e1",
+                    "name": "텐트",
+                    "category": "shelter",
+                    "quantity": 1,
+                    "ownerId": "p1",
+                    "size": "2~3인용",
+                    "model": "코베아 고스트 쉘터 프리미엄 에디션"
+                  },
+                  {
+                    "id": "e2",
+                    "name": "접이식 캠핑 테이블",
+                    "category": "furniture",
+                    "quantity": 2,
+                    "ownerId": "p1",
+                    "size": "중"
+                  },
+                  {
+                    "id": "e3",
+                    "name": "랜턴",
+                    "category": "lighting",
+                    "quantity": 3,
+                    "ownerId": "p1"
+                  }
+                ]
+              },
+              {
+                "id": "p2",
+                "name": "김민지",
+                "equipments": [
+                  {
+                    "id": "e4",
+                    "name": "버너와 코펠 세트 (4인용 대형)",
+                    "category": "kitchen",
+                    "quantity": 1,
+                    "ownerId": "p2"
+                  },
+                  {
+                    "id": "e5",
+                    "name": "침낭",
+                    "category": "sleeping",
+                    "quantity": 2,
+                    "ownerId": "p2"
+                  }
+                ]
+              },
+              {
+                "id": "p3",
+                "name": "Alexandria-Montgomery",
+                "equipments": [
+                  {
+                    "id": "e6",
+                    "name": "Ultralight-Backpacking-Titanium-Cookset",
+                    "category": "kitchen",
+                    "quantity": 1,
+                    "ownerId": "p3"
+                  },
+                  {
+                    "id": "e7",
+                    "name": "아이스박스",
+                    "category": "etc",
+                    "quantity": 1,
+                    "ownerId": "p3",
+                    "size": "대"
+                  }
+                ]
+              },
+              {
+                "id": "p4",
+                "name": "박",
+                "equipments": []
+              }
+            ],
+            "requiredEquipments": [
+              {
+                "id": "r1",
+                "name": "텐트",
+                "category": "shelter",
+                "quantity": 1
+              },
+              {
+                "id": "r2",
+                "name": "테이블",
+                "category": "furniture",
+                "quantity": 2
+              },
+              {
+                "id": "r3",
+                "name": "랜턴",
+                "category": "lighting",
+                "quantity": 3
+              },
+              {
+                "id": "r4",
+                "name": "버너",
+                "category": "kitchen",
+                "quantity": 1
+              },
+              {
+                "id": "r5",
+                "name": "침낭",
+                "category": "sleeping",
+                "quantity": 4
+              },
+              {
+                "id": "r6",
+                "name": "아이스박스",
+                "category": "etc",
+                "quantity": 1
+              },
+              {
+                "id": "r7",
+                "name": "쓰레기 분리수거용 대형 봉투와 집게 세트",
+                "category": "etc",
+                "quantity": 1
+              },
+              {
+                "id": "r8",
+                "name": "https://example.com/very/long/link/for/campsite/reservation/2026",
+                "category": "etc",
+                "quantity": 1
+              }
+            ],
+            "assignments": [
+              {
+                "id": "a0",
+                "requiredEquipmentId": "r1",
+                "memberId": "p1",
+                "equipmentId": "e1",
+                "quantity": 1,
+                "status": "ready"
+              },
+              {
+                "id": "a1",
+                "requiredEquipmentId": "r2",
+                "memberId": "p2",
+                "equipmentId": "e2",
+                "quantity": 2,
+                "status": "assigned"
+              },
+              {
+                "id": "a2",
+                "requiredEquipmentId": "r3",
+                "memberId": "p3",
+                "equipmentId": "e3",
+                "quantity": 3,
+                "status": "assigned"
+              },
+              {
+                "id": "a3",
+                "requiredEquipmentId": "r4",
+                "memberId": "p4",
+                "equipmentId": "e4",
+                "quantity": 1,
+                "status": "ready"
+              },
+              {
+                "id": "a4",
+                "requiredEquipmentId": "r5",
+                "memberId": "p1",
+                "equipmentId": "e5",
+                "quantity": 4,
+                "status": "assigned"
+              },
+              {
+                "id": "a5",
+                "requiredEquipmentId": "r6",
+                "memberId": "p2",
+                "equipmentId": "e6",
+                "quantity": 1,
+                "status": "assigned"
+              },
+              {
+                "id": "a6",
+                "requiredEquipmentId": "r7",
+                "memberId": "p3",
+                "equipmentId": "e7",
+                "quantity": 1,
+                "status": "ready"
+              },
+              {
+                "id": "a7",
+                "requiredEquipmentId": "r8",
+                "memberId": "p4",
+                "equipmentId": null,
+                "quantity": 1,
+                "status": "missing"
+              }
+            ],
+            "readyItems": [
+              "p1:e1"
+            ],
+            "schedule": [
+              {
+                "id": "s0",
+                "day": 1,
+                "time": "09:00",
+                "title": "집합"
+              },
+              {
+                "id": "s1",
+                "day": 1,
+                "time": "10:00",
+                "title": "이동"
+              },
+              {
+                "id": "s2",
+                "day": 1,
+                "time": "11:00",
+                "title": "체크인"
+              },
+              {
+                "id": "s3",
+                "day": 1,
+                "time": "12:00",
+                "title": "저녁 바비큐 파티 준비 및 장작 불 피우기 그리고 레크리에이션 시간"
+              },
+              {
+                "id": "s4",
+                "day": 1,
+                "time": "13:00",
+                "title": "저녁"
+              },
+              {
+                "id": "s5",
+                "day": 1,
+                "time": "14:00",
+                "title": "불멍"
+              },
+              {
+                "id": "s6",
+                "day": 2,
+                "time": "15:00",
+                "title": "기상"
+              },
+              {
+                "id": "s7",
+                "day": 2,
+                "time": "16:00",
+                "title": "철수"
+              },
+              {
+                "id": "s8",
+                "day": 2,
+                "time": "17:00",
+                "title": "귀가"
+              }
+            ],
+            "synced": false,
+            "createdAt": "2026-09-01T00:00:00Z",
+            "updatedAt": "2026-09-01T00:00:00Z"
+          }
+        ],
+        "currentCampId": "c1",
+        "meId": "p1",
+        "syncedOnce": true
+      },
+      "gear": {
+        "people": [
+          {
+            "id": "p1",
+            "name": "함현준",
+            "equipments": [
+              {
+                "id": "e1",
+                "name": "텐트",
+                "category": "shelter",
+                "quantity": 1,
+                "ownerId": "p1",
+                "size": "2~3인용",
+                "model": "코베아 고스트 쉘터 프리미엄 에디션"
+              },
+              {
+                "id": "e2",
+                "name": "접이식 캠핑 테이블",
+                "category": "furniture",
+                "quantity": 2,
+                "ownerId": "p1",
+                "size": "중"
+              },
+              {
+                "id": "e3",
+                "name": "랜턴",
+                "category": "lighting",
+                "quantity": 3,
+                "ownerId": "p1"
+              }
+            ]
+          },
+          {
+            "id": "p2",
+            "name": "김민지",
+            "equipments": [
+              {
+                "id": "e4",
+                "name": "버너와 코펠 세트 (4인용 대형)",
+                "category": "kitchen",
+                "quantity": 1,
+                "ownerId": "p2"
+              },
+              {
+                "id": "e5",
+                "name": "침낭",
+                "category": "sleeping",
+                "quantity": 2,
+                "ownerId": "p2"
+              }
+            ]
+          },
+          {
+            "id": "p3",
+            "name": "Alexandria-Montgomery",
+            "equipments": [
+              {
+                "id": "e6",
+                "name": "Ultralight-Backpacking-Titanium-Cookset",
+                "category": "kitchen",
+                "quantity": 1,
+                "ownerId": "p3"
+              },
+              {
+                "id": "e7",
+                "name": "아이스박스",
+                "category": "etc",
+                "quantity": 1,
+                "ownerId": "p3",
+                "size": "대"
+              }
+            ]
+          },
+          {
+            "id": "p4",
+            "name": "박",
+            "equipments": []
+          }
+        ]
+      }
+    }
+  },
+  "steps": [
+    {
+      "action": "click",
+      "selector": ".time-select .select-trigger"
+    },
+    {
+      "action": "wait",
+      "selector": ".select-options"
+    }
+  ]
+}

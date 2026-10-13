@@ -15,12 +15,14 @@
       <TagList :tags="tags" />
       <PromoBanner />
       <MemberRow />
+      <SeededChip />
       <ShareLink url="https://example.com/campaign/2026/autumn/landing?utm_source=newsletter&utm_medium=email&utm_campaign=inspector_agent_demo" />
       <OrderTable :orders="orders" />
       <SortMenu />
       <BadgeCard />
       <ModalControl />
       <ShareSheet />
+      <OpenMenu />
       <ClippedMenu />
       <FilterDropdown />
       <ConfirmDialog />
@@ -37,6 +39,8 @@ import DecorDots from './components/DecorDots.vue'
 import FilterDropdown from './components/FilterDropdown.vue'
 import MemberRow from './components/MemberRow.vue'
 import ModalControl from './components/ModalControl.vue'
+import OpenMenu from './components/OpenMenu.vue'
+import SeededChip from './components/SeededChip.vue'
 import ShareSheet from './components/ShareSheet.vue'
 import ProductCard from './components/ProductCard.vue'
 import PromoBanner from './components/PromoBanner.vue'

@@ -66,6 +66,10 @@
         <dd><code>{{ context.defect.node.selector }}</code></dd>
         <dt>페이지</dt>
         <dd>{{ context.defect.url }}</dd>
+        <template v-if="detail?.scenarioName">
+          <dt>시나리오</dt>
+          <dd>{{ detail.scenarioName }} (패치 후 재측정도 같은 시나리오로 합니다)</dd>
+        </template>
       </dl>
     </section>
 
@@ -148,7 +152,7 @@ const route = useRoute()
 const { data: context, refresh: refreshContext } = await useFetch<DefectContext>(
   (): string => `/api/defects/${String(route.params.id)}/context`
 )
-const { data: detail, refresh: refreshDetail } = await useFetch<{ defect: StoredDefect; patches: Patch[]; sameLocation: DefectGroupMember[] }>(
+const { data: detail, refresh: refreshDetail } = await useFetch<{ defect: StoredDefect; patches: Patch[]; sameLocation: DefectGroupMember[]; scenarioName?: string }>(
   (): string => `/api/defects/${String(route.params.id)}`
 )
 

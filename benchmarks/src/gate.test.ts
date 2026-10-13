@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { findDetectionRegressions } from './gate'
 
-const healthy = { recall: 1, precision: 1, negativeControlHits: 0, desktopDefects: 0, cascadeMismatches: 0, groupingMismatches: 0 }
+const healthy = { recall: 1, precision: 1, negativeControlHits: 0, desktopDefects: 0, cascadeMismatches: 0, groupingMismatches: 0, scenarioMismatches: 0, scenarioRemeasureMismatches: 0 }
 
 describe('findDetectionRegressions', () => {
   it('불변 조건이 모두 지켜지면 문제가 없다', () => {
@@ -21,7 +21,12 @@ describe('findDetectionRegressions', () => {
   })
 
   it('여러 조건이 동시에 깨지면 모두 알려 준다', () => {
-    expect(findDetectionRegressions({ recall: 0.5, precision: 0.5, negativeControlHits: 3, desktopDefects: 1, cascadeMismatches: 1, groupingMismatches: 1 })).toHaveLength(6)
+    expect(findDetectionRegressions({ recall: 0.5, precision: 0.5, negativeControlHits: 3, desktopDefects: 1, cascadeMismatches: 1, groupingMismatches: 1, scenarioMismatches: 1, scenarioRemeasureMismatches: 1 })).toHaveLength(8)
+  })
+
+  it('시나리오 결함이 정답과 다르거나 재측정이 시나리오를 무시하면 실패 사유를 낸다', () => {
+    expect(findDetectionRegressions({ ...healthy, scenarioMismatches: 1 })[0]).toContain('시나리오 전용 결함')
+    expect(findDetectionRegressions({ ...healthy, scenarioRemeasureMismatches: 1 })[0]).toContain('재측정이 시나리오를 반영하지 않음')
   })
 
   it('연쇄 결함이 따로 나오거나 URL 그룹이 안 묶이면 실패 사유를 낸다', () => {

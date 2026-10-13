@@ -7,6 +7,7 @@ export { createDefectId, createFingerprint, formatSource, hashString, parseSourc
 export { defectMagnitude, describeDefect, estimateTokens, formatMagnitude, toAgentPayload } from './compress'
 export type { AgentDefectPayload, AgentNodePayload } from './compress'
 export { findModals, focusFirstInModal, modalFocusState } from './focus'
+export { MAX_SCENARIO_STEPS, MAX_WAIT_MS, parseScenario, qualifyDefectId, scenarioKey, toStorageString } from './scenario'
 export { groupCascades } from './cascade'
 export type { CascadeBox, CascadeEntry, CascadeGroup } from './cascade'
 export { groupDefects } from './group'

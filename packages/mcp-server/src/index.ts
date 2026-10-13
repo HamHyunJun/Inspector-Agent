@@ -2,6 +2,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod'
+import { loadScenarioFile } from './scenario-file'
 import { createDashboardClient } from './dashboard-client'
 import { formatContext, formatDefectList, formatPatch } from './format'
 
@@ -37,15 +38,23 @@ server.registerTool(
   'scan_page',
   {
     title: '페이지 스캔',
-    description: '헤드리스 Chromium 으로 URL 을 여러 뷰포트에서 스캔해 레이아웃 오버플로우와 모달·드롭다운 가려짐 결함을 결정론적으로 탐지하고 대시보드에 저장합니다.',
+    description:
+      '헤드리스 Chromium 으로 URL 을 여러 뷰포트에서 스캔해 레이아웃 오버플로우와 모달·드롭다운 가려짐 결함을 결정론적으로 탐지하고 대시보드에 저장합니다. 데이터가 있어야 그려지는 화면이나 클릭해야 열리는 드롭다운·모달은 scenario(또는 scenarioFile)로 시드 데이터와 클릭·입력·대기 단계를 줘서 그 상태로 스캔하세요. 같은 시나리오가 패치 후 재측정에도 쓰입니다.',
     inputSchema: {
       url: z.string().url().describe('스캔할 개발 서버 URL (예: http://localhost:5173/)'),
-      viewports: z.array(z.number().int().min(240).max(3840)).optional().describe('뷰포트 너비 목록. 기본 [375, 768, 1280]')
+      viewports: z.array(z.number().int().min(240).max(3840)).optional().describe('뷰포트 너비 목록. 기본 [375, 768, 1280]'),
+      scenario: z
+        .record(z.string(), z.unknown())
+        .optional()
+        .describe('시나리오 JSON: { seed: { localStorage, sessionStorage, cookies }, steps: [{ action: "click"|"fill"|"wait", ... }] }. 비밀번호나 토큰은 넣지 마세요'),
+      scenarioFile: z.string().optional().describe('시나리오 JSON 파일 경로(.json, 작업 폴더 기준). 예: docs/scenarios/camping-joy.json. scenario 와 함께 줄 수 없습니다')
     }
   },
-  ({ url, viewports }): Promise<ToolResult> =>
+  ({ url, viewports, scenario, scenarioFile }): Promise<ToolResult> =>
     run(async (): Promise<string> => {
-      const result = await client.scan(url, viewports?.map((width) => ({ width, height: 900 })))
+      if (scenario && scenarioFile) throw new Error('scenario 와 scenarioFile 은 하나만 지정하세요.')
+      const resolved = scenarioFile ? await loadScenarioFile(scenarioFile) : scenario
+      const result = await client.scan(url, viewports?.map((width) => ({ width, height: 900 })), resolved)
       const defects = await client.listDefects('open')
       return `결함 ${result.defects}건 탐지 (신규 ${result.created}, 해소 ${result.resolved})\n\n미해결 목록:\n${formatDefectList(defects)}`
     })

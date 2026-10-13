@@ -1,6 +1,6 @@
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import type { Defect } from '@inspector-agent/core'
+import type { Defect, Scenario } from '@inspector-agent/core'
 import type { Patch, StoredDefect } from '../../shared/types/inspector'
 import { getInspectorConfig } from './config'
 
@@ -11,12 +11,14 @@ import { getInspectorConfig } from './config'
 export interface StoreData {
   defects: Record<string, StoredDefect>
   patches: Record<string, Patch>
-  /** url|viewportWidth → 직전 스캔 결함 목록. 검증 시 회귀 판정 기준선 */
+  /** url|viewportWidth(|시나리오 키) → 직전 스캔 결함 목록. 검증 시 회귀 판정 기준선 */
   baselines: Record<string, Defect[]>
+  /** 시나리오 키 → 시나리오. 패치 후 재측정이 스캔 때와 같은 상태를 만들 수 있게 보관한다(평문 저장이므로 비밀 값은 넣지 않는다) */
+  scenarios: Record<string, Scenario>
   lastScanAt?: string
 }
 
-const emptyStore = (): StoreData => ({ defects: {}, patches: {}, baselines: {} })
+const emptyStore = (): StoreData => ({ defects: {}, patches: {}, baselines: {}, scenarios: {} })
 
 let queue: Promise<unknown> = Promise.resolve()
 
@@ -51,4 +53,5 @@ export const updateStore = <T>(mutate: (data: StoreData) => T | Promise<T>): Pro
   return task
 }
 
-export const baselineKey = (url: string, viewportWidth: number): string => `${url}|${viewportWidth}`
+export const baselineKey = (url: string, viewportWidth: number, scenarioKey?: string): string =>
+  `${url}|${viewportWidth}${scenarioKey ? `|${scenarioKey}` : ''}`

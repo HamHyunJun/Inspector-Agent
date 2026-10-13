@@ -77,6 +77,11 @@ describe('renderMarkdown', () => {
     expect(text).toContain('`div.a \\| b`')
   })
 
+  it('시나리오로 스캔했다면 이름을 남긴다', () => {
+    expect(renderMarkdown('http://localhost:5173/', [scan()], 'high', '드롭다운 열기')).toContain('- 시나리오: 드롭다운 열기')
+    expect(renderMarkdown('http://localhost:5173/', [scan()], 'high')).not.toContain('시나리오')
+  })
+
   it('기준이 없으면 통과/실패를 판정하지 않는다', () => {
     expect(renderMarkdown('http://localhost:5173/', [scan(defect('low'))], undefined)).toContain('통과/실패 기준 없음')
   })

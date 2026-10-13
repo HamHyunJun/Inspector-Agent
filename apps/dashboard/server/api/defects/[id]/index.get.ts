@@ -1,7 +1,7 @@
 import type { DefectGroupMember, Patch, StoredDefect } from '../../../../shared/types/inspector'
 import { readStore } from '../../../utils/store'
 
-export default defineEventHandler(async (event): Promise<{ defect: StoredDefect; patches: Patch[]; sameLocation: DefectGroupMember[] }> => {
+export default defineEventHandler(async (event): Promise<{ defect: StoredDefect; patches: Patch[]; sameLocation: DefectGroupMember[]; scenarioName?: string }> => {
   const id = getRouterParam(event, 'id') ?? ''
   const store = await readStore()
   const defect = store.defects[id]
@@ -13,5 +13,6 @@ export default defineEventHandler(async (event): Promise<{ defect: StoredDefect;
   const sameLocation = Object.values(store.defects)
     .filter((other): boolean => other.id !== id && other.fingerprint === defect.fingerprint)
     .map((other): DefectGroupMember => ({ id: other.id, url: other.url, status: other.status }))
-  return { defect, patches, sameLocation }
+  const scenarioName = defect.scenarioKey ? (store.scenarios[defect.scenarioKey]?.name ?? defect.scenarioKey) : undefined
+  return { defect, patches, sameLocation, scenarioName }
 })
