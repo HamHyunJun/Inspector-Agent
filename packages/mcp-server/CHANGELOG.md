@@ -1,5 +1,17 @@
 # @inspector-agent/mcp-server
 
+## 0.6.0
+
+### Minor Changes
+
+- `scan_page` 의 `viewports` 최소 너비를 240px 에서 100px 로 낮춰, 아주 좁은 화면(예: 100px)에서 헤더 배경이 짧아지거나 오른쪽 여백이 사라지는 문제도 스캔할 수 있게 했습니다. `/ia` 는 사용자가 너비를 말하면 그 값을 넘깁니다.
+
+### Patch Changes
+
+- Updated dependencies
+  - @inspector-agent/core@0.6.0
+  - @inspector-agent/engine@0.6.0
+
 ## 0.5.1
 
 ### Patch Changes

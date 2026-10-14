@@ -122,6 +122,10 @@ export const describeDefect = (defect: Defect): string => {
     const label = defect.node.classes[0] ? `.${defect.node.classes[0]}` : defect.node.tag
     return `${defect.viewport.width}px 뷰포트에서 ${label}(너비 ${Math.round(metrics.nodeWidth)}px)이 화면 밖으로 ${Math.round(metrics.overflowPx)}px 나가 일부가 보이지 않음`
   }
+  if (metrics.mode === 'squished') {
+    const label = defect.node.classes[0] ? `.${defect.node.classes[0]}` : defect.node.tag
+    return `${defect.viewport.width}px 뷰포트에서 ${label} 이(가) flex 줄에서 ${Math.round(metrics.parentContentWidth)}px → ${Math.round(metrics.nodeWidth)}px 로 줄어들어 ${Math.round(metrics.overflowPx)}px 찌그러짐(flex-shrink)`
+  }
   const subject = metrics.mode === 'box' ? '요소 박스' : '요소 내부 텍스트'
   return `${defect.viewport.width}px 뷰포트에서 부모 콘텐츠 너비 ${Math.round(metrics.parentContentWidth)}px, ${subject} 너비 ${Math.round(metrics.nodeWidth)}px로 ${Math.round(metrics.overflowPx)}px 가로 오버플로우${metrics.cascaded?.length ? ` (이 결함이 밀어낸 연쇄 결함 ${metrics.cascaded.length}건 포함)` : ''}`
 }

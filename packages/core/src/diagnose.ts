@@ -207,6 +207,16 @@ export const diagnoseViewportEscape = (_node: NodeSnapshot, metrics: OverflowMet
   }
 ]
 
+/** 줄어들기를 막는 것이 정답이다. 선언 하나로 고칠 수 있어 규칙 기반 자동 패치 대상이다 */
+export const diagnoseSquished = (_node: NodeSnapshot, metrics: OverflowMetrics): FixSuggestion[] => [
+  {
+    hint: 'flex-shrink-disabled',
+    target: 'node',
+    declarations: { 'flex-shrink': '0' },
+    reason: `flex 줄에서 공간이 모자라 ${Math.round(metrics.parentContentWidth)}px 이어야 할 요소가 ${Math.round(metrics.nodeWidth)}px 로 줄어 비율이 깨집니다(${Math.round(metrics.overflowPx)}px 찌그러짐). flex-shrink: 0 으로 줄어들지 않게 하세요.`
+  }
+]
+
 export const diagnoseClippedText = (_node: NodeSnapshot, metrics: ClippedTextMetrics): FixSuggestion[] => {
   const clippedPercent = Math.round(metrics.hiddenRatio * 100)
   const nowrap = metrics.whiteSpace === 'nowrap' || metrics.whiteSpace === 'pre'

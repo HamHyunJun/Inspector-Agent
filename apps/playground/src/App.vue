@@ -18,6 +18,8 @@
       <ClippedLabel />
       <MemberRow />
       <SeededChip />
+      <SquishedNotice />
+      <IconControls />
       <ShareLink url="https://example.com/campaign/2026/autumn/landing?utm_source=newsletter&utm_medium=email&utm_campaign=inspector_agent_demo" />
       <OrderTable :orders="orders" />
       <SortMenu />
@@ -44,10 +46,12 @@ import DecorDots from './components/DecorDots.vue'
 import FilterDropdown from './components/FilterDropdown.vue'
 import FixedHeightCard from './components/FixedHeightCard.vue'
 import HeightControls from './components/HeightControls.vue'
+import IconControls from './components/IconControls.vue'
 import MemberRow from './components/MemberRow.vue'
 import ModalControl from './components/ModalControl.vue'
 import OpenMenu from './components/OpenMenu.vue'
 import SeededChip from './components/SeededChip.vue'
+import SquishedNotice from './components/SquishedNotice.vue'
 import ShareSheet from './components/ShareSheet.vue'
 import ProductCard from './components/ProductCard.vue'
 import PromoBanner from './components/PromoBanner.vue'

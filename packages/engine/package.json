@@ -1,6 +1,6 @@
 {
   "name": "@inspector-agent/engine",
-  "version": "0.5.1",
+  "version": "0.6.0",
   "description": "결함 저장, 패치 제안·적용·재측정·자동 롤백을 대시보드 없이 수행하는 엔진 (MCP 서버와 inspector-agent CLI 가 사용)",
   "license": "MIT",
   "author": "HamHyunJun",
