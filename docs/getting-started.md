@@ -703,5 +703,5 @@ inspector-agent 의 scan_page 를 http://localhost:5173 에 375px 로, scenarioF
 ## 다음에 읽을 것
 
 - 시나리오의 시드 데이터(localStorage·쿠키)로 로그인 상태나 데이터가 있는 화면 만들기: [`scenarios/README.md`](scenarios/README.md)
-- CI 연동, 에이전트에게 적용까지 맡기는 자율 모드: [README 5. 운영 가이드](../README.md#5-운영-가이드)
+- CI 연동, 에이전트에게 적용까지 맡기는 자율 모드: [운영 가이드](operations.md)
 - 로그인된 화면을 지금 보는 탭 그대로 스캔하기(Chrome 확장): [`extension-testing.md`](extension-testing.md)
