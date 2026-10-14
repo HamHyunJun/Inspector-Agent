@@ -9,7 +9,7 @@ describe('parseViewports', () => {
     ])
   })
 
-  it('기본 뷰포트는 375/768/1280 이다', () => {
-    expect(DEFAULT_VIEWPORTS.map((viewport): number => viewport.width)).toEqual([375, 768, 1280])
+  it('기본 뷰포트는 작은 화면을 촘촘하게 둔 320/375/414/768/1024/1280 이다', () => {
+    expect(DEFAULT_VIEWPORTS.map((viewport): number => viewport.width)).toEqual([320, 375, 414, 768, 1024, 1280])
   })
 })

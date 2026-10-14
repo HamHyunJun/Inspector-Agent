@@ -12,13 +12,20 @@ import { baselineKey, updateStore } from './store'
  * - 시나리오로 스캔했다면 패치 후 재측정이 같은 상태를 만들 수 있도록 시나리오를 함께 보관한다
  */
 export const ingestScanResults = (results: ScanResult[], scenario?: Scenario): Promise<ScanIngestResult> => {
-  const key = scenario ? scenarioKey(scenario) : undefined
+  // 결과마다 재측정할 시나리오가 있어야 한다: 함께 보낸 시나리오이거나, 자동 탐색이 결과에 실어 보낸 시나리오
   // 시나리오 없이 키만 달고 온 결과는 재측정할 수 없는 결함을 만들므로 받지 않는다
-  if (results.some((result): boolean => result.scenarioKey !== key)) {
-    throw new Error('스캔 결과의 시나리오 키가 함께 보낸 시나리오와 맞지 않습니다.')
+  const scenarioOf = (result: ScanResult): Scenario | undefined => result.scenario ?? scenario
+  for (const result of results) {
+    const expected = scenarioOf(result)
+    if (result.scenarioKey !== (expected ? scenarioKey(expected) : undefined)) {
+      throw new Error('스캔 결과의 시나리오 키가 함께 보낸 시나리오와 맞지 않습니다.')
+    }
   }
   return updateStore((data): ScanIngestResult => {
-    if (scenario && key) data.scenarios[key] = scenario
+    for (const result of results) {
+      const own = scenarioOf(result)
+      if (own && result.scenarioKey) data.scenarios[result.scenarioKey] = own
+    }
     const now = new Date().toISOString()
     const summary: ScanIngestResult = { received: 0, created: 0, updated: 0, resolved: 0 }
 

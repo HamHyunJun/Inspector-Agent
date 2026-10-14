@@ -260,6 +260,8 @@ export type Defect = OverflowDefect | VerticalOverflowDefect | ClippedTextDefect
 export interface ScanResult {
   /** 시나리오로 스캔했다면 그 키 (결함의 scenarioKey 와 같다) */
   scenarioKey?: string
+  /** 자동 탐색이 만든 시나리오. 대시보드가 보관해 패치 후 재측정에 같은 상태를 만든다 */
+  scenario?: Scenario
   url: string
   viewport: Viewport
   /** document 전체 가로 스크롤 양 (html.scrollWidth - clientWidth) */

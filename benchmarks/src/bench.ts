@@ -168,7 +168,7 @@ const healDefect = async (root: string, defect: Defect, baseline: Defect[], refe
     await new Promise((done): void => {
       setTimeout(done, 500)
     })
-    const result = await measureDefect(defect, baseline, { executablePath })
+    const result = await measureDefect(defect, baseline, { executablePath, explore: false })
     record.attempts.push({
       hint: suggestion.hint,
       passed: result.passed,
@@ -192,7 +192,7 @@ const healDefect = async (root: string, defect: Defect, baseline: Defect[], refe
       await new Promise((done): void => {
         setTimeout(done, 500)
       })
-      const result = await measureDefect(defect, baseline, { executablePath })
+      const result = await measureDefect(defect, baseline, { executablePath, explore: false })
       record.attempts.push({ hint: 'reference-fix', passed: result.passed, verdict: result.verdict, afterPx: result.afterPx, regressions: result.regressions.length })
       record.healed = result.passed
     } else {
@@ -228,7 +228,7 @@ const benchReact = async (): Promise<ReactSummary> => {
   const server = await startServer(workdir, REACT_PORT)
   try {
     const url = `http://localhost:${REACT_PORT}/`
-    const [mobile, desktop] = await scanPage(url, [MOBILE_VIEWPORT, DESKTOP_VIEWPORT], { executablePath })
+    const [mobile, desktop] = await scanPage(url, [MOBILE_VIEWPORT, DESKTOP_VIEWPORT], { executablePath, explore: false })
     if (!mobile || !desktop) throw new Error('React 스캔 결과가 비어 있습니다.')
     if (mobile.stats.scannedNodes < 10) throw new Error('playground-react 가 렌더링되지 않았습니다. 개발 서버 로그를 확인하세요.')
     const isExpected = (defect: Defect, expected: ExpectedDefect): boolean => defect.node.source?.file === expected.file && defect.kind === expected.kind
@@ -278,7 +278,7 @@ const main = async (): Promise<void> => {
 
   try {
     // 1) 탐지 정확도
-    const [mobile, desktop] = await scanPage(url, [MOBILE_VIEWPORT, DESKTOP_VIEWPORT], { executablePath })
+    const [mobile, desktop] = await scanPage(url, [MOBILE_VIEWPORT, DESKTOP_VIEWPORT], { executablePath, explore: false })
     if (!mobile || !desktop) throw new Error('스캔 결과가 비어 있습니다.')
     if (mobile.stats.scannedNodes < 10) throw new Error('playground 가 렌더링되지 않았습니다. 개발 서버 로그를 확인하세요.')
     const isExpected = (defect: Defect, expected: ExpectedDefect): boolean =>
@@ -297,7 +297,7 @@ const main = async (): Promise<void> => {
       return cascaded !== expected.cascadedCount
     }).length
     // URL 그룹: 같은 컴포넌트를 다른 URL 에서 스캔해도 한 그룹(발생 URL 2개)이어야 한다
-    const [secondPage] = await scanPage(`${url}${SECOND_PAGE_QUERY}`, [MOBILE_VIEWPORT], { executablePath })
+    const [secondPage] = await scanPage(`${url}${SECOND_PAGE_QUERY}`, [MOBILE_VIEWPORT], { executablePath, explore: false })
     const groups = groupDefects([...mobile.defects, ...(secondPage?.defects ?? [])])
     const groupingMismatches = EXPECTED_AT_MOBILE.filter((expected): boolean => {
       if (!expected.alsoOnSecondPage) return false
@@ -319,7 +319,7 @@ const main = async (): Promise<void> => {
     let falsePassWithoutScenario = false
     if (remeasured?.referenceEdits && remeasureTarget && scenarioScan) {
       const unfixed = await measureDefect(remeasureTarget, scenarioScan.defects, { executablePath, scenario: PLAYGROUND_SCENARIO })
-      const unfixedWithoutScenario = await measureDefect(remeasureTarget, scenarioScan.defects, { executablePath })
+      const unfixedWithoutScenario = await measureDefect(remeasureTarget, scenarioScan.defects, { executablePath, explore: false })
       falsePassWithoutScenario = unfixedWithoutScenario.passed
       const path = join(workdir, remeasured.file)
       const original = await readFile(path, 'utf8')

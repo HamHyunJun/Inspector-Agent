@@ -7,7 +7,8 @@ import { defectsAtOrAbove, parseFailOn, renderMarkdown } from './report'
 
 /**
  * 사용법: inspector-scan <url> [--viewports 375,768x1024] [--report http://localhost:3000]
- *                         [--fail-on high|medium|low] [--summary <파일>] [--scenario <파일.json>]
+ *                         [--fail-on high|medium|low] [--summary <파일>] [--scenario <파일.json>] [--no-explore]
+ * --no-explore 시나리오 없이 스캔할 때 기본으로 켜지는 자동 탐색(툴팁·팝오버·드롭다운·모달을 눌러/올려 본 상태까지 검사)을 끈다
  * --report   결과를 대시보드 /api/scans 로 전송한다.
  * --fail-on  해당 심각도 이상의 결함이 하나라도 있으면 종료 코드 1 (high: high 만, low: 전부)
  * --scenario 스캔 전에 시드(localStorage/sessionStorage/쿠키)를 심고 단계(click/fill/wait)를 실행한다. 대시보드와 MCP 가 같은 JSON 을 쓴다
@@ -42,10 +43,15 @@ const main = async (): Promise<void> => {
     }
     console.log(`시나리오: ${scenario.name ?? scenarioFile}`)
   }
-  const results = await scanPage(url, viewportFlag ? parseViewports(viewportFlag) : DEFAULT_VIEWPORTS, { scenario })
+  const results = await scanPage(url, viewportFlag ? parseViewports(viewportFlag) : DEFAULT_VIEWPORTS, { scenario, explore: !args.includes('--no-explore') })
 
+  const explored = results.filter((result): boolean => result.scenario !== undefined && scenario === undefined)
+  console.log(`\n자동 탐색: 열어 본 상태 ${explored.length}개 (뷰포트 ${results.length - explored.length}개 기준)`)
   for (const result of results) {
-    console.log(`\n[${result.viewport.width}px] 결함 ${result.defects.length}건, 문서 가로 스크롤 ${result.documentOverflowPx}px`)
+    // 자동 탐색으로 열어 본 상태는 새 결함이 있을 때만 보여 준다
+    if (explored.includes(result) && result.defects.length === 0) continue
+    const opened = explored.includes(result) ? ` · ${result.scenario?.name}` : ''
+    console.log(`\n[${result.viewport.width}px${opened}] 결함 ${result.defects.length}건, 문서 가로 스크롤 ${result.documentOverflowPx}px`)
     for (const defect of result.defects) {
       const source = defect.node.source ? `${defect.node.source.file}:${defect.node.source.line}` : defect.node.selector
       const hints = defect.suggestions.map((suggestion): string => suggestion.hint).join(', ')
