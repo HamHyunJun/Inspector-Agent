@@ -3,11 +3,13 @@ import { appendFile, readFile } from 'node:fs/promises'
 import { formatMagnitude, parseScenario } from '@inspector-agent/core'
 import type { Scenario } from '@inspector-agent/core'
 import { DEFAULT_VIEWPORTS, parseViewports, scanPage } from './index'
+import { parseVariants } from './variants'
 import { defectsAtOrAbove, parseFailOn, renderMarkdown } from './report'
 
 /**
  * 사용법: inspector-scan <url> [--viewports 375,768x1024]
- *                         [--fail-on high|medium|low] [--summary <파일>] [--scenario <파일.json>] [--no-explore]
+ *                         [--fail-on high|medium|low] [--summary <파일>] [--scenario <파일.json>] [--no-explore] [--variants dark,text-scale,...]
+ * --variants 같은 규칙을 다른 환경에서도 돌린다: text-scale, long-text, dark, rtl, forced-colors, landscape, device:iphone|iphone-se|pixel|galaxy|ipad, engine:firefox|webkit, all(앞의 6개). 기본 상태에서 안 보이던 결함만 따로 보여 준다
  * --no-explore 시나리오 없이 스캔할 때 기본으로 켜지는 자동 탐색(툴팁·팝오버·드롭다운·모달을 눌러/올려 본 상태까지 검사)을 끈다
  * --fail-on  해당 심각도 이상의 결함이 하나라도 있으면 종료 코드 1 (high: high 만, low: 전부)
  * --scenario 스캔 전에 시드(localStorage/sessionStorage/쿠키)를 심고 단계(click/hover/fill/wait)를 실행한다. MCP 와 `inspector-agent fix` 가 같은 JSON 을 쓴다
@@ -30,6 +32,9 @@ const main = async (): Promise<void> => {
   const viewportFlag = readFlag(args, '--viewports')
   const summaryFile = readFlag(args, '--summary')
   const scenarioFile = readFlag(args, '--scenario')
+  const variantsFlag = readFlag(args, '--variants')
+  // 스캔 전에 잘못된 변형 이름부터 알린다
+  if (variantsFlag) parseVariants(variantsFlag)
   // 스캔(수 초) 전에 잘못된 값을 먼저 알린다
   const failOn = parseFailOn(args.includes('--fail-on') ? (readFlag(args, '--fail-on') ?? '') : undefined)
   let scenario: Scenario | undefined
@@ -41,7 +46,7 @@ const main = async (): Promise<void> => {
     }
     console.log(`시나리오: ${scenario.name ?? scenarioFile}`)
   }
-  const results = await scanPage(url, viewportFlag ? parseViewports(viewportFlag) : DEFAULT_VIEWPORTS, { scenario, explore: !args.includes('--no-explore') })
+  const results = await scanPage(url, viewportFlag ? parseViewports(viewportFlag) : DEFAULT_VIEWPORTS, { scenario, explore: !args.includes('--no-explore'), variants: variantsFlag })
 
   const explored = results.filter((result): boolean => result.scenario !== undefined && scenario === undefined)
   console.log(`\n자동 탐색: 열어 본 상태 ${explored.length}개 (뷰포트 ${results.length - explored.length}개 기준)`)

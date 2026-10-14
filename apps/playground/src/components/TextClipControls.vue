@@ -54,6 +54,8 @@ const cards = ['캠핑 장비 체크리스트 카드 하나', '일정 공유 카
     box-sizing: border-box;
     width: 160px;
     margin-bottom: 12px;
+    // 16px 이상이라 iOS 에서 포커스해도 확대되지 않는다(입력창 확대 규칙의 정상 동작)
+    font-size: 16px;
   }
 
   &__sr-only {

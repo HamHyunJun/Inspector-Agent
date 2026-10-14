@@ -8,14 +8,14 @@ import { pruneDisposablePatches } from './patches'
 import type { ScanIngestResult } from './types'
 
 /** 헤드리스 브라우저로 URL 을 여러 뷰포트에서 스캔하고(자동 탐색 포함) 결과를 저장소에 병합한다 */
-export const scanAndIngest = async (env: Env, url: string, viewports?: Viewport[], scenario?: Scenario): Promise<ScanIngestResult & { defects: number }> => {
+export const scanAndIngest = async (env: Env, url: string, viewports?: Viewport[], scenario?: Scenario, variants?: string[]): Promise<ScanIngestResult & { defects: number }> => {
   if (!/^https?:\/\//.test(url)) throw new EngineError('http(s) url 이 필요합니다.', 400)
   const results = await env.deps
-    .scan(url, viewports?.length ? viewports : DEFAULT_VIEWPORTS, { executablePath: env.config.chromiumPath, scenario })
+    .scan(url, viewports?.length ? viewports : DEFAULT_VIEWPORTS, { executablePath: env.config.chromiumPath, scenario, variants })
     .catch((error: unknown): never => {
       const message = error instanceof Error ? error.message : String(error)
-      // 시나리오 단계 실패(셀렉터 오타 등)는 요청한 쪽이 고칠 수 있는 오류다
-      throw new EngineError(message, message.startsWith('시나리오') ? 422 : 500)
+      // 시나리오 단계 실패(셀렉터 오타 등)와 잘못된 환경 변형 이름, 설치되지 않은 엔진은 요청한 쪽이 고칠 수 있는 오류다
+      throw new EngineError(message, /^(시나리오|알 수 없는 환경 변형)|브라우저가 설치되어 있지 않습니다/.test(message) ? 422 : 500)
     })
   const summary = await ingestScanResults(env, results, scenario)
   // 처리가 끝난 지 7일이 지난 패치 기록과 백업은 스캔할 때마다 정리한다(정리 실패가 스캔을 막지 않게 한다)

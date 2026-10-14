@@ -1,8 +1,8 @@
-import type { DefectKind, FixHint, PatchEdit, Scenario } from '@inspector-agent/core'
+import type { Defect, DefectKind, FixHint, PatchEdit, Scenario } from '@inspector-agent/core'
 
 /**
  * playground 앱에 심어 둔 결함의 정답표.
- * 375px 에서는 아래 12건(가로 오버플로우 6 + 세로 오버플로우 1 + 텍스트 잘림 1 + 가려짐 3 + 포커스 이탈 1)만 탐지되어야 하고, 768px/1280px 에서는 0건이어야 한다.
+ * 375px 에서는 아래 52건(가로 오버플로우 46 + 세로 오버플로우 1 + 텍스트 잘림 1 + 가려짐 3 + 포커스 이탈 1)만 탐지되어야 하고, 768px/1280px 에서는 0건이어야 한다.
  * NEGATIVE_CONTROLS 의 컴포넌트는 정상 동작이므로 탐지되면 오탐이다.
  */
 export interface ExpectedDefect {
@@ -20,9 +20,19 @@ export interface ExpectedDefect {
   cascadedCount?: number
   /** React 대상: 규칙 기반 패치가 수정해야 하는 스타일시트(CSS Modules/.css/.scss). 소스 매핑이 JSX 가 아니라 이 파일의 규칙을 찾았는지 검증한다 */
   styleFile?: string
+  /** overflow-x 의 세부 모드(squished, overlap 등). 지정하면 같은 파일의 다른 모드와 구분한다 */
+  mode?: string
+  /** 특정 요소에 붙지 않는 문서 전체 결함(콘솔 에러)은 소스 파일 대신 이 선택자로 매칭한다 */
+  selector?: string
   /** 다른 URL(SECOND_PAGE_QUERY)에도 같은 컴포넌트가 나오는 결함. 결과 목록에서는 URL 이 달라도 한 그룹으로 묶여야 한다 */
   alsoOnSecondPage?: boolean
 }
+
+/** 탐지된 결함이 정답표 항목인지: 파일(또는 선택자)과 종류, 지정했다면 모드까지 같아야 한다 */
+export const matchesExpected = (defect: Defect, expected: ExpectedDefect): boolean =>
+  (expected.selector !== undefined ? defect.node.selector === expected.selector : defect.node.source?.file === expected.file) &&
+  defect.kind === expected.kind &&
+  (expected.mode === undefined || (defect.kind === 'overflow-x' && defect.metrics.mode === expected.mode))
 
 export const EXPECTED_AT_MOBILE: ExpectedDefect[] = [
   { file: 'src/components/ProductCard.vue', kind: 'overflow-x', primaryHint: 'flex-item-min-width', description: 'flex item min-width:auto + nowrap 제목 (복합 원인)' },
@@ -31,6 +41,46 @@ export const EXPECTED_AT_MOBILE: ExpectedDefect[] = [
   { file: 'src/components/ShareLink.vue', kind: 'overflow-x', primaryHint: 'unbreakable-text', description: '공백 없는 긴 URL' },
   { file: 'src/components/FixedHeightCard.vue', kind: 'overflow-y', primaryHint: 'fixed-height', description: '높이 64px 로 고정된 카드 밖으로 줄바꿈된 설명이 넘쳐 다음 요소와 겹침' },
   { file: 'src/components/SquishedNotice.vue', kind: 'overflow-x', primaryHint: 'flex-shrink-disabled', description: '문구가 줄바꿈되며 줄어든 flex 줄에서 원형 아이콘이 가로로만 줄어 타원이 됨(넘침·잘림 없음)' },
+  { file: 'src/components/SiteFooter.vue', kind: 'overflow-x', primaryHint: 'document-overflow-source', description: '본문이 화면을 넘쳐 페이지가 가로 스크롤되는데 뷰포트 너비로만 그려진 푸터의 배경·우측 여백이 끊김' },
+  { file: 'src/components/OverlapHeading.vue', kind: 'overflow-x', primaryHint: 'sibling-overlap', description: '음수 margin 으로 끌려 올라간 설명 문단이 제목 글자 위에 얹힘(넘침·잘림 없음)' },
+  { file: 'src/components/StretchedThumb.vue', kind: 'overflow-x', primaryHint: 'image-aspect-ratio', description: '160×90 원본을 너비 100% + 높이 96px 로 그려 가로로 늘어남(넘침·잘림 없음)' },
+  { file: 'src/components/TinyCloseBar.vue', kind: 'overflow-x', primaryHint: 'tap-target-size', description: '18px 닫기 버튼이 옆 확인 버튼과 2px 만 떨어져 있어 잘못 누르기 쉬움(넘침·잘림 없음)' },
+  { file: 'src/components/NarrowLabel.vue', kind: 'overflow-x', primaryHint: 'stacked-text', description: '라벨 칸을 18px 로 고정해 "주문내역" 이 한 글자씩 네 줄로 세로로 섬(넘침·잘림 없음)' },
+  { file: 'src/components/BrokenHero.vue', kind: 'overflow-x', primaryHint: 'image-load-failed', description: '좁은 화면에서 <picture> 가 고른 모바일 소스가 없어 이미지가 빈 사각형으로 보임(넘침·잘림 없음)' },
+  { file: 'src/components/EmptyCard.vue', kind: 'overflow-x', mode: 'empty-space', primaryHint: 'empty-space', description: '높이 240px 로 고정한 카드의 내용 아래에 큰 빈 공간이 남음' },
+  { file: 'src/components/LonelyChips.vue', kind: 'overflow-x', mode: 'lonely-wrap', primaryHint: 'lonely-wrap-item', description: '같은 크기 칩 4개가 3+1 로 줄바꿈되어 마지막 줄에 하나만 남음' },
+  { file: 'src/components/LoneWordNote.vue', kind: 'overflow-x', mode: 'text-orphan', primaryHint: 'text-orphan', description: '문단 마지막 줄에 한 단어만 홀로 남음' },
+  { file: 'src/components/FixedBadges.vue', kind: 'overflow-x', mode: 'fixed-overlap', primaryHint: 'fixed-layer-overlap', description: '화면에 고정된 두 떠 있는 버튼이 같은 자리에 겹침' },
+  { file: 'src/components/FixedBanner.vue', kind: 'overflow-x', mode: 'fixed-hog', primaryHint: 'fixed-layer-size', description: '화면에 고정된 안내 띠가 화면 높이의 40% 를 차지해 본문을 가림' },
+  { file: 'src/components/TinyNote.vue', kind: 'overflow-x', mode: 'tiny-text', primaryHint: 'min-font-size', description: '안내 문구가 10px 라 읽기 어려움' },
+  { file: 'src/components/CrampedParagraph.vue', kind: 'overflow-x', mode: 'tight-leading', primaryHint: 'line-height-tight', description: '줄 높이 0.8 로 여러 줄 문단의 줄이 붙음' },
+  { file: 'src/components/SmallInput.vue', kind: 'overflow-x', mode: 'input-zoom', primaryHint: 'input-font-size', description: '입력창 글자 14px 라 iOS 에서 누르면 화면이 확대됨' },
+  { file: 'src/components/BlurryPhoto.vue', kind: 'overflow-x', mode: 'blurry-image', primaryHint: 'image-resolution', description: '원본 80px 이미지를 카드 너비로 늘려 그려 흐릿함' },
+  { file: 'src/components/OversizedPhoto.vue', kind: 'overflow-x', mode: 'oversized-image', primaryHint: 'image-resolution', description: '원본 1600px 이미지를 200px 로만 그려 필요 이상으로 큼' },
+  { file: 'src/components/ClippedPlaceholder.vue', kind: 'overflow-x', mode: 'field-clipped', primaryHint: 'field-text-clipped', description: '100px 입력창의 placeholder 끝이 잘림' },
+  { file: 'src/components/StickyInert.vue', kind: 'overflow-x', mode: 'sticky-inert', primaryHint: 'sticky-container-overflow', description: '조상의 overflow-x: hidden 이 막아 sticky 제목이 붙지 않음' },
+  { file: 'src/components/DeadZIndex.vue', kind: 'overflow-x', mode: 'z-index-inert', primaryHint: 'z-index-without-position', description: 'position 없이 준 z-index 가 효과 없어 위치 지정된 상자에 덮임' },
+  { file: 'src/components/DeadAnchor.vue', kind: 'overflow-x', mode: 'anchor-missing', primaryHint: 'anchor-target', description: '링크 #reviews 의 대상 id 가 문서에 없음' },
+  { file: 'src/components/FontFailed.vue', kind: 'overflow-x', mode: 'font-failed', primaryHint: 'font-load-failed', description: '웹폰트 파일이 없어 로드에 실패하고 대체 글꼴로 보임' },
+  { file: 'src/components/ResourceProbe.vue', kind: 'overflow-x', mode: 'resource-failed', primaryHint: 'resource-load-failed', description: '존재하지 않는 스타일시트가 404 로 로드 실패' },
+  { file: 'src/components/ConsoleProbe.vue', selector: 'html', kind: 'overflow-x', mode: 'console-error', primaryHint: 'console-error', description: '렌더 중 콘솔 에러(문서 전체 결함이라 <html> 선택자로 매칭)' },
+  { file: 'src/components/ClickShield.vue', kind: 'overflow-x', mode: 'click-blocked', primaryHint: 'click-blocked', description: '투명 레이어가 버튼 위를 덮어 눌러도 반응하지 않음' },
+  { file: 'src/components/FakeButton.vue', kind: 'overflow-x', mode: 'fake-button', primaryHint: 'fake-button', description: 'div 에 클릭만 걸어 버튼처럼 보이지만 키보드로 포커스할 수 없음' },
+  { file: 'src/components/HoverMenu.vue', kind: 'overflow-x', mode: 'hover-only', primaryHint: 'hover-only-menu', description: '하위 메뉴가 :hover 로만 열려 키보드·터치로 열 수 없음' },
+  { file: 'src/components/TabIndexJump.vue', kind: 'overflow-x', mode: 'tabindex-positive', primaryHint: 'tabindex-positive', description: 'tabindex="2" 가 Tab 순서를 앞당김' },
+  { file: 'src/components/ShiftBanner.vue', selector: 'html', kind: 'overflow-x', mode: 'layout-shift', primaryHint: 'layout-shift', description: '로드 150ms 뒤 맨 위에 배너가 끼어들어 화면이 튐(문서 전체 결함이라 <html> 선택자로 매칭)' },
+  { file: 'src/components/FocusRingless.vue', kind: 'overflow-x', mode: 'focus-ring-missing', primaryHint: 'focus-indicator', description: 'outline: none 만 쓰고 대체 포커스 표시가 없음' },
+  { file: 'src/components/FocusOrder.vue', kind: 'overflow-x', mode: 'focus-order', primaryHint: 'focus-order', description: 'CSS order 로 셋째를 맨 위로 올려 Tab 이 위쪽으로 되돌아감' },
+  { file: 'src/components/FixedBanner.vue', kind: 'overflow-x', mode: 'focus-covered', primaryHint: 'focus-scroll-padding', description: '화면 아래 고정된 안내 띠가 Tab 으로 이동한 요소를 가림' },
+  { file: 'src/components/LowContrast.vue', kind: 'overflow-x', mode: 'low-contrast', primaryHint: 'text-contrast', description: '흰 카드 위 연한 회색 글자의 대비가 약 2:1 로 기준 4.5:1 미만' },
+  { file: 'src/components/FaintBorder.vue', kind: 'overflow-x', mode: 'border-contrast', primaryHint: 'border-contrast', description: '입력창 테두리가 흰 배경과 대비 1.2:1 이라 칸이 잘 안 보임' },
+  { file: 'src/components/IconMisaligned.vue', kind: 'overflow-x', mode: 'icon-misaligned', primaryHint: 'align-items-center', description: '32px 아이콘이 위쪽에 붙어 한 줄 글자와 세로 중심이 어긋남' },
+  { file: 'src/components/OffCenterButton.vue', kind: 'overflow-x', mode: 'text-off-center', primaryHint: 'text-centering', description: '위·아래 padding 이 비대칭이라 버튼 안 글자가 위로 치우침' },
+  { file: 'src/components/UnevenCards.vue', kind: 'overflow-x', mode: 'uneven-cards', primaryHint: 'equal-height-cards', description: 'align-items: flex-start 라 같은 줄 카드 높이가 들쭉날쭉함' },
+  { file: 'src/components/FullScreenCta.vue', kind: 'overflow-x', mode: 'viewport-height', primaryHint: 'dynamic-viewport-height', description: 'min-height: 100vh 라 모바일 주소창에 아래쪽 버튼이 가려질 수 있음' },
+  { file: 'src/components/BadgeClip.vue', kind: 'overflow-x', mode: 'corner-clipped', primaryHint: 'overflow-visible-parent', description: '카드의 overflow: hidden 이 모서리 밖 NEW 배지를 반쯤 잘라 먹음' },
+  { file: 'src/components/CarouselNoEnd.vue', kind: 'overflow-x', mode: 'scroll-end-flush', primaryHint: 'scroll-end-padding', description: '가로 스크롤 목록 앞 여백은 있는데 끝 여백이 없어 마지막 카드가 가장자리에 붙음' },
+  { file: 'src/components/DoubleScroll.vue', kind: 'overflow-x', mode: 'nested-scroll', primaryHint: 'nested-scroll', description: '화면 70% 영역이 페이지와 따로 스크롤되어 이중 스크롤바가 생김' },
   { file: 'src/components/ClippedLabel.vue', kind: 'clipped-text', primaryHint: 'text-ellipsis', description: 'overflow:hidden + nowrap 라벨이 말줄임 없이 잘려 글자가 사라짐' },
   {
     file: 'src/components/MemberRow.vue',
@@ -89,7 +139,7 @@ export const SECOND_PAGE_QUERY = '?page=members'
  */
 export const PLAYGROUND_SCENARIO: Scenario = {
   name: 'playground: 메뉴 열기 + 닉네임 시드',
-  seed: { localStorage: { 'ia-demo-nickname': 'ia_demo_nickname_with_a_very_long_unbroken_handle_that_cannot_wrap_anywhere_2026' } },
+  seed: { localStorage: { 'ia-demo-nickname': 'ia_demo_nickname_with_a_very_long_unbroken_handle_that_cannot_wrap_anywhere_2026', 'ia-demo-scroll-lock': '1' } },
   steps: [
     { action: 'click', selector: '.open-menu__trigger' },
     { action: 'wait', selector: '.open-menu__list' }
@@ -109,7 +159,28 @@ export const SCENARIO_ONLY: ExpectedDefect[] = [
     kind: 'overflow-x',
     primaryHint: 'unbreakable-text',
     description: 'localStorage 시드가 있어야 그려지는 긴 닉네임이 줄바꿈되지 않고 넘침 (시드 없으면 렌더링 안 됨)'
+  },
+  {
+    file: 'src/components/ScrollLockProbe.vue',
+    selector: 'body',
+    kind: 'overflow-x',
+    mode: 'scroll-locked',
+    primaryHint: 'scroll-locked',
+    description: 'localStorage 시드가 있으면 모달 없이 body 스크롤이 잠겨 있음 (시드 없으면 정상)'
   }
+]
+
+/**
+ * 환경 변형 스캔의 정답표. 기본 상태에서는 정상이고 그 환경에서만 결함이 되는 컴포넌트다.
+ * variant 는 scanPage 의 variants 이름이고, 그 변형 스캔에서 정답이 탐지되어야 하며 같은 정답이 기본 스캔에는 없어야 한다.
+ */
+export const VARIANT_EXPECTED: Array<{ variant: string; expected: ExpectedDefect }> = [
+  { variant: 'text-scale', expected: { file: 'src/components/TextScaleBadge.vue', kind: 'clipped-text', primaryHint: 'text-ellipsis', description: '글자만 2배로 키우면 56px 칩 밖으로 잘려 말줄임 없이 사라짐' } },
+  { variant: 'long-text', expected: { file: 'src/components/LongTextChip.vue', kind: 'overflow-x', mode: 'content', primaryHint: 'nowrap-text', description: '문구가 1.5배로 길어지면 줄바꿈 없는 글이 76px 칩 밖으로 넘침' } },
+  { variant: 'dark', expected: { file: 'src/components/DarkModeCard.vue', kind: 'overflow-x', mode: 'low-contrast', primaryHint: 'text-contrast', description: '다크 모드에서 배경만 어두워지고 글자색은 그대로라 대비가 1.1:1' } },
+  { variant: 'rtl', expected: { file: 'src/components/RtlBox.vue', kind: 'overflow-x', mode: 'box', primaryHint: 'fixed-width', description: 'RTL 에서 physical margin-right 때문에 상자가 60px 왼쪽 밖으로 밀림' } },
+  { variant: 'forced-colors', expected: { file: 'src/components/ForcedColorsRing.vue', kind: 'overflow-x', mode: 'focus-ring-missing', primaryHint: 'focus-indicator', description: '포커스 표시를 box-shadow 로만 그려 고대비에서 사라짐' } },
+  { variant: 'device:iphone', expected: { file: 'src/components/RetinaPhoto.vue', kind: 'overflow-x', mode: 'blurry-image', primaryHint: 'image-resolution', description: '3배 화면(iPhone)에서 400px 원본 이미지가 흐려짐' } }
 ]
 
 export const NEGATIVE_CONTROLS: string[] = [
@@ -120,7 +191,14 @@ export const NEGATIVE_CONTROLS: string[] = [
   'src/components/DecorDots.vue',
   'src/components/HeightControls.vue',
   'src/components/TextClipControls.vue',
-  'src/components/IconControls.vue'
+  'src/components/IconControls.vue',
+  'src/components/LineHeightControls.vue',
+  'src/components/ThumbControls.vue',
+  'src/components/TapControls.vue',
+  'src/components/Bundle1Controls.vue',
+  'src/components/Bundle2Controls.vue',
+  'src/components/Bundle3Controls.vue',
+  'src/components/WrapControls.vue'
 ]
 
 export const MOBILE_VIEWPORT = { width: 375, height: 812 }

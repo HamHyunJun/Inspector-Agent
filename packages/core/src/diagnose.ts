@@ -217,6 +217,78 @@ export const diagnoseSquished = (_node: NodeSnapshot, metrics: OverflowMetrics):
   }
 ]
 
+/**
+ * 이 결함은 화면을 넘치게 만든 요소의 결과라, 그 요소(별도 결함으로 함께 보고됨)를 고치면 같이 사라진다.
+ * 래퍼를 넓히는 선언(min-width: fit-content)은 문서를 body 밖으로 밀고 절대 위치 팝업을 화면 밖으로 내보내 새 결함을 만들므로 선언으로 제안하지 않고,
+ * declarations 가 비어 있어 규칙 기반 자동 패치 대상이 아니다.
+ */
+export const diagnoseDocWidth = (_node: NodeSnapshot, metrics: OverflowMetrics): FixSuggestion[] => [
+  {
+    hint: 'document-overflow-source',
+    target: 'parent',
+    declarations: {},
+    reason: `문서가 ${Math.round(metrics.parentContentWidth)}px 로 넘쳐 가로 스크롤되는데 이 블록은 ${Math.round(metrics.nodeWidth)}px 까지만 그려져 스크롤하면 배경·우측 여백이 ${Math.round(metrics.overflowPx)}px 끊깁니다. 화면을 넘치게 만든 요소를 먼저 고치세요(함께 보고된 가로 오버플로우 결함). 의도된 가로 스크롤이라면 스크롤 영역을 overflow-x: auto 컨테이너 안으로 가두는 편이 안전합니다.`
+  }
+]
+
+/**
+ * 겹침의 원인이 음수 margin 이면 그 margin 을 0 으로 되돌리는 것이 정답이라 선언으로 고칠 수 있다.
+ * 그 밖의 원인(높이·배치 구조)은 선언만으로 단정할 수 없어 declarations 가 비어 있고, 규칙 기반 자동 패치 대상이 아니다.
+ */
+export const diagnoseOverlap = (_node: NodeSnapshot, metrics: OverflowMetrics, otherSelector: string, negativeMargins: Record<string, string>): FixSuggestion[] => {
+  const negative = Object.keys(negativeMargins).length > 0
+  return [
+    {
+      hint: 'sibling-overlap',
+      target: 'node',
+      declarations: negativeMargins,
+      reason: negative
+        ? `${otherSelector} 와 ${Math.round(metrics.overflowPx)}px 겹칩니다. 음수 margin(${Object.keys(negativeMargins).join(', ')})이 요소를 끌어올려 덮고 있으니 0 으로 되돌리거나 겹침이 의도라면 position 으로 명시하세요.`
+        : `${otherSelector} 와 ${Math.round(metrics.overflowPx)}px 겹칩니다. 흐름 안의 두 요소가 겹치는 원인(고정 height, 음수 margin, 줄 높이, 배치)을 소스에서 찾아 고치세요. 겹침이 의도라면 position 으로 명시하세요.`
+    }
+  ]
+}
+
+/** 박스를 유지한 채 비율만 지키는 object-fit: cover 가 선언 하나로 되는 정답이다. 잘리면 안 되는 이미지는 contain 이나 height: auto 를 쓰라고 알린다 */
+export const diagnoseImageDistortion = (_node: NodeSnapshot, metrics: OverflowMetrics): FixSuggestion[] => [
+  {
+    hint: 'image-aspect-ratio',
+    target: 'node',
+    declarations: { 'object-fit': 'cover' },
+    reason: `이미지가 원본 비율에 맞는 높이 ${Math.round(metrics.parentContentWidth)}px 가 아니라 ${Math.round(metrics.nodeWidth)}px 로 그려져 ${Math.round(metrics.overflowPx)}px 늘어났습니다. 박스를 유지하려면 object-fit: cover(가장자리가 잘려도 됨) 또는 contain(여백 허용)을, 박스 높이를 비율에 맞추려면 height: auto 를 쓰세요.`
+  }
+]
+
+/** WCAG 2.5.8 의 24px 기준을 채우는 선언이 정답이다. 주요 동작 버튼은 44px 이상을 권한다 */
+export const diagnoseTapTarget = (_node: NodeSnapshot, metrics: OverflowMetrics): FixSuggestion[] => [
+  {
+    hint: 'tap-target-size',
+    target: 'node',
+    declarations: { 'min-width': `${metrics.parentContentWidth}px`, 'min-height': `${metrics.parentContentWidth}px` },
+    reason: `터치 타겟의 짧은 변이 ${Math.round(metrics.nodeWidth)}px 로 ${metrics.parentContentWidth}px 기준보다 ${Math.round(metrics.overflowPx)}px 작고 주변 타겟과 붙어 있어 잘못 누르기 쉽습니다. min-width/min-height 로 키우거나 padding 으로 누르는 영역을 넓히세요(자주 쓰는 버튼은 44px 이상 권장). 타겟 사이 간격을 ${metrics.parentContentWidth}px 이상 띄워도 됩니다.`
+  }
+]
+
+/** 단어 안에서는 줄바꿈하지 않고(keep-all) 가장 긴 단어보다 좁아지지 않게(min-content) 막는 것이 정답이다. 한글은 공백이 아니어도 글자 사이에서 줄이 바뀌므로 keep-all 이 필요하다 */
+export const diagnoseStackedText = (_node: NodeSnapshot, metrics: OverflowMetrics): FixSuggestion[] => [
+  {
+    hint: 'stacked-text',
+    target: 'node',
+    declarations: { 'word-break': 'keep-all', 'min-width': 'min-content' },
+    reason: `글이 ${metrics.parentContentWidth}줄로 쪼개져 한 줄에 평균 ${metrics.nodeWidth}글자만 보입니다(세로로 ${Math.round(metrics.overflowPx)}px 늘어남). 칸이 단어보다 좁아진 것이 원인이니 word-break: keep-all 과 min-width: min-content 로 단어가 쪼개지지 않게 하고, 고정 너비나 flex 축소로 칸이 좁아진 곳을 확인하세요.`
+  }
+]
+
+/** 경로나 파일 문제라 선언으로 고칠 수 없다. declarations 가 비어 있고, 규칙 기반 자동 패치 대상이 아니다 */
+export const diagnoseBrokenImage = (_node: NodeSnapshot, _metrics: OverflowMetrics, src: string): FixSuggestion[] => [
+  {
+    hint: 'image-load-failed',
+    target: 'node',
+    declarations: {},
+    reason: `이미지(${src})를 불러오지 못해 빈 사각형이나 대체 텍스트만 보입니다. src/srcset 경로(대소문자, 빌드 후 위치), 파일 존재, 서버 응답(404 또는 이미지가 아닌 응답)을 확인하세요. <picture> 라면 이 화면 폭에서 고른 <source> 가 틀렸을 수 있습니다.`
+  }
+]
+
 export const diagnoseClippedText = (_node: NodeSnapshot, metrics: ClippedTextMetrics): FixSuggestion[] => {
   const clippedPercent = Math.round(metrics.hiddenRatio * 100)
   const nowrap = metrics.whiteSpace === 'nowrap' || metrics.whiteSpace === 'pre'

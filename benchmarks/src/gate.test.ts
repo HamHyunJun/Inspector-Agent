@@ -34,6 +34,11 @@ describe('findDetectionRegressions', () => {
     expect(findDetectionRegressions({ ...healthy, groupingMismatches: 2 })[0]).toContain('한 그룹')
   })
 
+  it('환경 변형 정답이 맞지 않으면 실패 사유를 낸다', () => {
+    expect(findDetectionRegressions({ ...healthy, variantMismatches: 0 })).toEqual([])
+    expect(findDetectionRegressions({ ...healthy, variantMismatches: 2 })[0]).toContain('환경 변형')
+  })
+
   it('React 대상에서 정답 스타일시트를 못 찾아 고치지 못하면 실패 사유를 낸다', () => {
     expect(findDetectionRegressions({ ...healthy, styleLocationMismatches: 0 })).toEqual([])
     expect(findDetectionRegressions({ ...healthy, styleLocationMismatches: 2 })[0]).toContain('정답 스타일시트')

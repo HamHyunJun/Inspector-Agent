@@ -20,7 +20,7 @@ export const createEngine = (config: EngineConfig, deps: Partial<EngineDeps> = {
   const env = createEnv(config, deps)
   return {
     config,
-    scan: (url: string, viewports?: Viewport[], scenario?: Scenario): Promise<ScanIngestResult & { defects: number }> => scanAndIngest(env, url, viewports, scenario),
+    scan: (url: string, viewports?: Viewport[], scenario?: Scenario, variants?: string[]): Promise<ScanIngestResult & { defects: number }> => scanAndIngest(env, url, viewports, scenario, variants),
     ingest: (results: ScanResult[], scenario?: Scenario): Promise<ScanIngestResult> => ingestScanResults(env, results, scenario),
     listGroups: (status?: DefectStatus) => listGroups(env, status),
     getContext: async (defectId: string): Promise<DefectContext> => {

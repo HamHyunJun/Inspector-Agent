@@ -18,8 +18,62 @@ export type DefectKind = 'overflow-x' | 'overflow-y' | 'clipped-text' | 'occlude
  * - content: 요소 박스는 맞지만 내부 텍스트/인라인 콘텐츠가 박스를 넘침 (예: nowrap, 긴 URL)
  * - viewport: 절대/고정 위치로 띄운 툴팁·팝오버가 화면 좌우 경계 밖으로 나감 (부모가 아니라 뷰포트가 기준)
  * - squished: flex 줄 안의 아이콘·이미지가 공간이 모자라 한쪽 축으로만 줄어 비율이 깨짐 (overflowPx 는 줄어든 양)
+ * - doc-width: 페이지가 가로로 넘치는데 뷰포트 너비로만 그려진 전체 너비 블록의 배경·우측 여백이 끊김 (overflowPx 는 모자란 너비, parentContentWidth 는 문서 전체 너비)
+ * - overlap: 흐름 안의 글·이미지·컨트롤이 다른 덩어리의 글·이미지·컨트롤 위에 얹힘 (overflowPx 는 떼어 놓으려면 옮겨야 하는 거리, node 는 나중에 그려져 위에 놓인 쪽)
+ * - distorted: <img> 가 원본 비율과 다른 박스에 object-fit: fill 로 그려져 늘어남 (overflowPx 는 비율에 맞는 높이와의 차이, parentContentWidth 는 비율에 맞는 높이, nodeWidth 는 실제 그려진 높이)
+ * - tap-target: 터치 화면에서 24px 보다 작은 버튼·링크가 다른 타겟과 붙어 있어 잘못 누르기 쉬움 (overflowPx 는 기준에 모자란 px, parentContentWidth 는 기준 크기 24, nodeWidth 는 실제 짧은 변)
+ * - stacked-text: 칸이 너무 좁아 단어가 한두 글자씩 세로로 줄바꿈됨 (overflowPx 는 세로로 늘어난 높이, parentContentWidth 는 줄 수, nodeWidth 는 한 줄 평균 글자 수)
+ * - broken-image: <img> 가 로드에 실패해 빈 사각형이나 대체 텍스트만 보임 (overflowPx 는 깨진 이미지가 차지한 큰 변)
+ * - tiny-text / tight-leading / input-zoom / text-orphan: 타이포그래피 결함 (rules/typography.ts, 설명은 metrics.detail)
  */
-export type OverflowMode = 'box' | 'content' | 'viewport' | 'squished'
+export type OverflowMode =
+  | 'box'
+  | 'content'
+  | 'viewport'
+  | 'squished'
+  | 'doc-width'
+  | 'overlap'
+  | 'distorted'
+  | 'tap-target'
+  | 'stacked-text'
+  | 'broken-image'
+  | 'tiny-text'
+  | 'tight-leading'
+  | 'input-zoom'
+  | 'text-orphan'
+  | 'blurry-image'
+  | 'oversized-image'
+  | 'fixed-hog'
+  | 'fixed-overlap'
+  | 'field-clipped'
+  | 'sticky-inert'
+  | 'z-index-inert'
+  | 'anchor-missing'
+  | 'resource-failed'
+  | 'mixed-content'
+  | 'font-failed'
+  | 'console-error'
+  | 'empty-space'
+  | 'lonely-wrap'
+  | 'focus-ring-missing'
+  | 'focus-covered'
+  | 'focus-order'
+  | 'click-blocked'
+  | 'fake-button'
+  | 'hover-only'
+  | 'scroll-locked'
+  | 'layout-shift'
+  | 'tabindex-positive'
+  | 'low-contrast'
+  | 'border-contrast'
+  | 'long-line'
+  | 'text-off-center'
+  | 'icon-misaligned'
+  | 'uneven-cards'
+  | 'viewport-height'
+  | 'corner-clipped'
+  | 'scroll-end-flush'
+  | 'nested-scroll'
 
 export type Severity = 'low' | 'medium' | 'high'
 
@@ -82,6 +136,48 @@ export type FixHint =
   | 'text-ellipsis'
   | 'text-wrap'
   | 'keep-in-viewport'
+  | 'document-overflow-source'
+  | 'sibling-overlap'
+  | 'image-aspect-ratio'
+  | 'tap-target-size'
+  | 'stacked-text'
+  | 'image-load-failed'
+  | 'min-font-size'
+  | 'line-height-tight'
+  | 'input-font-size'
+  | 'text-orphan'
+  | 'image-resolution'
+  | 'fixed-layer-size'
+  | 'fixed-layer-overlap'
+  | 'field-text-clipped'
+  | 'sticky-container-overflow'
+  | 'z-index-without-position'
+  | 'anchor-target'
+  | 'resource-load-failed'
+  | 'mixed-content'
+  | 'font-load-failed'
+  | 'console-error'
+  | 'empty-space'
+  | 'lonely-wrap-item'
+  | 'focus-indicator'
+  | 'focus-scroll-padding'
+  | 'focus-order'
+  | 'click-blocked'
+  | 'fake-button'
+  | 'hover-only-menu'
+  | 'scroll-locked'
+  | 'layout-shift'
+  | 'tabindex-positive'
+  | 'text-contrast'
+  | 'border-contrast'
+  | 'line-length'
+  | 'text-centering'
+  | 'align-items-center'
+  | 'equal-height-cards'
+  | 'dynamic-viewport-height'
+  | 'overflow-visible-parent'
+  | 'scroll-end-padding'
+  | 'nested-scroll'
 
 export interface FixSuggestion {
   hint: FixHint
@@ -109,6 +205,8 @@ export interface OverflowMetrics {
   nodeWidth: number
   /** 이 결함이 밀어낸 같은 줄의 뒤쪽 형제 결함 (연쇄 결함) */
   cascaded?: CascadedDefect[]
+  /** 규칙이 직접 쓴 한 줄 설명. 있으면 요약 문장이 이 값을 그대로 쓴다 */
+  detail?: string
 }
 
 /** 한 stacking context(또는 그 안에서 겨루는 대표 요소)의 요약 */
@@ -206,12 +304,39 @@ export type ScenarioStep =
   /** ms 만큼 기다리거나, selector 가 화면에 나타날 때까지 기다린다 (둘 중 하나) */
   | { action: 'wait'; ms?: number; selector?: string }
 
+/** 스캔에 쓸 수 있는 장치 프로필(화면 크기, 화면 배율, 터치 여부를 함께 바꾼다). 이름은 verifier 가 Playwright 장치 목록에 매핑한다 */
+export const DEVICE_PROFILES = ['iphone-se', 'iphone', 'pixel', 'galaxy', 'ipad'] as const
+export type DeviceProfile = (typeof DEVICE_PROFILES)[number]
+
+/**
+ * 같은 규칙을 다른 환경에서 다시 돌려 "그 환경에서만 생기는 결함"을 찾는다.
+ * 스캔과 패치 후 재측정이 같은 환경을 만들 수 있도록 시나리오에 함께 저장한다.
+ */
+export interface ScenarioEnvironment {
+  /** 다크 모드(prefers-color-scheme: dark)로 연다 */
+  colorScheme?: 'dark'
+  /** 윈도우 고대비 모드(forced-colors: active)로 연다. 색·그림자에만 의존한 표시가 사라지는지 본다 */
+  forcedColors?: boolean
+  /** 글자 크기만 이 배수로 키운다(1.25~3). 줄 높이 px 와 고정 크기 상자는 그대로라 잘림·겹침이 드러난다 */
+  textScale?: number
+  /** 모든 글을 1.5배 길이로 늘린다(번역, 긴 이름) */
+  longText?: boolean
+  /** 문서 방향을 오른쪽→왼쪽으로 바꾼다 */
+  direction?: 'rtl'
+  /** 장치 프로필로 연다. 화면 크기, 배율(흐릿한 이미지), 터치(터치 타겟)가 그 장치를 따른다 */
+  device?: DeviceProfile
+  /** Chromium 이 아닌 엔진으로 연다(그 엔진 설치 필요) */
+  engine?: 'firefox' | 'webkit'
+}
+
 export interface Scenario {
   name?: string
   description?: string
   seed?: ScenarioSeed
   /** 페이지를 열고 안정화한 뒤, 탐지 전에 순서대로 실행한다 */
   steps?: ScenarioStep[]
+  /** 페이지를 열 환경. 있으면 시드·단계 없이도 시나리오가 된다 */
+  environment?: ScenarioEnvironment
 }
 
 interface DefectBase {
@@ -314,6 +439,12 @@ export interface InspectorAgentGlobal {
   findModals: (options?: Pick<DetectOptions, 'sourceAttribute'>) => ModalProbe[]
   focusFirstInModal: (index: number) => boolean
   modalFocusState: (index: number, options?: Pick<DetectOptions, 'sourceAttribute'>) => FocusState
+  /** Tab 탐침: begin → (Tab 을 누를 때마다 record) → finish 로 포커스 표시·가림·순서 결함을 받는다. 키 입력은 verifier 가 한다 */
+  beginTabProbe: () => void
+  /** 시나리오 환경 중 페이지 안에서 적용하는 것(글자 확대, 긴 글, RTL)을 적용한다. 색상 모드·장치·엔진은 verifier 가 브라우저 컨텍스트로 만든다 */
+  applyEnvironment: (environment: ScenarioEnvironment) => void
+  recordTabStop: () => { done: boolean }
+  finishTabProbe: (options?: Pick<DetectOptions, 'sourceAttribute'>) => OverflowDefect[]
   version: string
 }
 

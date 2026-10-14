@@ -215,6 +215,19 @@ npx -y @inspector-agent/engine apply p_abc123     # diff 확인 → y/N → 적�
 | 가로 오버플로우 | 박스·텍스트가 부모 밖으로 밀려남 |
 | 화면 이탈 | 열린 툴팁·팝오버가 화면 좌우 밖으로 나감 |
 | 찌그러짐 | flex 줄 안의 아이콘·이미지가 줄어들어 비율이 깨짐 (예: 24×24 원형 아이콘이 타원이 되거나 거의 사라짐) |
+| 문서 폭 미추종 | 페이지가 가로로 스크롤되는데 뷰포트 너비로만 그려진 헤더·푸터의 배경과 우측 여백이 끊김 |
+| 겹침 | 흐름 안의 글·이미지·버튼이 다른 요소 위에 얹힘 (예: 음수 margin 으로 끌어올린 제목이 아래 문단을 덮음) |
+| 이미지 비율 왜곡 | `<img>` 가 원본 비율과 다른 박스에 `object-fit: fill` 로 그려져 늘어남 |
+| 터치 타겟 | 터치 화면(768px 이하)에서 24px 보다 작은 버튼·링크가 다른 타겟과 붙어 있어 잘못 누르기 쉬움 (WCAG 2.5.8, 간격 예외 적용) |
+| 글자 세로 쪼개짐 | 칸이 너무 좁아 "주문내역" 이 주/문/내/역처럼 한두 글자씩 세로로 섬 |
+| 깨진 이미지 | `<img>`·`<picture>` 소스가 로드에 실패해 빈 사각형이나 대체 텍스트만 보임 |
+| 글자·이미지 품질 | 너무 작은 글자(12px 미만), 줄 높이가 글자보다 좁아 줄이 붙은 문단, 문단 끝에 한두 글자만 남은 줄, 흐릿한 이미지(원본이 화면 배율보다 작음), 필요 이상으로 큰 이미지, 너무 긴 줄 |
+| 대비·정렬 | 글자 대비 부족(WCAG 4.5:1, 단색 배경만), 입력창 경계 대비 부족(3:1), 아이콘·글자 세로 정렬 어긋남, 버튼 안 글자 쏠림, 같은 줄 카드 높이 들쭉날쭉 |
+| 입력·상호작용 | 입력창 글자 16px 미만(iOS 확대), 투명 레이어에 가로채여 안 눌리는 버튼, 클릭만 되고 키보드로는 못 누르는 div, hover 로만 열리는 메뉴, 양수 tabindex, 모달 없는데 남은 스크롤 잠금, 로드 중 화면이 튀는 정도(CLS) |
+| 포커스(실제 Tab 키) | 포커스 표시 없음(outline 만 끔), 고정 요소가 Tab 으로 이동한 요소를 가림, 화면 순서를 거스른 Tab 이동 |
+| 고정 레이어·스크롤 영역 | 고정 요소끼리 겹침, 화면을 크게 가리는 고정 띠, 붙지 않는 sticky, 효과 없는 z-index, overflow 가 배지를 반쯤 자름, 가로 스크롤 목록 끝 여백 없음, 이중 스크롤, `100vh` 로 모바일 주소창에 가려질 버튼 |
+| 레이아웃 빈틈 | 내용 아래 큰 빈 공간, 같은 크기 칩이 3+1 로 줄바꿈되어 외톨이 남음, 입력창 placeholder·선택값 잘림 |
+| 페이지 건강 | 로드에 실패한 CSS·JS(404, CSS 가 아닌 응답), HTTPS 페이지의 HTTP 리소스(혼합 콘텐츠), 로드 실패한 웹폰트, 렌더 중 콘솔 에러, 대상 없는 `#앵커` 링크 |
 | 세로 오버플로우 | 높이가 고정된 컨테이너 밖으로 내용이 넘쳐 아래 요소와 겹침 |
 | 텍스트 잘림 | 말줄임 없이 글자가 잘려 사라짐 |
 | 가려짐 | 모달·드롭다운이 다른 요소에 가려짐 (원인: z-index, stacking context 등) |
@@ -222,7 +235,7 @@ npx -y @inspector-agent/engine apply p_abc123     # diff 확인 → y/N → 적�
 
 결함별 처리 요령은 [운영 가이드](docs/operations.md#결함-종류별-대응)에 있습니다.
 
-**아주 좁은 화면.** 기본 검사는 320px부터입니다. 그보다 좁은 화면(예: 100px)에서 헤더 배경이 내용보다 짧거나 오른쪽 여백이 사라지는 것은 대부분 어떤 요소가 화면 밖으로 넘치는 것이 원인이라 가로 오버플로우로 잡힙니다. `--viewports 100`(MCP는 "100px에서도 스캔해줘")으로 확인하세요. 100px에서는 대부분의 사이트가 깨지므로 기본값에는 넣지 않았습니다.
+**아주 좁은 화면.** 기본 검사는 320px부터입니다. 그보다 좁은 화면(예: 100px)에서 헤더 배경이 내용보다 짧거나 오른쪽 여백이 사라지는 것은 **문서 폭 미추종**으로 따로 잡습니다(원인이 되는 가로 오버플로우도 함께 보고됩니다). `--viewports 100`(MCP는 "100px에서도 스캔해줘")으로 확인하세요. 100px에서는 대부분의 사이트가 깨지므로 기본값에는 넣지 않았습니다.
 
 **한계.** 로그인이 필요하거나 데이터가 있어야 그려지는 화면은 빈 상태로 검사되어 "결함 0건"이 안전하다는 뜻이 아닙니다. 이런 화면은 [시나리오](docs/scenarios/README.md)로 스캔하세요. `div onclick` 같은 시맨틱 정보 없는 트리거, 여러 단계를 거쳐야 열리는 UI는 자동 탐색이 못 찾을 수 있습니다.
 
@@ -271,3 +284,29 @@ npx -y @inspector-agent/engine apply p_abc123     # diff 확인 → y/N → 적�
 | [React 소스 매핑](docs/react-source-mapping.md) | React에서 소스 위치를 찾는 방식과 선택 이유 |
 
 패키지: [`@inspector-agent/verifier`](https://www.npmjs.com/package/@inspector-agent/verifier) · [`engine`](https://www.npmjs.com/package/@inspector-agent/engine) · [`mcp-server`](https://www.npmjs.com/package/@inspector-agent/mcp-server) · [`vite-plugin`](https://www.npmjs.com/package/@inspector-agent/vite-plugin) · [`core`](https://www.npmjs.com/package/@inspector-agent/core)
+
+---
+
+## 환경을 바꿔 다시 검사하기 (variants)
+
+같은 규칙을 다른 환경에서 한 번 더 돌려 **그 환경에서만 생기는 결함**만 따로 보여 줍니다. 시간이 더 걸려 기본은 꺼 두었습니다.
+
+| 이름 | 하는 일 | 잡는 예 |
+| --- | --- | --- |
+| `text-scale` | 글자 크기만 2배로 키움(줄 높이 px 와 고정 크기 상자는 그대로) | 고정 크기 칩 밖으로 잘린 글자, 붙은 줄 |
+| `long-text` | 모든 글을 1.5배 길이로 늘림(번역, 긴 이름) | 줄바꿈 없는 글이 칸 밖으로 넘침 |
+| `dark` | 다크 모드로 엶 | 배경만 어두워지고 글자색이 그대로인 카드 |
+| `rtl` | 문서 방향을 오른쪽→왼쪽으로 | physical `margin-right` 때문에 왼쪽 밖으로 밀린 상자 |
+| `forced-colors` | 윈도우 고대비 모드로 엶 | `box-shadow` 로만 그린 포커스 표시가 사라짐 |
+| `landscape` | 화면 가로·세로를 맞바꿈 | 높이가 작아져 가려지는 고정 띠, `100vh` |
+| `device:iphone` 등 | 장치 프로필(`iphone-se`, `iphone`, `pixel`, `galaxy`, `ipad`)의 화면 크기·배율·터치 | 3배 화면에서 흐려지는 이미지 |
+| `engine:firefox`, `engine:webkit` | 다른 렌더링 엔진으로 엶(`npx playwright-core install webkit firefox` 필요) | 버튼 기본 글자 크기가 달라 생기는 결함 등 Chromium 에서만 멀쩡한 화면 |
+| `all` | 위에서 `text-scale`, `long-text`, `dark`, `rtl`, `forced-colors`, `landscape` | |
+
+```bash
+npx inspector-scan http://localhost:5173 --variants dark,text-scale   # CLI
+# MCP: scan_page 의 variants: ["dark", "rtl"] 또는 ["all"]  ("다크 모드랑 글자 크게 해서도 스캔해줘")
+```
+
+환경은 시나리오의 `environment` 로 저장되어, 패치 후 재측정도 같은 환경에서 합니다([시나리오 문서](docs/scenarios/README.md#환경-environment)).
+

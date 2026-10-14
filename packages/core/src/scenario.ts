@@ -1,5 +1,6 @@
 import { hashString } from './fingerprint'
-import type { Scenario, ScenarioSeed, ScenarioStep } from './types'
+import { DEVICE_PROFILES } from './types'
+import type { Scenario, ScenarioEnvironment, ScenarioSeed, ScenarioStep } from './types'
 
 /**
  * 시나리오 검증. 대시보드 API, CLI 파일, MCP 도구 인자처럼 신뢰할 수 없는 곳에서 들어오므로
@@ -78,9 +79,52 @@ const parseStep = (value: unknown, index: number): ScenarioStep => {
   throw new Error(`${where}.action: ${STEP_ACTIONS.map((name): string => `"${name}"`).join(', ')} 중 하나여야 합니다 (받은 값: ${JSON.stringify(action)})`)
 }
 
+export const MIN_TEXT_SCALE = 1.25
+export const MAX_TEXT_SCALE = 3
+
+const parseEnvironment = (value: unknown): ScenarioEnvironment => {
+  if (!isRecord(value)) throw new Error('environment: 객체여야 합니다')
+  rejectUnknown(value, ['colorScheme', 'forcedColors', 'textScale', 'longText', 'direction', 'device', 'engine'], 'environment')
+  const environment: ScenarioEnvironment = {}
+  if (value.colorScheme !== undefined) {
+    if (value.colorScheme !== 'dark') throw new Error('environment.colorScheme: "dark" 만 지정할 수 있습니다')
+    environment.colorScheme = 'dark'
+  }
+  if (value.forcedColors !== undefined) {
+    if (typeof value.forcedColors !== 'boolean') throw new Error('environment.forcedColors: true/false 여야 합니다')
+    if (value.forcedColors) environment.forcedColors = true
+  }
+  if (value.textScale !== undefined) {
+    if (typeof value.textScale !== 'number' || !Number.isFinite(value.textScale) || value.textScale < MIN_TEXT_SCALE || value.textScale > MAX_TEXT_SCALE) {
+      throw new Error(`environment.textScale: ${MIN_TEXT_SCALE}~${MAX_TEXT_SCALE} 사이의 숫자여야 합니다`)
+    }
+    environment.textScale = value.textScale
+  }
+  if (value.longText !== undefined) {
+    if (typeof value.longText !== 'boolean') throw new Error('environment.longText: true/false 여야 합니다')
+    if (value.longText) environment.longText = true
+  }
+  if (value.direction !== undefined) {
+    if (value.direction !== 'rtl') throw new Error('environment.direction: "rtl" 만 지정할 수 있습니다')
+    environment.direction = 'rtl'
+  }
+  if (value.device !== undefined) {
+    if (typeof value.device !== 'string' || !(DEVICE_PROFILES as readonly string[]).includes(value.device)) {
+      throw new Error(`environment.device: ${DEVICE_PROFILES.map((name): string => `"${name}"`).join(', ')} 중 하나여야 합니다 (받은 값: ${JSON.stringify(value.device)})`)
+    }
+    environment.device = value.device as ScenarioEnvironment['device']
+  }
+  if (value.engine !== undefined) {
+    if (value.engine !== 'firefox' && value.engine !== 'webkit') throw new Error('environment.engine: "firefox" 또는 "webkit" 이어야 합니다(기본 Chromium 은 생략)')
+    environment.engine = value.engine
+  }
+  if (Object.keys(environment).length === 0) throw new Error('environment: 적용할 항목이 하나 이상 있어야 합니다')
+  return environment
+}
+
 export const parseScenario = (value: unknown): Scenario => {
   if (!isRecord(value)) throw new Error('시나리오는 JSON 객체여야 합니다')
-  rejectUnknown(value, ['name', 'description', 'seed', 'steps'], '시나리오')
+  rejectUnknown(value, ['name', 'description', 'seed', 'steps', 'environment'], '시나리오')
   const scenario: Scenario = {}
   if (value.name !== undefined) scenario.name = text(value.name, 'name', 100)
   if (value.description !== undefined) scenario.description = text(value.description, 'description', 500)
@@ -89,7 +133,8 @@ export const parseScenario = (value: unknown): Scenario => {
     if (!Array.isArray(value.steps) || value.steps.length > MAX_SCENARIO_STEPS) throw new Error(`steps: 배열이어야 하고 ${MAX_SCENARIO_STEPS}개 이하여야 합니다`)
     scenario.steps = value.steps.map(parseStep)
   }
-  if (!scenario.seed && !scenario.steps?.length) throw new Error('시나리오에는 seed 또는 steps 가 하나 이상 있어야 합니다')
+  if (value.environment !== undefined) scenario.environment = parseEnvironment(value.environment)
+  if (!scenario.seed && !scenario.steps?.length && !scenario.environment) throw new Error('시나리오에는 seed, steps, environment 중 하나 이상 있어야 합니다')
   return scenario
 }
 
@@ -106,7 +151,8 @@ const canonical = (value: unknown): string => {
 }
 
 /** 시나리오 내용의 짧은 키. name/description 은 표시용이라 내용에서 제외한다 */
-export const scenarioKey = (scenario: Scenario): string => `s_${hashString(canonical({ seed: scenario.seed, steps: scenario.steps }))}`
+// environment 는 있을 때만 키에 섞는다(없던 시절 시나리오의 키가 바뀌면 저장된 결함과 어긋난다)
+export const scenarioKey = (scenario: Scenario): string => `s_${hashString(canonical({ seed: scenario.seed, steps: scenario.steps, ...(scenario.environment ? { environment: scenario.environment } : {}) }))}`
 
 /** 같은 URL 이라도 시나리오가 다르면 다른 결함이므로 id 에 시나리오 키를 섞는다 */
 export const qualifyDefectId = (id: string, key: string): string => `d_${hashString(`${id}|${key}`)}`

@@ -23,9 +23,10 @@ export const parseSourceAttribute = (value: string, exact: boolean): SourceLocat
 /**
  * 패치 전후에 "같은 결함"을 찾기 위한 키.
  * 소스 위치가 있으면 DOM 구조가 바뀌어도 안정적이고, 없으면 셀렉터로 대체한다.
+ * 같은 요소에서 서로 다른 규칙(모드)의 결함이 나올 수 있어, 새 규칙은 kind 에 `overflow-x:모드` 처럼 모드를 붙여 구분한다.
  */
 export const createFingerprint = (
-  kind: DefectKind,
+  kind: DefectKind | `${DefectKind}:${string}`,
   source: SourceLocation | undefined,
   selector: string,
   viewportWidth: number

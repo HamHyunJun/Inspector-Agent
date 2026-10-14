@@ -118,9 +118,34 @@ export const describeDefect = (defect: Defect): string => {
     return `${defect.viewport.width}px 뷰포트에서 ${label} 의 ${Math.round(metrics.coveredRatio * 100)}% 가 ${metrics.occluder.selector} 에 가려짐 (${OCCLUSION_CAUSE_LABEL[metrics.cause]})`
   }
   const { metrics } = defect
+  if (metrics.detail) return `${defect.viewport.width}px 뷰포트에서 ${metrics.detail}`
   if (metrics.mode === 'viewport') {
     const label = defect.node.classes[0] ? `.${defect.node.classes[0]}` : defect.node.tag
     return `${defect.viewport.width}px 뷰포트에서 ${label}(너비 ${Math.round(metrics.nodeWidth)}px)이 화면 밖으로 ${Math.round(metrics.overflowPx)}px 나가 일부가 보이지 않음`
+  }
+  if (metrics.mode === 'broken-image') {
+    const label = defect.node.classes[0] ? `.${defect.node.classes[0]}` : defect.node.tag
+    return `${defect.viewport.width}px 뷰포트에서 이미지 ${label} 이(가) 로드에 실패해 빈 사각형이나 대체 텍스트만 보임`
+  }
+  if (metrics.mode === 'stacked-text') {
+    const label = defect.node.classes[0] ? `.${defect.node.classes[0]}` : defect.node.tag
+    return `${defect.viewport.width}px 뷰포트에서 ${label} 의 글 "${defect.node.text ?? ''}" 이(가) ${Math.round(metrics.parentContentWidth)}줄로 쪼개져 한 줄에 평균 ${metrics.nodeWidth}글자만 보임`
+  }
+  if (metrics.mode === 'tap-target') {
+    const label = defect.node.classes[0] ? `.${defect.node.classes[0]}` : defect.node.tag
+    return `${defect.viewport.width}px 뷰포트에서 터치 타겟 ${label} 의 짧은 변이 ${Math.round(metrics.nodeWidth)}px 로 ${Math.round(metrics.parentContentWidth)}px 기준보다 ${Math.round(metrics.overflowPx)}px 작고 주변 타겟과 붙어 있음`
+  }
+  if (metrics.mode === 'distorted') {
+    const label = defect.node.classes[0] ? `.${defect.node.classes[0]}` : defect.node.tag
+    return `${defect.viewport.width}px 뷰포트에서 이미지 ${label} 이(가) 원본 비율에 맞는 높이 ${Math.round(metrics.parentContentWidth)}px 대신 ${Math.round(metrics.nodeWidth)}px 로 그려져 ${Math.round(metrics.overflowPx)}px 늘어남`
+  }
+  if (metrics.mode === 'overlap') {
+    const label = defect.node.classes[0] ? `.${defect.node.classes[0]}` : defect.node.tag
+    return `${defect.viewport.width}px 뷰포트에서 ${label} 이(가) 다른 요소 위에 ${Math.round(metrics.overflowPx)}px 겹쳐 얹힘`
+  }
+  if (metrics.mode === 'doc-width') {
+    const label = defect.node.classes[0] ? `.${defect.node.classes[0]}` : defect.node.tag
+    return `${defect.viewport.width}px 뷰포트에서 문서가 ${Math.round(metrics.parentContentWidth)}px 로 가로 스크롤되는데 ${label}(너비 ${Math.round(metrics.nodeWidth)}px)의 배경·우측 여백이 ${Math.round(metrics.overflowPx)}px 모자라 끊김`
   }
   if (metrics.mode === 'squished') {
     const label = defect.node.classes[0] ? `.${defect.node.classes[0]}` : defect.node.tag

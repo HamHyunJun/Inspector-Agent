@@ -150,6 +150,33 @@ describe('제안 → 적용 → 재측정', () => {
   })
 })
 
+describe('환경 변형 스캔', () => {
+  const environment = { colorScheme: 'dark' as const }
+
+  it('variants 를 스캔 함수에 그대로 넘기고 잘못된 변형 이름은 요청 오류(422)로 돌려준다', async (): Promise<void> => {
+    const scan = vi.fn(async (..._args: unknown[]) => [] as ScanResult[])
+    const scanning = createEngine(resolveConfig({ projectRoot: root, dataDir, settleMs: 0 }), { scan: scan as never })
+    await scanning.scan('http://localhost:5173', undefined, undefined, ['dark', 'rtl'])
+    expect(scan.mock.calls[0]?.[2]).toMatchObject({ variants: ['dark', 'rtl'] })
+
+    const failing = createEngine(resolveConfig({ projectRoot: root, dataDir, settleMs: 0 }), { scan: (async () => { throw new Error('알 수 없는 환경 변형 "sepia". 사용 가능: dark') }) as never })
+    await expect(failing.scan('http://localhost:5173', undefined, undefined, ['sepia'])).rejects.toMatchObject({ status: 422 })
+    const missing = createEngine(resolveConfig({ projectRoot: root, dataDir, settleMs: 0 }), { scan: (async () => { throw new Error('webkit 브라우저가 설치되어 있지 않습니다. 설치하세요') }) as never })
+    await expect(missing.scan('http://localhost:5173', undefined, undefined, ['engine:webkit'])).rejects.toMatchObject({ status: 422 })
+  })
+
+  it('환경 시나리오를 단 결과를 저장하고, 패치 후 재측정은 같은 환경으로 잰다', async (): Promise<void> => {
+    const { scenarioKey, qualifyDefectId } = await import('@inspector-agent/core')
+    const scenario = { name: '환경: 다크 모드', environment }
+    const key = scenarioKey(scenario)
+    const id = qualifyDefectId('d_1', key)
+    await engine.ingest([{ ...scanResult, scenario, scenarioKey: key, defects: [{ ...defect, id, scenarioKey: key }] }])
+    const patch = await engine.proposePatch({ defectId: id, file: 'src/A.css', edits: [EDIT], rationale: 'r' })
+    await engine.applyPatch(patch.id)
+    expect(measure.mock.calls.at(-1)?.[2]).toMatchObject({ scenario: { environment } })
+  })
+})
+
 describe('롤백과 자동 정리', () => {
   it('통과한 패치도 롤백하면 원본으로 돌아가고 결함이 다시 open 이 된다', async (): Promise<void> => {
     const patch = await propose()

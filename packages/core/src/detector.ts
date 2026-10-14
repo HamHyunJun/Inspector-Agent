@@ -1,8 +1,15 @@
 import { classifySeverity, diagnose, diagnoseOcclusion } from './diagnose'
 import { createDefectId, createFingerprint, parseSourceAttribute } from './fingerprint'
 import { buildSelector, isTransformed, ownText, round, toRect } from './dom-utils'
+import { detectBrokenImage } from './rules/broken-image'
 import { detectClippedText } from './rules/clipped-text'
+import { detectExtraRules } from './rules/extra'
+import { detectDocWidth } from './rules/doc-width'
+import { detectImageDistortion } from './rules/image-distortion'
+import { detectOverlap } from './rules/overlap'
 import { detectSquished } from './rules/squished'
+import { detectStackedText } from './rules/stacked-text'
+import { detectTapTarget } from './rules/tap-target'
 import { detectViewportEscape } from './rules/viewport-escape'
 import type { RuleContext } from './rules/context'
 import { detectVerticalOverflow } from './rules/vertical-overflow'
@@ -184,7 +191,9 @@ export const detect = (options: DetectOptions = {}): ScanResult => {
 
     // 1) 박스 자체가 부모 콘텐츠 영역을 넘는 경우
     // shortcut: 자신이나 부모에 transform 이 있으면 박스 판정을 건너뛴다(회전 아이콘 오탐 방지). 변환된 요소의 진짜 오버플로우는 2) 만 본다, 레이아웃 좌표(offset*)로 판정하게 되면 업그레이드
-    const boxOverflow = isTransformed(style) || isTransformed(parentStyle) ? 0 : rect.right - parentContentRight
+    // 오른쪽→왼쪽 문서(RTL)에서는 넘침이 왼쪽으로 나가므로 부모의 왼쪽 콘텐츠 경계를 기준으로 잰다
+    const overflowsBox = parentStyle.direction === 'rtl' ? parentContentLeft - rect.left : rect.right - parentContentRight
+    const boxOverflow = isTransformed(style) || isTransformed(parentStyle) ? 0 : overflowsBox
     if (boxOverflow > thresholdPx) {
       candidates.push({
         element,
@@ -538,7 +547,25 @@ export const detect = (options: DetectOptions = {}): ScanResult => {
 
   // 가려짐 검사는 화면 밖 팝업을 보려고 스크롤하므로, 좌표를 읽는 규칙들을 먼저 실행한다
   const ruleContext: RuleContext = { elements, styleOf, snapshot, viewport, url, detectedAt }
-  const defects: Defect[] = [...overflowDefects, ...detectVerticalOverflow(ruleContext), ...detectClippedText(ruleContext), ...detectViewportEscape(ruleContext), ...detectSquished(ruleContext), ...detectOcclusions()].slice(0, maxDefects)
+  const squishedDefects = detectSquished(ruleContext)
+  // flex 줄에서 줄어들어 비율이 깨진 이미지는 찌그러짐으로 이미 보고했으므로 왜곡으로 다시 세지 않는다
+  const squishedSelectors = new Set(squishedDefects.map((defect): string => defect.node.selector))
+  const distortedDefects = detectImageDistortion(ruleContext).filter((defect): boolean => !squishedSelectors.has(defect.node.selector))
+  const defects: Defect[] = [
+    ...overflowDefects,
+    ...detectVerticalOverflow(ruleContext),
+    ...detectClippedText(ruleContext),
+    ...detectViewportEscape(ruleContext),
+    ...squishedDefects,
+    ...distortedDefects,
+    ...detectBrokenImage(ruleContext),
+    ...detectOverlap(ruleContext),
+    ...detectTapTarget(ruleContext),
+    ...detectStackedText(ruleContext),
+    ...detectDocWidth(ruleContext, culprits.map((culprit): Element => culprit.element)),
+    ...detectExtraRules(ruleContext),
+    ...detectOcclusions()
+  ].slice(0, maxDefects)
 
   return {
     url,
