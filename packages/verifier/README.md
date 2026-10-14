@@ -37,6 +37,10 @@ GitHub Actions 예시:
 
 데이터가 있어야 그려지는 화면이나 클릭해야 열리는 UI 는 [시나리오](https://github.com/HamHyunJun/Inspector-Agent/blob/main/docs/scenarios/README.md)로 스캔합니다. 소스 위치(`파일:라인`)까지 보려면 앱의 개발 서버에 [`@inspector-agent/vite-plugin`](https://www.npmjs.com/package/@inspector-agent/vite-plugin) 을 켜세요.
 
+## 자동 탐색
+
+시나리오가 없으면 기본으로 켜져서, 툴팁·팝오버·드롭다운·탭·모달 트리거를 찾아 눌러/올려 본 상태까지 검사합니다. 결과는 `[뷰포트별 기본 상태..., 열어 본 상태들...]` 순서이고, 열어 본 상태의 `ScanResult.scenario` 에 그 상태를 다시 만드는 시나리오가 들어 있습니다. 끄려면 `explore: false`(CLI `--no-explore`), 한도는 `explore: { maxTriggers, budgetMs }`. 삭제·결제·제출처럼 보이는 버튼은 누르지 않고 `GET` 이 아닌 요청은 차단합니다.
+
 ## API
 
 ```ts

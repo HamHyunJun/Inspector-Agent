@@ -295,10 +295,12 @@ pnpm dev:dashboard                      # http://localhost:3000
 | --- | --- | --- | --- |
 | 대시보드 폼 | 메인 화면의 **스캔 실행** (URL, 뷰포트 입력) | 가장 간단. 결과가 바로 저장됨 | URL 만 연다 (아래 참고) |
 | MCP `scan_page` | 에이전트에게 "스캔해줘" | 에이전트가 스캔→패치를 한 번에 진행 | 대시보드 폼과 같음 |
-| CLI | `node packages/verifier/dist/cli.js <url> [--viewports 375,768x1024] [--report http://localhost:3000] [--fail-on high] [--summary 파일] [--scenario 파일.json]` | 종료 코드·마크다운 요약. `--report` 로 대시보드에도 저장 | 같음 |
+| CLI | `node packages/verifier/dist/cli.js <url> [--viewports 375,768x1024] [--report http://localhost:3000] [--fail-on high] [--summary 파일] [--scenario 파일.json] [--no-explore]` | 종료 코드·마크다운 요약. `--report` 로 대시보드에도 저장 | 같음 |
 | Chrome 확장 | `pnpm build` 후 `packages/extension/dist` 를 `chrome://extensions` → **압축해제된 확장 프로그램 로드**. 확장 팝업에 대시보드 주소 입력 | **지금 보고 있는 탭 그대로** 탐지 (로그인, 시드 데이터, 인터랙션 후 상태 포함) | `localhost`/`127.0.0.1` 만, 한 번에 폭 하나(기본은 탭의 실제 너비, 팝업의 **뷰포트 에뮬레이션**(`chrome.debugger`)으로 375px 등으로 바꿔 검사), **모달 포커스 이탈 검사는 하지 않음**. 로드 절차와 자동 E2E 는 [`docs/extension-testing.md`](docs/extension-testing.md) |
 
-**상태에 의존하는 화면은 시나리오로 스캔하세요.** 헤드리스 스캔은 URL 만 열기 때문에 데이터가 있어야 그려지는 화면은 빈 상태로 검사되고, 이때 "결함 0건"은 **안전하다는 뜻이 아닙니다.** 실제 앱(Camping-Joy)에서 데이터 없이 스캔했을 때 13개 URL 이 전부 0건이었습니다. 또 스캔 시점에 **이미 열려 있는** 모달·드롭다운만 가려짐·포커스 검사 대상입니다. **시나리오**는 스캔 전에 `localStorage`/`sessionStorage`/쿠키 시드를 심고 클릭·입력·대기 단계를 실행하는 JSON 이며, 위 네 가지 경로(대시보드, MCP, CLI, 패치 후 재측정)가 같은 파일을 그대로 씁니다.
+**자동 탐색(기본 켜짐).** 시나리오 없이 스캔해도 대시보드·MCP·CLI 가 작은 화면부터 큰 화면까지(320/375/414/768/1024/1280px) 재 보고, 페이지에서 눌러 볼 만한 것(`aria-expanded`/`aria-haspopup` 트리거, 툴팁, 탭, 아코디언, 일반 버튼, CSS `:hover` 로만 열리는 메뉴)을 **스스로 찾아 hover/click** 한 뒤 열린 상태까지 검사합니다. 열었을 때만 생기는 결함(툴팁·팝오버가 화면 밖으로 나감, 모달 가려짐·포커스 이탈 등)이 "자동 탐색: click …" 이름의 상태로 따로 기록되고, 각 상태는 그 상태를 다시 만드는 시나리오로 저장되어 패치 후 재측정도 같은 상태에서 합니다. 안전을 위해 삭제·결제·제출·로그아웃처럼 보이는 버튼과 제출 버튼은 누르지 않고, 탐색 중 `GET` 이 아닌 요청은 차단하며, 새 창·내려받기·`confirm` 창은 막습니다. 끄려면 CLI `--no-explore`, API `explore: false`. 직접 시나리오를 주면 그 시나리오가 우선이라 탐색하지 않습니다.
+
+**로그인이 필요하거나 데이터가 있어야 그려지는 화면은 시나리오로 스캔하세요.** 헤드리스 스캔은 URL 만 열기 때문에 데이터가 있어야 그려지는 화면은 빈 상태로 검사되고, 이때 "결함 0건"은 **안전하다는 뜻이 아닙니다.** 실제 앱(Camping-Joy)에서 데이터 없이 스캔했을 때 13개 URL 이 전부 0건이었습니다. 또 스캔 시점에 **이미 열려 있는** 모달·드롭다운만 가려짐·포커스 검사 대상입니다. **시나리오**는 스캔 전에 `localStorage`/`sessionStorage`/쿠키 시드를 심고 클릭·입력·대기 단계를 실행하는 JSON 이며, 위 네 가지 경로(대시보드, MCP, CLI, 패치 후 재측정)가 같은 파일을 그대로 씁니다.
 
 ```bash
 node packages/verifier/dist/cli.js http://localhost:5174/camps/c1/distribute --viewports 1280 --scenario docs/scenarios/camping-joy.json
