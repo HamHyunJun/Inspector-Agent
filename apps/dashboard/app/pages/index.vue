@@ -7,13 +7,13 @@
 </template>
 
 <script setup lang="ts">
-import type { DashboardStats, DefectGroupSummary, DefectStatus } from '~~/shared/types/inspector'
+import type { Stats, DefectGroupSummary, DefectStatus } from '~~/shared/types/inspector'
 
 const statusFilter = useState<DefectStatus | ''>('defect-status-filter', (): DefectStatus | '' => '')
 const { data: groups, refresh: refreshDefects } = await useFetch<DefectGroupSummary[]>('/api/defect-groups', {
   query: { status: statusFilter }
 })
-const { data: stats, refresh: refreshStats } = await useFetch<DashboardStats>('/api/stats')
+const { data: stats, refresh: refreshStats } = await useFetch<Stats>('/api/stats')
 
 const handleRefresh = async (): Promise<void> => {
   await Promise.all([refreshDefects(), refreshStats()])

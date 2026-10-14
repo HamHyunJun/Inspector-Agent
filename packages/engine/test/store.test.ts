@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { baselineKey } from './store'
+import { baselineKey } from '../src/store'
 
 describe('baselineKey', () => {
   it('시나리오가 없으면 기존 키 형식을 유지한다', () => {

@@ -1,10 +1,7 @@
 import type { DefectContext } from '../../../../shared/types/inspector'
-import { buildDefectContext } from '../../../utils/context'
-import { readStore } from '../../../utils/store'
+import { withEngine } from '../../../utils/engine'
 
-export default defineEventHandler(async (event): Promise<DefectContext> => {
+export default defineEventHandler((event): Promise<DefectContext> => {
   const id = getRouterParam(event, 'id') ?? ''
-  const defect = (await readStore()).defects[id]
-  if (!defect) throw createError({ statusCode: 404, statusMessage: `결함을 찾을 수 없습니다: ${id}` })
-  return buildDefectContext(defect)
+  return withEngine((engine) => engine.getContext(id))
 })

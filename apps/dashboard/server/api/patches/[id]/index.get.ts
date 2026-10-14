@@ -1,9 +1,7 @@
 import type { Patch } from '../../../../shared/types/inspector'
-import { readStore } from '../../../utils/store'
+import { withEngine } from '../../../utils/engine'
 
-export default defineEventHandler(async (event): Promise<Patch> => {
+export default defineEventHandler((event): Promise<Patch> => {
   const id = getRouterParam(event, 'id') ?? ''
-  const patch = (await readStore()).patches[id]
-  if (!patch) throw createError({ statusCode: 404, statusMessage: `패치를 찾을 수 없습니다: ${id}` })
-  return patch
+  return withEngine((engine) => engine.getPatch(id))
 })

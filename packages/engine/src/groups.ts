@@ -1,6 +1,6 @@
 import { defectMagnitude, groupDefects } from '@inspector-agent/core'
 import type { Severity } from '@inspector-agent/core'
-import type { DefectGroupSummary, DefectStatus, StoredDefect } from '../../shared/types/inspector'
+import type { DefectGroupSummary, DefectStatus, StoredDefect } from './types'
 
 const SEVERITY_ORDER: Record<Severity, number> = { high: 0, medium: 1, low: 2 }
 

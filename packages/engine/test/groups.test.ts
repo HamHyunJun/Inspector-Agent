@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { NodeSnapshot, Severity } from '@inspector-agent/core'
-import type { DefectStatus, StoredDefect } from '../../shared/types/inspector'
-import { aggregateStatus, summarizeGroups } from './defect-groups'
+import type { DefectStatus, StoredDefect } from '../src/types'
+import { aggregateStatus, summarizeGroups } from '../src/groups'
 
 const snapshot = (): NodeSnapshot => ({
   selector: 'span.name',

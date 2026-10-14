@@ -1,0 +1,7 @@
+export { createEngine } from './engine'
+export type { Engine } from './engine'
+export { configFromEnv, projectRootProblem, resolveConfig } from './config'
+export type { EngineConfig } from './config'
+export { EngineError } from './errors'
+export type { DefectDetail } from './queries'
+export * from './types'

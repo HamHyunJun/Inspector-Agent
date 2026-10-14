@@ -1,7 +1,10 @@
-import { scenarioKey } from '@inspector-agent/core'
+import { parseScenario, scenarioKey } from '@inspector-agent/core'
 import type { ScanResult, Scenario } from '@inspector-agent/core'
-import type { ScanIngestResult, StoredDefect } from '../../shared/types/inspector'
-import { baselineKey, updateStore } from './store'
+import type { Env } from './env'
+import { EngineError } from './errors'
+import { assertDefectId } from './ids'
+import { baselineKey } from './store'
+import type { ScanIngestResult, StoredDefect } from './types'
 
 /**
  * 스캔 결과를 저장소에 병합한다.
@@ -11,17 +14,20 @@ import { baselineKey, updateStore } from './store'
  *   (시나리오가 다르면 다른 상태의 화면이므로 서로를 해결로 바꾸지 않는다)
  * - 시나리오로 스캔했다면 패치 후 재측정이 같은 상태를 만들 수 있도록 시나리오를 함께 보관한다
  */
-export const ingestScanResults = (results: ScanResult[], scenario?: Scenario): Promise<ScanIngestResult> => {
+export const ingestScanResults = async (env: Env, results: ScanResult[], scenario?: Scenario): Promise<ScanIngestResult> => {
   // 결과마다 재측정할 시나리오가 있어야 한다: 함께 보낸 시나리오이거나, 자동 탐색이 결과에 실어 보낸 시나리오
   // 시나리오 없이 키만 달고 온 결과는 재측정할 수 없는 결함을 만들므로 받지 않는다
-  const scenarioOf = (result: ScanResult): Scenario | undefined => result.scenario ?? scenario
+  // 외부에서 들어온 시나리오는 재측정 때 실행되므로 형식과 한도를 검증한다
+  const scenarioOf = (result: ScanResult): Scenario | undefined => (result.scenario ? parseScenario(result.scenario) : scenario)
   for (const result of results) {
+    if (!/^https?:\/\//.test(result.url)) throw new EngineError(`스캔 결과의 url 이 http(s) 가 아닙니다: ${result.url}`, 400)
+    result.defects.forEach((defect): void => assertDefectId(defect.id))
     const expected = scenarioOf(result)
     if (result.scenarioKey !== (expected ? scenarioKey(expected) : undefined)) {
-      throw new Error('스캔 결과의 시나리오 키가 함께 보낸 시나리오와 맞지 않습니다.')
+      throw new EngineError('스캔 결과의 시나리오 키가 함께 보낸 시나리오와 맞지 않습니다.', 400)
     }
   }
-  return updateStore((data): ScanIngestResult => {
+  return env.store.update((data): ScanIngestResult => {
     for (const result of results) {
       const own = scenarioOf(result)
       if (own && result.scenarioKey) data.scenarios[result.scenarioKey] = own

@@ -14,9 +14,8 @@
   },
   "dependencies": {
     "@inspector-agent/core": "workspace:*",
+    "@inspector-agent/engine": "workspace:*",
     "@inspector-agent/source-locator": "workspace:*",
-    "@inspector-agent/verifier": "workspace:*",
-    "diff": "^8.0.0",
     "nuxt": "^4.6.1",
     "vue": "^3.5.0"
   },

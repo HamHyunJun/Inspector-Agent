@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import type { Patch } from '../../shared/types/inspector'
-import { findDuplicatePatch } from './patch-dedupe'
+import type { Patch } from '../src/types'
+import { findDuplicatePatch } from '../src/dedupe'
 
 const patch = (overrides: Partial<Patch> = {}): Patch => ({
   id: 'p_1',

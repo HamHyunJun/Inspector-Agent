@@ -6,8 +6,8 @@ import {
   readSnippet
 } from '@inspector-agent/source-locator'
 import type { StyleRuleMatch } from '@inspector-agent/source-locator'
-import type { DefectContext, StoredDefect } from '../../shared/types/inspector'
-import { readProjectFile } from './project-files'
+import type { Env } from './env'
+import type { DefectContext, StoredDefect } from './types'
 
 const isJsx = (file: string): boolean => /\.(jsx|tsx)$/.test(file)
 
@@ -15,7 +15,8 @@ const isJsx = (file: string): boolean => /\.(jsx|tsx)$/.test(file)
  * 에이전트에게 줄 결함 컨텍스트를 만든다.
  * 런타임 수치(압축 페이로드) + 템플릿 해당 라인 주변 + 노드/부모 클래스를 대상으로 하는 SCSS 규칙 라인.
  */
-export const buildDefectContext = async (defect: StoredDefect): Promise<DefectContext> => {
+export const buildDefectContext = async (env: Env, defect: StoredDefect): Promise<DefectContext> => {
+  const readProjectFile = env.files.read
   const payload = toAgentPayload(defect)
   const file = defect.node.source?.file
   const base: DefectContext = {

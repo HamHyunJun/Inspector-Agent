@@ -1,4 +1,7 @@
 import type { Patch } from '../../../../shared/types/inspector'
-import { rollbackPatch } from '../../../utils/patch-service'
+import { withEngine } from '../../../utils/engine'
 
-export default defineEventHandler(async (event): Promise<Patch> => rollbackPatch(getRouterParam(event, 'id') ?? ''))
+export default defineEventHandler((event): Promise<Patch> => {
+  const id = getRouterParam(event, 'id') ?? ''
+  return withEngine((engine) => engine.rollbackPatch(id))
+})

@@ -1,5 +1,5 @@
 import type { PatchEdit } from '@inspector-agent/core'
-import type { Patch } from '../../shared/types/inspector'
+import type { Patch } from './types'
 
 const sameEdits = (a: PatchEdit[], b: PatchEdit[]): boolean =>
   a.length === b.length && a.every((edit, index): boolean => edit.oldText === b[index]?.oldText && edit.newText === b[index]?.newText)

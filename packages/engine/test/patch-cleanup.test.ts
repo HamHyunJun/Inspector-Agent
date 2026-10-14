@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { AUTO_PRUNE_AFTER_MS, canDelete, isDisposable, selectDisposable } from './patch-cleanup'
-import type { Patch } from './types/inspector'
+import { AUTO_PRUNE_AFTER_MS, canDelete, isDisposable, selectDisposable } from '../src/patch-cleanup'
+import type { Patch } from '../src/types'
 
 const patch = (overrides: Partial<Patch>): Patch => ({
   id: 'p',

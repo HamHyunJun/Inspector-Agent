@@ -1,17 +1,10 @@
-import type { AgentDefectPayload, Defect, PatchEdit, Viewport } from '@inspector-agent/core'
+import type { Defect, PatchEdit, Viewport } from '@inspector-agent/core'
+import type { DefectContext, Patch } from '@inspector-agent/engine'
 
 /**
- * 대시보드 Nitro API 의 얇은 클라이언트.
- * MCP 서버는 상태를 갖지 않고 모든 저장·적용·검증을 대시보드에 위임한다.
+ * MCP 도구가 쓰는 백엔드. 대시보드 Nitro API 클라이언트(INSPECTOR_DASHBOARD_URL 이 있을 때)와
+ * 대시보드 없이 엔진을 직접 쓰는 구현(engine-backend.ts, 기본)이 같은 모양을 따른다.
  */
-
-interface StyleRule {
-  file: string
-  selector: string
-  line: number
-  atRules: string[]
-  declarations: Array<{ property: string; value: string; line: number }>
-}
 
 /** Defect 가 kind 별 합집합이라 interface extends 대신 교차 타입으로 확장한다 */
 export type DefectSummary = Defect & { status: string }
@@ -19,39 +12,9 @@ export type DefectSummary = Defect & { status: string }
 /** 같은 소스 위치·뷰포트의 결함을 URL 과 무관하게 묶은 목록 항목. status 는 URL 별 상태를 합친 값, urls 는 발생한 경로 */
 export type DefectListItem = DefectSummary & { urls: string[] }
 
-export interface DefectContextResponse {
-  defect: DefectSummary
-  payload: AgentDefectPayload
-  file?: string
-  template?: { startLine: number; endLine: number; text: string }
-  nodeRules: StyleRule[]
-  parentRules: StyleRule[]
-  childRules: StyleRule[]
-  outline?: {
-    templateRange?: { startLine: number; endLine: number }
-    styleRanges: Array<{ startLine: number; endLine: number; lang: string; scoped: boolean }>
-  }
-  tokens: { context: number; rawFile: number }
-}
-
-export interface PatchResponse {
-  id: string
-  defectId: string
-  file: string
-  status: string
-  diff: string
-  rationale: string
-  autoRolledBack?: boolean
-  error?: string
-  verification?: {
-    passed: boolean
-    verdict: string
-    unit?: 'px' | 'ratio' | 'count'
-    beforePx: number
-    afterPx: number
-    regressions: Defect[]
-  }
-}
+/** 응답 모양은 엔진과 대시보드 API 가 같다 */
+export type DefectContextResponse = DefectContext
+export type PatchResponse = Patch
 
 export class DashboardError extends Error {}
 
@@ -64,7 +27,7 @@ const pathOf = (url: string): string => {
   }
 }
 
-export interface DashboardClient {
+export interface Backend {
   scan: (url: string, viewports?: Viewport[], scenario?: unknown) => Promise<{ defects: number; created: number; resolved: number }>
   listDefects: (status?: string) => Promise<DefectListItem[]>
   getContext: (defectId: string) => Promise<DefectContextResponse>
@@ -73,7 +36,7 @@ export interface DashboardClient {
   applyPatch: (patchId: string) => Promise<PatchResponse>
 }
 
-export const createDashboardClient = (baseUrl: string): DashboardClient => {
+export const createDashboardClient = (baseUrl: string): Backend => {
   const request = async <T>(path: string, init?: { method?: string; body?: unknown }): Promise<T> => {
     let response: Response
     try {

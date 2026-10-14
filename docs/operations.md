@@ -7,12 +7,14 @@
 | 구성 요소 | 하는 일 | 언제 켜 두나 |
 | --- | --- | --- |
 | 내 앱의 개발 서버 | Vite 플러그인이 `.vue` 요소에 `data-ia-src="파일:라인:컬럼"` 을 주입 (개발 서버 전용) | 개발하는 동안 |
-| 대시보드 (`pnpm dev:dashboard`) | 결함·패치 저장, 헤드리스 스캔, Diff 검토, 적용·재측정·롤백. **내 프로젝트 파일을 실제로 쓰는 유일한 곳** | 개발하는 동안 |
-| MCP 서버 | Claude Code 가 대시보드를 호출하는 통로 (`scan_page`, `list_defects`, `get_defect_context`, `propose_patch`, `get_patch_status`) | Claude Code 세션 동안 (자동 실행) |
+| 엔진 (`@inspector-agent/engine`) | 결함·패치 저장, 스캔, 컨텍스트, 패치 제안·적용·재측정·자동 롤백. **내 프로젝트 파일을 실제로 쓰는 유일한 코드**이고 MCP 서버, `inspector-agent` CLI, 대시보드가 같은 엔진을 씁니다 | MCP·CLI 가 실행될 때 |
+| MCP 서버 | Claude Code 가 쓰는 도구(`scan_page`, `list_defects`, `get_defect_context`, `propose_patch`, `get_patch_status`, `apply_patch`). 독립 모드에서는 이 프로세스의 엔진이 모든 일을 합니다(대시보드 불필요) | Claude Code 세션 동안 (자동 실행) |
+| 대시보드 (`pnpm dev:dashboard`, 선택) | 결함 목록·소스 매핑·Diff 를 화면으로 보고 적용·롤백도 할 수 있다. 같은 `.inspector-agent` 저장소를 읽는다 | 화면으로 보고 싶을 때 |
+| `inspector-agent` CLI | `fix <url>`(스캔 → 규칙 기반 제안 → 승인 → 적용·재측정), `apply <패치 id>`(AI 제안을 사람이 승인) | 필요할 때 |
 | `inspector-scan` CLI | 스캔만 하고 종료 코드로 판정. CI 용 | 필요할 때 / CI |
 | Chrome 확장 | 지금 보고 있는 탭을 그대로 탐지해 대시보드로 전송 | 로그인·데이터가 필요한 화면을 볼 때 |
 
-에이전트는 파일을 직접 고치지 않습니다. **제안(`propose_patch`) → 사람이 승인(또는 자율 모드) → 대시보드가 백업·반영·재측정** 순서로만 파일이 바뀌고, 재측정에 실패하면 대시보드가 원본으로 되돌립니다.
+에이전트는 파일을 직접 고치지 않습니다. **제안(`propose_patch`) → 사람이 승인(또는 자율 모드) → 엔진이 백업·반영·재측정** 순서로만 파일이 바뀌고, 재측정에 실패하면 엔진이 원본으로 되돌립니다.
 
 ## 일상 운영 루프
 
@@ -44,13 +46,13 @@
 | | 승인 모드 (기본) | 자율 모드 (`INSPECTOR_ALLOW_AGENT_APPLY=1`) |
 | --- | --- | --- |
 | 에이전트가 하는 일 | 제안까지 | 제안 → `apply_patch` 로 적용 → 재측정 결과를 보고 재제안 |
-| 파일 반영 | 사람이 대시보드에서 승인 | 사람 승인 없이 대시보드가 바로 반영 |
+| 파일 반영 | 사람이 승인: 승인 창을 지원하는 클라이언트는 그 창(diff 표시), 아니면 터미널 `inspector-agent apply`, 대시보드 모드는 대시보드 화면 | 사람 승인 없이 바로 반영 |
 | 켜는 방법 | 기본값 | `.mcp.json` 의 `env` 에 `"INSPECTOR_ALLOW_AGENT_APPLY": "1"` 추가 후 Claude Code 재시작 |
 
 자율 모드는 켜기 전에 아래를 지키는 것을 권장합니다.
 
 - **전용 브랜치에서, 작업 트리를 깨끗하게 한 뒤** 켭니다. 끝난 뒤 `git diff` 가 곧 에이전트가 한 일의 전부입니다.
-- 대시보드의 **안전장치**는 이렇습니다: 모든 경로가 `INSPECTOR_PROJECT_ROOT` 안으로 제한되고 `node_modules` 는 거부, 반영 전 백업, 제안 이후 파일이 바뀌었으면 적용 거부(409), 재측정 실패 시 자동 롤백. API 는 CORS 를 열지 않고, 로컬 주소가 아닌 Host(DNS 리바인딩)와 다른 웹사이트에서 온 쓰기 요청(Origin 불일치)을 403 으로 거부합니다. MCP 서버, CLI, 대시보드 화면, Chrome 확장은 그대로 동작합니다.
+- 엔진의 **안전장치**는 이렇습니다: 모든 경로가 `INSPECTOR_PROJECT_ROOT` 안으로 제한되고 `node_modules` 와 루트 밖을 가리키는 심볼릭 링크는 거부, 반영 전 백업, 제안 이후 파일이 바뀌었으면 적용 거부(409), 재측정 실패 시 자동 롤백. (대시보드를 쓸 때) API 는 CORS 를 열지 않고, 로컬 주소가 아닌 Host(DNS 리바인딩)와 다른 웹사이트에서 온 쓰기 요청(Origin 불일치)을 403 으로 거부합니다. MCP 서버, CLI, 대시보드 화면, Chrome 확장은 그대로 동작합니다.
 - 하지만 **검증은 "대상 결함이 사라졌고, 같은 뷰포트에 새 결함이 없다"까지만** 봅니다. 다른 페이지, 다른 뷰포트, 열려야 보이는 UI 에서 생긴 회귀와 디자인 의도는 못 봅니다. 자율 모드가 끝나면 사람이 diff 를 훑고, 모든 뷰포트로 다시 스캔하세요.
 - **시도 횟수 제한은 코드에 없습니다.** 에이전트에게 "결함당 최대 3회, 그래도 안 되면 멈추고 보고"처럼 지시하세요(벤치마크 실측도 이 조건이었습니다).
 - 대상은 로컬 개발 서버와 로컬 프로젝트 루트입니다. 원격·프로덕션 URL 을 스캔할 수는 있어도 거기에는 `data-ia-src` 가 없어 소스 매핑이 안 됩니다.
@@ -105,7 +107,7 @@ node packages/verifier/dist/cli.js http://localhost:5173 --scenario docs/scenari
 - **저장 위치**: `INSPECTOR_DATA_DIR`(기본 `apps/dashboard/.inspector-agent`)의 `store.json`(결함·패치·재측정 기준선)과 `backups/<패치id>.bak`(적용 직전 원본). 사람이 열어 볼 수 있는 JSON 이고, 폴더를 지우면 초기화됩니다(대상 프로젝트 파일에는 영향 없음).
 - **결함 상태**: `open`(미해결) · `patched`(자동 롤백 없이 파일에 남은 상태) · `resolved`(해결). 같은 URL·뷰포트를 재스캔했는데 사라진 `open` 결함만 `resolved` 가 되고, 해결된 결함이 다시 나타나면 `open` 으로 돌아옵니다.
 - **패치 상태**: `proposed`(검토 대기) · `verified`(검증 통과) · `failed`(검증 실패, 보통 자동 롤백됨) · `rolled-back` · `rejected`.
-- **여러 프로젝트를 다룰 때**: 프로젝트마다 대시보드 인스턴스를 따로 띄웁니다. 포트, `INSPECTOR_PROJECT_ROOT`, `INSPECTOR_DATA_DIR` 를 모두 다르게 주고, 그 프로젝트의 `.mcp.json` 에 해당 포트를 `INSPECTOR_DASHBOARD_URL` 로 적습니다.
+- **여러 프로젝트를 다룰 때**: 독립 모드(MCP, CLI)는 프로젝트마다 자기 폴더의 `.inspector-agent/` 를 쓰므로 따로 할 일이 없습니다. 대시보드를 쓴다면 프로젝트마다 인스턴스를 따로 띄웁니다. 포트, `INSPECTOR_PROJECT_ROOT`, `INSPECTOR_DATA_DIR` 를 모두 다르게 주고, 그 프로젝트의 `.mcp.json` 에 해당 포트를 `INSPECTOR_DASHBOARD_URL` 로 적습니다.
 
   ```bash
   cd apps/dashboard

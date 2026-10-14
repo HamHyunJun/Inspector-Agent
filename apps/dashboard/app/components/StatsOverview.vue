@@ -11,11 +11,11 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { DashboardStats } from '~~/shared/types/inspector'
+import type { Stats } from '~~/shared/types/inspector'
 import { formatDateTime, formatPercent } from '~/utils/format'
 
 const props = defineProps<{
-  stats: DashboardStats
+  stats: Stats
 }>()
 
 interface StatItem {

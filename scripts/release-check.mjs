@@ -6,7 +6,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 
 export const SCOPE = '@inspector-agent/'
 export const REPO_URL = 'git+https://github.com/HamHyunJun/Inspector-Agent.git'
-export const PUBLISH_DIRS = ['core', 'vite-plugin', 'verifier', 'mcp-server']
+export const PUBLISH_DIRS = ['core', 'vite-plugin', 'verifier', 'engine', 'mcp-server']
 const SEMVER = /^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$/
 
 /** exports 객체에서 파일 경로 문자열을 모두 모은다 */
