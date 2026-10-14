@@ -48,6 +48,57 @@ flowchart LR
 
 더 자세한 설계(탐지 규칙, 패키지 구성, 벤치마크)는 [개요](docs/overview.md)에 있습니다.
 
+## 실제 사용 사례
+
+제 서비스 두 곳(Nuxt 4)의 개발 서버에서 `/ia scan` 으로 스캔하고, 제안된 패치를 승인한 기록입니다. 수치는 모두 패치 적용 후 **같은 화면에서 재측정**한 값입니다.
+
+### TaxKit: 결함 43건이 패치 3건으로 0건
+
+6개 화면 너비 스캔에서 결함 43건이 나왔고, 원인은 고정 너비(`60rem` 등)와 `nowrap`이었습니다. 제안된 패치 3건이 모두 재측정을 통과했고, 다시 스캔하자 결함이 0건이었습니다.
+
+| 파일 | 재측정 |
+| --- | --- |
+| `app/components/layout/AppFooter.vue` | 오버플로우 672px → 0px, 새 결함 없음 |
+| `app/components/common/PageHeader.vue` | 오버플로우 416px → 0px, 새 결함 없음 |
+| `app/components/layout/SecurityBadge.vue` | 오버플로우 336px → 0px, 새 결함 없음 |
+
+```diff
+ // AppFooter.vue: 고정 너비 + 줄바꿈 금지가 좁은 화면에서 672px 넘침을 만들었음
+-    width: 60rem;
+-    white-space: nowrap;
++    max-width: 100%;
+
+ // SecurityBadge.vue: 팝오버가 화면 폭을 넘어 오른쪽으로 밀려남
+-    width: 40rem;
++    width: min(23rem, calc(100vw - #{$space-8}));
+-      right: -16rem;
++      right: 0;
+```
+
+같은 날 다른 스캔에서는 320px의 5px·2px 같은 미세한 결함 3건도 잡아, 패치 2건이 `5px → 0px`·`2px → 0px`로 통과했습니다. 눈으로는 거의 안 보이는 크기입니다.
+
+### TaxKit 100px: 새 결함을 만든 패치는 자동 롤백
+
+일부러 100px 화면으로 스캔하자 결함 17건이 나왔고, 패치 4건을 승인했습니다.
+
+| 결과 | 건수 | 내용 |
+| --- | --- | --- |
+| 통과 | 1건 | 57px → 0px, 새 결함 없음 |
+| 자동 롤백 | 3건 | 대상(118px · 70px · 46px)은 사라졌지만 새 결함이 각각 7·9·5건 생겨서 원본으로 되돌림 |
+
+롤백된 3건은 "대상 결함이 사라졌다"만 보면 성공처럼 보이는 패치입니다. 수치가 0이 되었는지와 새 결함이 없는지를 함께 보기 때문에 막을 수 있었습니다.
+
+### 포트폴리오: 116건 중 통과한 패치만 남김
+
+첫 스캔에서 결함 116건이 나왔습니다(터치 타겟, 포커스 가림, 찌그러짐, 이미지 과대 로딩 등). 그중 3건에 패치를 제안해 승인했습니다.
+
+| 파일 | 결과 |
+| --- | --- |
+| `components/MainSectionTitle.vue` | 1024px에서 제목 구분선이 flex 안에서 443px 찌그러짐 → 0px, 새 결함 없음 (**통과**) |
+| `pages/index.vue` | 문서 폭 미추종 8px → 재측정에서 139px로 오히려 커짐 (**롤백**) |
+| `components/MainWorks.vue` | 터치 타겟 2px 부족은 해결됐지만 새 결함 10건 발생 (**롤백**) |
+
+롤백된 두 건은 원인을 다시 분석해 같은 패치를 한 번 더 제안했지만 결과가 같아 다시 롤백되었습니다. 모든 결함이 자동으로 풀리는 것은 아닙니다. 그래도 파일에는 **검증을 통과한 패치만** 남았습니다.
 ---
 
 ## 어떻게 쓸까요? 먼저 고르세요
@@ -120,6 +171,7 @@ npx inspector-scan http://localhost:5173     # 3. 스캔
 | `--summary 파일` | 마크다운 요약을 파일에 덧붙임 (GitHub Actions: `"$GITHUB_STEP_SUMMARY"`) |
 | `--no-explore` | 자동 탐색 끄기 |
 | `--scenario 파일.json` | 로그인·데이터가 필요한 화면용 시나리오 ([작성법](docs/scenarios/README.md)) |
+| `--variants dark,text-scale` | 다른 환경(다크 모드, 글자 2배, RTL 등)에서도 검사 ([목록](#환경을-바꿔-다시-검사하기-variants)) |
 
 종료 코드: `0` 통과 · `1` 기준 초과 · `2` 사용법 오류 또는 스캔 실패.
 
@@ -208,34 +260,117 @@ npx -y @inspector-agent/engine apply p_abc123     # diff 확인 → y/N → 적�
 
 ## 무엇을 검사하나
 
+탐지 규칙은 **51종**입니다(가로 오버플로우 계열 모드 47종과 세로 오버플로우·텍스트 잘림·가려짐·포커스 이탈). 0.6.0 에서 4종이던 모드가 0.7.0 에서 **43종 늘었습니다**. 아래 표에서 `0.7`은 0.7.0 에 추가된 규칙입니다. 모드 이름은 결과에 `(unbreakable-text)` 같은 진단 옆에 함께 표시됩니다.
+
 **자동 탐색(기본 켜짐).** 스캔이 눌러 볼 만한 것(툴팁, 팝오버, 드롭다운, 모달 트리거, 탭, 아코디언, CSS `:hover` 메뉴)을 스스로 찾아 hover/click하고, **열린 상태**까지 6개 화면 너비에서 검사합니다. 열었을 때만 생기는 결함은 "자동 탐색: click …" 상태로 따로 기록되고, 패치 후 재측정도 같은 열린 상태에서 합니다. 삭제·결제·제출·로그아웃처럼 보이는 버튼은 누르지 않고, 탐색 중 `GET`이 아닌 요청은 막습니다.
 
-| 종류 | 잡는 것 |
-| --- | --- |
-| 가로 오버플로우 | 박스·텍스트가 부모 밖으로 밀려남 |
-| 화면 이탈 | 열린 툴팁·팝오버가 화면 좌우 밖으로 나감 |
-| 찌그러짐 | flex 줄 안의 아이콘·이미지가 줄어들어 비율이 깨짐 (예: 24×24 원형 아이콘이 타원이 되거나 거의 사라짐) |
-| 문서 폭 미추종 | 페이지가 가로로 스크롤되는데 뷰포트 너비로만 그려진 헤더·푸터의 배경과 우측 여백이 끊김 |
-| 겹침 | 흐름 안의 글·이미지·버튼이 다른 요소 위에 얹힘 (예: 음수 margin 으로 끌어올린 제목이 아래 문단을 덮음) |
-| 이미지 비율 왜곡 | `<img>` 가 원본 비율과 다른 박스에 `object-fit: fill` 로 그려져 늘어남 |
-| 터치 타겟 | 터치 화면(768px 이하)에서 24px 보다 작은 버튼·링크가 다른 타겟과 붙어 있어 잘못 누르기 쉬움 (WCAG 2.5.8, 간격 예외 적용) |
-| 글자 세로 쪼개짐 | 칸이 너무 좁아 "주문내역" 이 주/문/내/역처럼 한두 글자씩 세로로 섬 |
-| 깨진 이미지 | `<img>`·`<picture>` 소스가 로드에 실패해 빈 사각형이나 대체 텍스트만 보임 |
-| 글자·이미지 품질 | 너무 작은 글자(12px 미만), 줄 높이가 글자보다 좁아 줄이 붙은 문단, 문단 끝에 한두 글자만 남은 줄, 흐릿한 이미지(원본이 화면 배율보다 작음), 필요 이상으로 큰 이미지, 너무 긴 줄 |
-| 대비·정렬 | 글자 대비 부족(WCAG 4.5:1, 단색 배경만), 입력창 경계 대비 부족(3:1), 아이콘·글자 세로 정렬 어긋남, 버튼 안 글자 쏠림, 같은 줄 카드 높이 들쭉날쭉 |
-| 입력·상호작용 | 입력창 글자 16px 미만(iOS 확대), 투명 레이어에 가로채여 안 눌리는 버튼, 클릭만 되고 키보드로는 못 누르는 div, hover 로만 열리는 메뉴, 양수 tabindex, 모달 없는데 남은 스크롤 잠금, 로드 중 화면이 튀는 정도(CLS) |
-| 포커스(실제 Tab 키) | 포커스 표시 없음(outline 만 끔), 고정 요소가 Tab 으로 이동한 요소를 가림, 화면 순서를 거스른 Tab 이동 |
-| 고정 레이어·스크롤 영역 | 고정 요소끼리 겹침, 화면을 크게 가리는 고정 띠, 붙지 않는 sticky, 효과 없는 z-index, overflow 가 배지를 반쯤 자름, 가로 스크롤 목록 끝 여백 없음, 이중 스크롤, `100vh` 로 모바일 주소창에 가려질 버튼 |
-| 레이아웃 빈틈 | 내용 아래 큰 빈 공간, 같은 크기 칩이 3+1 로 줄바꿈되어 외톨이 남음, 입력창 placeholder·선택값 잘림 |
-| 페이지 건강 | 로드에 실패한 CSS·JS(404, CSS 가 아닌 응답), HTTPS 페이지의 HTTP 리소스(혼합 콘텐츠), 로드 실패한 웹폰트, 렌더 중 콘솔 에러, 대상 없는 `#앵커` 링크 |
-| 세로 오버플로우 | 높이가 고정된 컨테이너 밖으로 내용이 넘쳐 아래 요소와 겹침 |
-| 텍스트 잘림 | 말줄임 없이 글자가 잘려 사라짐 |
-| 가려짐 | 모달·드롭다운이 다른 요소에 가려짐 (원인: z-index, stacking context 등) |
-| 포커스 이탈 | 열린 모달에서 Tab으로 포커스가 모달 밖으로 나감 |
+### 레이아웃·넘침
+
+| 규칙 | 잡는 것 | 추가 |
+| --- | --- | --- |
+| `box` | 박스가 부모 밖으로 밀려남 | |
+| `content` | 텍스트 등 내용이 부모 밖으로 넘침 | |
+| `viewport` | 열린 툴팁·팝오버가 화면 좌우 밖으로 나감 | |
+| `squished` | flex 줄 안의 아이콘·이미지가 줄어들어 비율이 깨짐 (24×24 원형 아이콘이 타원이 되거나 거의 사라짐) | |
+| `overflow-y` | 높이가 고정된 컨테이너 밖으로 내용이 넘쳐 아래 요소와 겹침 | |
+| `clipped-text` | 말줄임 없이 글자가 잘려 사라짐 | |
+| `occluded` | 모달·드롭다운이 다른 요소에 가려짐 (원인: z-index, stacking context 등) | |
+| `doc-width` | 페이지가 가로로 스크롤되는데 뷰포트 너비로만 그려진 헤더·푸터의 배경과 우측 여백이 끊김 | 0.7 |
+| `overlap` | 흐름 안의 글·이미지·버튼이 다른 요소 위에 얹힘 (음수 margin 으로 끌어올린 제목이 문단을 덮음) | 0.7 |
+| `stacked-text` | 칸이 너무 좁아 "주문내역"이 주/문/내/역처럼 한두 글자씩 세로로 섬 | 0.7 |
+| `field-clipped` | 입력창 placeholder·선택값이 잘림 | 0.7 |
+| `corner-clipped` | `overflow` 가 모서리의 배지를 반쯤 자름 | 0.7 |
+| `empty-space` | 내용 아래 큰 빈 공간 | 0.7 |
+| `lonely-wrap` | 같은 크기 칩이 3+1 로 줄바꿈되어 외톨이가 남음 | 0.7 |
+| `uneven-cards` | 같은 줄 카드의 높이가 들쭉날쭉 | 0.7 |
+
+### 고정 레이어·스크롤
+
+| 규칙 | 잡는 것 | 추가 |
+| --- | --- | --- |
+| `fixed-hog` | 화면을 크게 가리는 고정 띠 | 0.7 |
+| `fixed-overlap` | 고정 요소끼리 겹침 | 0.7 |
+| `sticky-inert` | 조상의 `overflow` 때문에 붙지 않는 `sticky` | 0.7 |
+| `z-index-inert` | 위치를 지정하지 않아 효과 없는 `z-index` | 0.7 |
+| `scroll-end-flush` | 가로 스크롤 목록의 끝 여백이 없음 | 0.7 |
+| `nested-scroll` | 페이지도 스크롤되는데 안쪽 영역이 또 스크롤됨(이중 스크롤) | 0.7 |
+| `viewport-height` | `100vh` 로 모바일 주소창에 가려질 버튼 | 0.7 |
+| `scroll-locked` | 모달이 없는데 스크롤 잠금이 남음 | 0.7 |
+| `layout-shift` | 로드 중 화면이 튀는 정도(CLS) | 0.7 |
+
+### 이미지
+
+| 규칙 | 잡는 것 | 추가 |
+| --- | --- | --- |
+| `distorted` | `<img>` 가 원본 비율과 다른 박스에 `object-fit: fill` 로 그려져 늘어남 | 0.7 |
+| `broken-image` | `<img>`·`<picture>` 소스 로드 실패로 빈 사각형이나 대체 텍스트만 보임 | 0.7 |
+| `blurry-image` | 원본이 화면 배율보다 작아 흐릿함 | 0.7 |
+| `oversized-image` | 그려진 크기보다 필요 이상으로 큰 원본(로딩 낭비) | 0.7 |
+
+### 글자·대비·정렬
+
+| 규칙 | 잡는 것 | 추가 |
+| --- | --- | --- |
+| `tiny-text` | 12px 미만의 너무 작은 글자 | 0.7 |
+| `tight-leading` | 줄 높이가 글자보다 좁아 줄이 붙은 문단 | 0.7 |
+| `text-orphan` | 문단 끝에 한두 글자만 남은 줄 | 0.7 |
+| `long-line` | 너무 긴 줄 | 0.7 |
+| `low-contrast` | 글자 대비 부족 (WCAG 4.5:1, 단색 배경만) | 0.7 |
+| `border-contrast` | 입력창 경계 대비 부족 (3:1) | 0.7 |
+| `text-off-center` | 버튼 안 글자가 한쪽으로 쏠림 | 0.7 |
+| `icon-misaligned` | 아이콘과 글자의 세로 정렬이 어긋남 | 0.7 |
+
+### 입력·상호작용·포커스
+
+| 규칙 | 잡는 것 | 추가 |
+| --- | --- | --- |
+| `tap-target` | 터치 화면(768px 이하)에서 24px 보다 작은 버튼·링크가 다른 타겟과 붙어 있음 (WCAG 2.5.8, 간격 예외 적용) | 0.7 |
+| `input-zoom` | 입력창 글자가 16px 미만이라 iOS 에서 확대됨 | 0.7 |
+| `click-blocked` | 투명 레이어에 가로채여 안 눌리는 버튼 | 0.7 |
+| `fake-button` | 클릭만 되고 키보드로는 못 누르는 `div` | 0.7 |
+| `hover-only` | hover 로만 열리는 메뉴 | 0.7 |
+| `tabindex-positive` | 양수 `tabindex` | 0.7 |
+| `focus-ring-missing` | 포커스 표시 없음 (`outline` 만 끔, 실제 Tab 키로 확인) | 0.7 |
+| `focus-covered` | 고정 요소가 Tab 으로 이동한 요소를 가림 | 0.7 |
+| `focus-order` | 화면 순서를 거스른 Tab 이동 | 0.7 |
+| `focus-escape` | 열린 모달에서 Tab 으로 포커스가 모달 밖으로 나감 | |
+
+### 페이지 건강
+
+| 규칙 | 잡는 것 | 추가 |
+| --- | --- | --- |
+| `resource-failed` | 로드에 실패한 CSS·JS (404, CSS 가 아닌 응답) | 0.7 |
+| `mixed-content` | HTTPS 페이지의 HTTP 리소스 | 0.7 |
+| `font-failed` | 로드에 실패한 웹폰트 | 0.7 |
+| `console-error` | 렌더 중 콘솔 에러 | 0.7 |
+| `anchor-missing` | 대상 없는 `#앵커` 링크 | 0.7 |
 
 결함별 처리 요령은 [운영 가이드](docs/operations.md#결함-종류별-대응)에 있습니다.
 
 **아주 좁은 화면.** 기본 검사는 320px부터입니다. 그보다 좁은 화면(예: 100px)에서 헤더 배경이 내용보다 짧거나 오른쪽 여백이 사라지는 것은 **문서 폭 미추종**으로 따로 잡습니다(원인이 되는 가로 오버플로우도 함께 보고됩니다). `--viewports 100`(MCP는 "100px에서도 스캔해줘")으로 확인하세요. 100px에서는 대부분의 사이트가 깨지므로 기본값에는 넣지 않았습니다.
+
+### 환경을 바꿔 다시 검사하기 (variants)
+
+같은 규칙을 다른 환경에서 한 번 더 돌려 **그 환경에서만 생기는 결함**만 따로 보여 줍니다. 시간이 더 걸려 기본은 꺼 두었습니다.
+
+| 이름 | 하는 일 | 잡는 예 |
+| --- | --- | --- |
+| `text-scale` | 글자 크기만 2배로 키움(줄 높이 px 와 고정 크기 상자는 그대로) | 고정 크기 칩 밖으로 잘린 글자, 붙은 줄 |
+| `long-text` | 모든 글을 1.5배 길이로 늘림(번역, 긴 이름) | 줄바꿈 없는 글이 칸 밖으로 넘침 |
+| `dark` | 다크 모드로 엶 | 배경만 어두워지고 글자색이 그대로인 카드 |
+| `rtl` | 문서 방향을 오른쪽→왼쪽으로 | physical `margin-right` 때문에 왼쪽 밖으로 밀린 상자 |
+| `forced-colors` | 윈도우 고대비 모드로 엶 | `box-shadow` 로만 그린 포커스 표시가 사라짐 |
+| `landscape` | 화면 가로·세로를 맞바꿈 | 높이가 작아져 가려지는 고정 띠, `100vh` |
+| `device:iphone` 등 | 장치 프로필(`iphone-se`, `iphone`, `pixel`, `galaxy`, `ipad`)의 화면 크기·배율·터치 | 3배 화면에서 흐려지는 이미지 |
+| `engine:firefox`, `engine:webkit` | 다른 렌더링 엔진으로 엶(`npx playwright-core install webkit firefox` 필요) | 버튼 기본 글자 크기가 달라 생기는 결함 등 Chromium 에서만 멀쩡한 화면 |
+| `all` | 위에서 `text-scale`, `long-text`, `dark`, `rtl`, `forced-colors`, `landscape` | |
+
+```bash
+npx inspector-scan http://localhost:5173 --variants dark,text-scale   # CLI
+# MCP: scan_page 의 variants: ["dark", "rtl"] 또는 ["all"]  ("다크 모드랑 글자 크게 해서도 스캔해줘")
+```
+
+환경은 시나리오의 `environment` 로 저장되어, 패치 후 재측정도 같은 환경에서 합니다([시나리오 문서](docs/scenarios/README.md#환경-environment)).
 
 **한계.** 로그인이 필요하거나 데이터가 있어야 그려지는 화면은 빈 상태로 검사되어 "결함 0건"이 안전하다는 뜻이 아닙니다. 이런 화면은 [시나리오](docs/scenarios/README.md)로 스캔하세요. `div onclick` 같은 시맨틱 정보 없는 트리거, 여러 단계를 거쳐야 열리는 UI는 자동 탐색이 못 찾을 수 있습니다.
 
@@ -284,29 +419,3 @@ npx -y @inspector-agent/engine apply p_abc123     # diff 확인 → y/N → 적�
 | [React 소스 매핑](docs/react-source-mapping.md) | React에서 소스 위치를 찾는 방식과 선택 이유 |
 
 패키지: [`@inspector-agent/verifier`](https://www.npmjs.com/package/@inspector-agent/verifier) · [`engine`](https://www.npmjs.com/package/@inspector-agent/engine) · [`mcp-server`](https://www.npmjs.com/package/@inspector-agent/mcp-server) · [`vite-plugin`](https://www.npmjs.com/package/@inspector-agent/vite-plugin) · [`core`](https://www.npmjs.com/package/@inspector-agent/core)
-
----
-
-## 환경을 바꿔 다시 검사하기 (variants)
-
-같은 규칙을 다른 환경에서 한 번 더 돌려 **그 환경에서만 생기는 결함**만 따로 보여 줍니다. 시간이 더 걸려 기본은 꺼 두었습니다.
-
-| 이름 | 하는 일 | 잡는 예 |
-| --- | --- | --- |
-| `text-scale` | 글자 크기만 2배로 키움(줄 높이 px 와 고정 크기 상자는 그대로) | 고정 크기 칩 밖으로 잘린 글자, 붙은 줄 |
-| `long-text` | 모든 글을 1.5배 길이로 늘림(번역, 긴 이름) | 줄바꿈 없는 글이 칸 밖으로 넘침 |
-| `dark` | 다크 모드로 엶 | 배경만 어두워지고 글자색이 그대로인 카드 |
-| `rtl` | 문서 방향을 오른쪽→왼쪽으로 | physical `margin-right` 때문에 왼쪽 밖으로 밀린 상자 |
-| `forced-colors` | 윈도우 고대비 모드로 엶 | `box-shadow` 로만 그린 포커스 표시가 사라짐 |
-| `landscape` | 화면 가로·세로를 맞바꿈 | 높이가 작아져 가려지는 고정 띠, `100vh` |
-| `device:iphone` 등 | 장치 프로필(`iphone-se`, `iphone`, `pixel`, `galaxy`, `ipad`)의 화면 크기·배율·터치 | 3배 화면에서 흐려지는 이미지 |
-| `engine:firefox`, `engine:webkit` | 다른 렌더링 엔진으로 엶(`npx playwright-core install webkit firefox` 필요) | 버튼 기본 글자 크기가 달라 생기는 결함 등 Chromium 에서만 멀쩡한 화면 |
-| `all` | 위에서 `text-scale`, `long-text`, `dark`, `rtl`, `forced-colors`, `landscape` | |
-
-```bash
-npx inspector-scan http://localhost:5173 --variants dark,text-scale   # CLI
-# MCP: scan_page 의 variants: ["dark", "rtl"] 또는 ["all"]  ("다크 모드랑 글자 크게 해서도 스캔해줘")
-```
-
-환경은 시나리오의 `environment` 로 저장되어, 패치 후 재측정도 같은 환경에서 합니다([시나리오 문서](docs/scenarios/README.md#환경-environment)).
-
