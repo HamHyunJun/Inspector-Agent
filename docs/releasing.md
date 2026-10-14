@@ -128,6 +128,7 @@ npx inspector-scan                # 사용법이 출력되면 bin 이 연결된 
 | 로컬 `pnpm release` 가 `E403` (2FA 요구) 로 실패 | 계정에 2FA 가 켜져 있어 OTP 없이는 올릴 수 없음. 로컬은 `pnpm exec changeset publish --otp <코드>` 로 올리거나, 권장 경로인 **태그 push → GitHub Actions** 를 쓴다. 이때 토큰은 Granular Access Token 에서 **Bypass two-factor authentication** 을 켜야 한다 |
 | `gh secret list` 에 `NPM_TOKEN` 대신 토큰처럼 생긴 이름이 보임 | `gh secret set` 의 **이름 칸**에 토큰 값을 넣은 것. 이름은 반드시 `NPM_TOKEN`, 값은 프롬프트(숨김 입력)에 붙여 넣는다. 이름으로 노출된 토큰은 **npm 에서 폐기하고 새로 발급**한 뒤 `gh secret delete <잘못된 이름>` 으로 지운다 |
 | 태그를 push 했는데 `release` 가 `NPM_TOKEN 시크릿 확인` 에서 실패 | 위와 같은 이유(시크릿 이름 불일치). `gh secret list` 에서 이름이 정확히 `NPM_TOKEN` 인지 확인하고, 등록 후 태그를 지워 다시 붙이거나 Actions 에서 실패한 실행을 re-run |
+| `release:smoke` 가 `No matching version found for @vue/compiler-dom@3.5.x` 로 실패 (`npm view` 로는 그 버전이 보임) | 의존성(Vue)의 새 버전이 막 올라온 직후, pnpm 이 가진 오래된 메타데이터 캐시가 그 버전을 모르는 것. 저장소 문제가 아니다. `~/Library/Caches/pnpm/metadata-v1.3/registry.npmjs.org/@vue/*.json` 과 `vue.json` 을 지우면(다시 받아지는 캐시) 통과한다. CI 는 캐시가 없어 영향이 없다 |
 | 워크플로가 성공(`Successfully published`)인데 `npm view` 는 **이전 버전**을 보여 줌 | **레지스트리 반영 지연**. 0.2.0 은 패키지마다 몇 분씩 달리 반영됐다(`core`, `verifier` 가 먼저, `vite-plugin`, `mcp-server` 가 나중). 워크플로 로그의 `Successfully published` 를 먼저 확인하고, 아래 명령으로 몇 분 기다리며 확인한다. 이 동안 재배포하지 않는다 |
 | 레지스트리 JSON 에 `0.0.0-stage` 버전이 보임 | 패키지 `versions` 목록에 보이는 이름이다. 배포한 버전은 `dist-tags.latest` 로 판단한다 |
 
