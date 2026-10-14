@@ -156,7 +156,7 @@ const main = async () => {
   )
   writeFileSync(join(app, 'index.html'), '<!doctype html><html lang="ko"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>smoke</title></head><body><div id="app"></div><script type="module" src="/src/main.js"></script></body></html>')
   writeFileSync(join(app, 'src/main.js'), "import { createApp } from 'vue'\nimport App from './App.vue'\ncreateApp(App).mount('#app')\n")
-  writeFileSync(join(app, 'src/App.vue'), '<template>\n  <main class="page">\n    <section class="card">\n      <div class="wide-box">고정 너비 420px (375px 에서만 넘침)</div>\n    </section>\n  </main>\n</template>\n\n<style>\nbody { margin: 0; padding: 16px; }\n.card { padding: 8px; }\n.wide-box { width: 420px; height: 40px; background: #8250df; }\n</style>\n')
+  writeFileSync(join(app, 'src/App.vue'), '<template>\n  <main class="page">\n    <section class="card">\n      <div class="wide-box">고정 너비 420px (375px 에서만 넘침)</div>\n    </section>\n  </main>\n</template>\n\n<style>\nbody { margin: 0; padding: 16px; }\n.card { padding: 8px; }\n.wide-box { width: 420px; height: 40px; background: #d8c8ff; }\n</style>\n')
   writeFileSync(join(app, 'vite.config.js'), "import vue from '@vitejs/plugin-vue'\nimport inspectorAgent from '@inspector-agent/vite-plugin'\nimport { defineConfig } from 'vite'\n\nexport default defineConfig({ plugins: [inspectorAgent(), vue()] })\n")
   run('pnpm', ['install', '--prefer-offline', '--ignore-workspace'], { cwd: app })
   ok(`임시 Vite+Vue 프로젝트에 tarball ${PUBLISH_DIRS.length}개 설치 완료`)
