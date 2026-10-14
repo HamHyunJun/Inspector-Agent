@@ -17,14 +17,6 @@ describe('docs/scenarios 예시', () => {
     }
   })
 
-  it('Camping-Joy 시드는 캠핑 3개와 멤버 4명(긴 이름 포함)을 담는다', async () => {
-    const scenario = parseScenario(JSON.parse(await readFile(join(dir, 'camping-joy.json'), 'utf8')))
-    const camp = scenario.seed?.localStorage?.camp as { camps: Array<{ members: Array<{ name: string }> }> }
-    expect(camp.camps).toHaveLength(3)
-    expect(camp.camps[0]?.members).toHaveLength(4)
-    expect(camp.camps[0]?.members.some((member): boolean => member.name.length >= 20)).toBe(true)
-  })
-
   it('벤치마크 시나리오도 검증을 통과한다', () => {
     expect(() => parseScenario(PLAYGROUND_SCENARIO)).not.toThrow()
   })

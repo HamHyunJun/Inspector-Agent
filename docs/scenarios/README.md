@@ -37,9 +37,9 @@
 
 | 경로 | 방법 |
 | --- | --- |
-| CLI | `node packages/verifier/dist/cli.js http://localhost:5174/camps/c1/schedule --scenario docs/scenarios/camping-joy-schedule-select.json` |
+| CLI | `node packages/verifier/dist/cli.js http://localhost:5173 --scenario docs/scenarios/example-open-menu.json` |
 | 대시보드 | 메인 화면 스캔 폼의 **시나리오** 를 펼쳐 JSON 을 붙여 넣고 **스캔 실행**, 또는 `POST /api/scan` 의 `scenario` 필드 |
-| MCP (Claude Code) | `scan_page` 의 `scenarioFile: "docs/scenarios/camping-joy.json"` (또는 `scenario` 로 JSON 을 직접) |
+| MCP (Claude Code) | `scan_page` 의 `scenarioFile: "docs/scenarios/example-open-menu.json"` (또는 `scenario` 로 JSON 을 직접) |
 | 패치 후 재측정 | 따로 지정하지 않습니다. 시나리오로 스캔한 결함은 대시보드가 시나리오를 저장해 두었다가 **적용하고 검증** 때 같은 시나리오로 재측정합니다 |
 
 CLI 에서 `--report` 로 대시보드에 보내면 시나리오도 함께 전송되어 같은 재측정이 됩니다.
@@ -54,12 +54,11 @@ CLI 에서 `--report` 로 대시보드에 보내면 시나리오도 함께 전�
 
 | 파일 | 내용 |
 | --- | --- |
-| [`camping-joy.json`](camping-joy.json) | Camping-Joy 의 pinia 영속 상태(`localStorage` 의 `camp`, `gear`)를 채웁니다. 캠핑 3개(긴 이름·긴 장소 포함), 멤버 4명(`Alexandria-Montgomery` 같은 긴 이름 포함), 장비·일정을 넣어 `/`, `/gear`, `/camps/c1/*` 가 실제처럼 그려집니다. 데이터 없이 스캔하면 0건이던 `distribute.vue` 의 넘침(+44px, 연쇄 1건)이 이 시나리오로 나옵니다 |
-| [`camping-joy-schedule-select.json`](camping-joy-schedule-select.json) | 위 시드에 더해 `/camps/c1/schedule` 의 시간 드롭다운(`.time-select .select-trigger`)을 클릭하고 목록(`.select-options`)이 보일 때까지 기다린 상태로 스캔합니다 |
+| [`example-seed.json`](example-seed.json) | `localStorage` 에 긴 이름이 섞인 목록 데이터를 심어, 데이터가 있어야 그려지는 화면을 스캔합니다 |
+| [`example-open-menu.json`](example-open-menu.json) | 트리거를 클릭하고 메뉴가 보일 때까지 기다린 상태로 스캔합니다 |
 
 ```bash
-# Camping-Joy 개발 서버(5174)를 띄운 상태에서
-node packages/verifier/dist/cli.js http://localhost:5174/camps/c1/distribute --viewports 1280 --scenario docs/scenarios/camping-joy.json
+node packages/verifier/dist/cli.js http://localhost:5173 --scenario docs/scenarios/example-open-menu.json
 ```
 
 ## 내 앱의 시나리오 만들기

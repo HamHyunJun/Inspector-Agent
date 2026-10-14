@@ -10,12 +10,51 @@
 패치 적용 후 재측정: 230px → 0px, 새 결함 없음 ✓
 ```
 
+## 왜 만들었나
+
+Claude Code 같은 AI 코딩 도구는 **소스 텍스트만** 봅니다. 그런데 아래 결함은 소스에 "버그"로 적혀 있지 않고, 브라우저가 화면을 계산한 뒤에야 드러납니다.
+
+- 화면을 375px로 줄이면 긴 텍스트나 flex 아이템이 부모 밖으로 밀려나는 **가로 오버플로우**
+- `z-index`·stacking context 충돌로 **모달·드롭다운이 가려지는** 현상
+- 클릭해야 열리는 **툴팁·팝오버가 화면 밖으로 나가는** 현상, 모달 **포커스 트랩 누락**
+
+범용 브라우저 MCP를 붙이면 AI가 DOM과 스크린샷을 볼 수는 있지만, 어디가 깨졌는지·어느 파일 몇 번째 줄인지·고쳐졌는지는 여전히 **추측**해야 합니다.
+
+| 질문 | 범용 브라우저 MCP | Inspector-Agent |
+| --- | --- | --- |
+| 어디가 깨졌나? | LLM이 스크린샷·DOM을 보고 추측 | **규칙이 수치로 탐지** (LLM 호출 0회) |
+| 어느 파일 몇 번째 줄인가? | 클래스명으로 grep 추측 | 개발 서버가 DOM에 심은 **`파일:라인:컬럼`** + 그 클래스를 스타일링하는 **CSS 규칙 라인** |
+| 고쳐졌나? | "고쳤습니다"라는 LLM의 주장 | 같은 화면에서 **재측정**, 0px이 아니거나 새 결함이 생기면 **자동 롤백** |
+
+## 어떻게 동작하나
+
+```mermaid
+flowchart LR
+  APP["내 앱 개발 서버<br/>(플러그인이 파일:라인 주입)"] --> SCAN["헤드리스 스캔<br/>여러 화면 너비 + 자동 탐색"]
+  SCAN --> DEFECT["결함 + 소스 위치<br/>+ 압축 컨텍스트"]
+  DEFECT --> PATCH["패치 제안<br/>(규칙 또는 AI)"]
+  PATCH --> OK{"사람 승인"}
+  OK --> VERIFY["적용 → 같은 화면 재측정"]
+  VERIFY -- "통과" --> DONE["해결"]
+  VERIFY -- "실패·회귀" --> ROLLBACK["자동 롤백"]
+```
+
+1. **관측**: 헤드리스 Chromium이 여러 화면 너비에서 페이지를 열고, 눌러 볼 만한 트리거를 스스로 눌러 **열린 상태**까지 규칙으로 검사합니다. (`getBoundingClientRect`, `scrollWidth`, `ComputedStyle` 같은 실제 렌더링 수치만 씁니다.)
+2. **소스 연결**: Vite 플러그인이 개발 서버에서 요소마다 `data-ia-src="파일:라인:컬럼"`을 심어, 결함 노드를 소스 위치와 CSS 규칙 라인에 연결합니다.
+3. **패치 제안**: 결함 노드와 부모의 **기본값이 아닌 레이아웃 스타일만** 압축해 AI(MCP) 또는 규칙 기반 진단에 넘깁니다. AI는 여기서만 쓰이고, 이 단계에서는 파일이 바뀌지 않습니다.
+4. **검증**: 사람이 승인하면 백업 → 반영 → 같은 화면 재측정을 하고, 대상 결함이 사라졌고 **새 결함이 없을 때만 통과**합니다. 아니면 원본으로 자동 롤백합니다.
+
+더 자세한 설계(탐지 규칙, 패키지 구성, 벤치마크)는 [개요](docs/overview.md)에 있습니다.
+
+---
+
 ## 어떻게 쓸까요? 먼저 고르세요
 
 |  | **A. 터미널** | **B. Claude Code (MCP)** |
 | --- | --- | --- |
 | 이런 때 | 결함 목록만 빨리 보고 싶다 · PR마다 CI로 막고 싶다 | AI가 스캔부터 패치 제안까지 해 주길 원한다 |
 | 설치 | npm 패키지 1개 | MCP 서버(npm) + 대시보드(저장소 실행) |
+| 대시보드 | **필요 없음** | 필요 (결함 저장·Diff 검토·적용·롤백) |
 | 실행 | `npx inspector-scan <주소>` | `/ia scan` |
 | 고치는 방법 | 결과에 나온 `파일:라인`을 직접 수정 | AI가 제안 → 대시보드에서 승인 → 재측정, 실패하면 자동 롤백 |
 | 준비 시간 | 약 1분 | 약 5분 |
@@ -69,6 +108,8 @@ npx inspector-scan http://localhost:5173     # 3. 스캔
 [414px · 자동 탐색: click "100% 로컬 연산 (데이터 외부 전송 0 byte)"] 결함 1건, 문서 가로 스크롤 0px
   - [high] app/components/layout/SecurityBadge.vue:28 viewport +38px (keep-in-viewport)
 ```
+
+**대시보드는 필요 없습니다.** 스캔, 결과 출력, CI 통과/실패 판정이 이 명령만으로 끝납니다. 결과를 저장하고 Diff 검토·적용·롤백까지 하려면 [B의 대시보드](#1-대시보드-띄우기)를 띄우고 `--report http://localhost:3000`을 붙이세요.
 
 결과의 `파일:라인`을 열어 고친 뒤 같은 명령을 다시 실행하면 결함이 사라진 것을 확인할 수 있습니다.
 
@@ -210,6 +251,6 @@ cp ~/.claude/commands/ia.md ~/.claude/commands/insp.md
 | [개요](docs/overview.md) | 왜 만들었나, 차별점, 아키텍처, 벤치마크, 로드맵, 개발 규칙 |
 | [Chrome 확장](docs/extension-testing.md) | 지금 보고 있는 탭 그대로 탐지 |
 | [릴리스](docs/releasing.md) | npm 배포 절차와 겪은 문제 |
-| [React 소스 매핑](docs/react-source-mapping.md) · [실서비스 사례](docs/real-world-report.md) · [면접 Q&A](docs/interview-qa.md) | 설계 근거와 사례 |
+| [React 소스 매핑](docs/react-source-mapping.md) | React에서 소스 위치를 찾는 방식과 선택 이유 |
 
 패키지: [`@inspector-agent/verifier`](https://www.npmjs.com/package/@inspector-agent/verifier) · [`mcp-server`](https://www.npmjs.com/package/@inspector-agent/mcp-server) · [`vite-plugin`](https://www.npmjs.com/package/@inspector-agent/vite-plugin) · [`core`](https://www.npmjs.com/package/@inspector-agent/core)
