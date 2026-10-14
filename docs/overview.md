@@ -78,7 +78,7 @@ flowchart LR
 | `packages/verifier` | Playwright 다중 뷰포트 스캔, 패치 전후 재측정과 회귀 판정, `inspector-scan` CLI |
 | `packages/engine` | 결함·패치 저장, 컨텍스트, 패치 제안·적용·재측정·자동 롤백, `inspector-agent` CLI (`fix`, `apply`, `rollback`) |
 | `packages/mcp-server` | stdio MCP 서버: `scan_page`, `list_defects`, `get_defect_context`, `propose_patch`, `get_patch_status`, `apply_patch`(사람 승인 필요), `/ia` 명령 |
-| `apps/playground` | 정답 결함 12건(가로 오버플로우 5, 아이콘 찌그러짐 1, 세로 오버플로우 1, 텍스트 잘림 1, 가려짐 3, 포커스 이탈 1), 시나리오로만 보이는 정답 2건(클릭해야 열리는 메뉴, 시드가 있어야 그려지는 요소), 정상 대조군 9건을 심어 둔 Vue 3 데모 앱 (벤치마크 대상) |
+| `apps/playground` | 정답 결함 52건(가로 오버플로우 5, 아이콘 찌그러짐 1, 문서 폭 미추종 1, 겹침 1, 이미지 비율 왜곡 1, 터치 타겟 1, 글자 세로 쪼개짐 1, 깨진 이미지 1, 타이포그래피·이미지 품질·고정 레이어·입력창·무효 CSS·앵커·페이지 건강·빈틈 17, 상호작용·포커스 8, 대비·정렬·스크롤 영역 9, 세로 오버플로우 1, 텍스트 잘림 1, 가려짐 3, 포커스 이탈 1), 시나리오로만 보이는 정답 3건(클릭해야 열리는 메뉴, 시드가 있어야 그려지는 요소, 시드가 있으면 잠기는 스크롤), 환경 변형으로만 보이는 정답 6건(글자 2배·긴 문구·다크 모드·RTL·고대비·3배 화면), 정상 대조군 16건을 심어 둔 Vue 3 데모 앱 (벤치마크 대상) |
 | `apps/playground-react` | React(Vite) 에서 JSX 소스 매핑과 CSS Modules·일반 `.css`/`.scss` 규칙 탐색을 검증하는 앱. 가로 오버플로우 정답 4건 + 정상 대조군 2건 (벤치마크 대상, `docs/react-source-mapping.md`) |
 | `apps/playground-nuxt` | Nuxt 4(`app/`, layouts, 자동 import 컴포넌트)에서 `data-ia-src` 매핑이 맞는지 확인하는 최소 앱 |
 | `benchmarks` | 탐지·매핑·토큰·자가 치유 벤치마크 |

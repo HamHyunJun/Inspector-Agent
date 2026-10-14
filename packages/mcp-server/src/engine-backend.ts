@@ -15,7 +15,7 @@ const pathOf = (url: string): string => {
 /** 엔진을 직접 쓰는 백엔드. 스캔, 저장, 컨텍스트, 패치 제안·적용이 모두 이 프로세스 안에서 일어난다 */
 export const createEngineBackend = (engine: Engine): Backend => ({
   // 시나리오는 에이전트가 만든 신뢰할 수 없는 입력이므로 형식과 한도를 검증한다
-  scan: (url: string, viewports?: Viewport[], scenario?: unknown) => engine.scan(url, viewports, scenario === undefined ? undefined : parseScenario(scenario)),
+  scan: (url: string, viewports?: Viewport[], scenario?: unknown, variants?: string[]) => engine.scan(url, viewports, scenario === undefined ? undefined : parseScenario(scenario), variants),
   listDefects: async (status?: string): Promise<DefectListItem[]> => {
     const groups = await engine.listGroups(status === 'open' || status === 'patched' || status === 'resolved' ? status : undefined)
     return groups.map((group): DefectListItem => ({ ...group.defect, status: group.status, urls: group.members.map((member): string => pathOf(member.url)) }))

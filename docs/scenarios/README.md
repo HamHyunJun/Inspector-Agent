@@ -21,11 +21,12 @@
     { "action": "fill", "selector": "input[name=q]", "value": "텐트" },
     { "action": "wait", "ms": 300 },
     { "action": "wait", "selector": ".menu" }
-  ]
+  ],
+  "environment": { "colorScheme": "dark", "textScale": 2 }
 }
 ```
 
-- `seed` 와 `steps` 중 하나 이상이 있어야 합니다.
+- `seed`, `steps`, `environment` 중 하나 이상이 있어야 합니다.
 - **seed**: 페이지가 뜨기 **전에** 심습니다(앱 코드가 읽기 전에 값이 있어야 하므로). 매 로드마다 시드 값으로 덮어써서 앱이 저장한 이전 상태가 결과를 흔들지 못합니다. 쿠키는 스캔하는 URL 의 호스트에만 설정되고 다른 도메인은 지정할 수 없습니다.
 - **steps**: 페이지를 열고 안정화한 뒤 **탐지 전에** 순서대로 실행합니다. 단계 하나가 5초 안에 끝나지 않으면(셀렉터 오타 등) `시나리오 steps[N] (click .xxx) 실패` 로 스캔이 실패합니다.
   - `click` / `hover` / `fill`: Playwright 셀렉터(CSS). `hover` 는 마우스를 올려 툴팁처럼 hover 해야 나타나는 UI 를 엽니다
@@ -80,3 +81,20 @@ node packages/verifier/dist/cli.js http://localhost:5173 --scenario docs/scenari
 - 화면 밖으로 완전히 치워 둔 요소(오프캔버스 메뉴, 스킵 링크), `hidden`/`aria-hidden`/`inert`, `overflow` 로 자르는 조상 안의 요소는 의도된 것으로 보고 제외합니다.
 - 위치를 정하는 CSS 는 앵커마다 달라 규칙 기반 자동 패치(선언)는 제안하지 않고 원인과 수정 방향만 안내합니다.
 - 실측: TaxKit 의 "100% 로컬 연산" 팝오버는 390~480px 에서 최대 38px 화면 밖으로 나가는 것을 탐지했습니다(360px 이하, 600px 이상은 정상).
+
+## 환경 (`environment`)
+
+페이지를 어떤 환경에서 열지 정합니다. 시드·단계 없이 `environment` 만으로도 시나리오가 됩니다. `inspector-scan --variants` 와 MCP `variants` 가 이 값을 만들어 쓰므로 직접 쓸 일은 드뭅니다.
+
+| 필드 | 값 | 하는 일 |
+| --- | --- | --- |
+| `colorScheme` | `"dark"` | 다크 모드로 엶 |
+| `forcedColors` | `true` | 윈도우 고대비 모드로 엶 |
+| `textScale` | 1.25 ~ 3 | 글자 크기만 이 배수로 키움(줄 높이 px 와 고정 크기 상자는 그대로) |
+| `longText` | `true` | 모든 글을 1.5배 길이로 늘림 |
+| `direction` | `"rtl"` | 문서 방향을 오른쪽→왼쪽으로 |
+| `device` | `iphone-se`, `iphone`, `pixel`, `galaxy`, `ipad` | 그 장치의 화면 크기·배율·터치로 엶 |
+| `engine` | `"firefox"`, `"webkit"` | 그 엔진으로 엶(설치 필요, 생략하면 Chromium) |
+
+`environment` 가 있으면 시나리오 키가 달라져 일반 스캔과 별개로 기록되고, 패치 후 재측정도 같은 환경에서 합니다. `environment` 가 없는 기존 시나리오의 키는 바뀌지 않습니다.
+

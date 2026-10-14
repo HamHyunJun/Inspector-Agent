@@ -59,14 +59,20 @@ server.registerTool(
         .record(z.string(), z.unknown())
         .optional()
         .describe('시나리오 JSON: { seed: { localStorage, sessionStorage, cookies }, steps: [{ action: "click"|"hover"|"fill"|"wait", ... }] }. 비밀번호나 토큰은 넣지 마세요'),
-      scenarioFile: z.string().optional().describe('시나리오 JSON 파일 경로(.json, 작업 폴더 기준). 예: docs/scenarios/example-open-menu.json. scenario 와 함께 줄 수 없습니다')
+      scenarioFile: z.string().optional().describe('시나리오 JSON 파일 경로(.json, 작업 폴더 기준). 예: docs/scenarios/example-open-menu.json. scenario 와 함께 줄 수 없습니다'),
+      variants: z
+        .array(z.string())
+        .optional()
+        .describe(
+          '같은 규칙을 다른 환경에서도 돌려 그 환경에서만 생기는 결함을 찾는다(시간이 더 걸린다): text-scale(글자 200%), long-text(긴 문구), dark(다크 모드), rtl(오른쪽→왼쪽), forced-colors(고대비), landscape(가로 모드), device:iphone|iphone-se|pixel|galaxy|ipad(실기기 프로필), engine:firefox|webkit(설치 필요), all(앞의 6개)'
+        )
     }
   },
-  ({ url, viewports, scenario, scenarioFile }): Promise<ToolResult> =>
+  ({ url, viewports, scenario, scenarioFile, variants }): Promise<ToolResult> =>
     run(async (): Promise<string> => {
       if (scenario && scenarioFile) throw new Error('scenario 와 scenarioFile 은 하나만 지정하세요.')
       const resolved = scenarioFile ? await loadScenarioFile(scenarioFile) : scenario
-      const result = await client.scan(url, viewports?.map((width) => ({ width, height: 900 })), resolved)
+      const result = await client.scan(url, viewports?.map((width) => ({ width, height: 900 })), resolved, variants)
       const defects = await client.listDefects('open')
       return `결함 ${result.defects}건 탐지 (신규 ${result.created}, 해소 ${result.resolved})\n\n미해결 목록:\n${formatDefectList(defects)}`
     })

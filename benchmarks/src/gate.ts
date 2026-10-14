@@ -16,6 +16,8 @@ export interface DetectionSummary {
   scenarioMismatches: number
   /** 패치 후 재측정이 시나리오를 반영하지 않은 경우(고치기 전인데 통과, 고친 뒤인데 실패)의 수 */
   scenarioRemeasureMismatches: number
+  /** 환경 변형 스캔에서 정답을 못 찾았거나, 같은 정답이 기본 스캔에도 보인 수 */
+  variantMismatches?: number
   /** React 대상: 규칙 기반 패치가 정답 스타일시트를 수정 대상으로 잡지 못한 결함 수 */
   styleLocationMismatches?: number
 }
@@ -32,6 +34,7 @@ export const findDetectionRegressions = (summary: DetectionSummary): string[] =>
   if (summary.groupingMismatches > 0) problems.push(`URL 이 달라도 한 그룹이어야 하는 결함 ${summary.groupingMismatches}건이 묶이지 않음`)
   if (summary.scenarioMismatches > 0) problems.push(`시나리오 전용 결함 ${summary.scenarioMismatches}건이 정답표와 다름 (시나리오로 검출되고 일반 스캔에서는 안 보여야 함)`)
   if (summary.scenarioRemeasureMismatches > 0) problems.push(`패치 후 재측정이 시나리오를 반영하지 않음 ${summary.scenarioRemeasureMismatches}건`)
+  if ((summary.variantMismatches ?? 0) > 0) problems.push(`환경 변형 스캔 정답 ${summary.variantMismatches}건이 맞지 않음 (그 환경에서만 탐지되고 기본 스캔에는 없어야 함)`)
   if ((summary.styleLocationMismatches ?? 0) > 0) problems.push(`스타일 규칙을 정답 스타일시트에서 찾아 고치지 못한 결함 ${summary.styleLocationMismatches}건`)
   return problems
 }

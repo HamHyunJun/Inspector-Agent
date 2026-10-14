@@ -1,5 +1,5 @@
 import { createDefectId, createFingerprint, diagnoseFocus } from '@inspector-agent/core'
-import type { DetectOptions, FocusDefect, FocusState, ModalProbe, NodeSnapshot, Viewport } from '@inspector-agent/core'
+import type { DetectOptions, FocusDefect, FocusState, ModalProbe, NodeSnapshot, OverflowDefect, Viewport } from '@inspector-agent/core'
 import type { Page } from 'playwright-core'
 
 /**
@@ -90,4 +90,27 @@ export const scanFocusEscapes = async (page: Page, url: string, viewport: Viewpo
     )
   }
   return defects
+}
+
+/** Tab 으로 한 바퀴 도는 정류장 수 상한(브라우저 쪽 MAX_STOPS 와 같은 값이어야 한다) */
+const MAX_TAB_STOPS = 60
+
+/**
+ * 실제 Tab 키로 문서를 한 바퀴 돌며 포커스 표시 없음, 고정 요소가 포커스를 가림, 화면 순서를 거스른 이동을 찾는다.
+ * 키 입력이 포커스·스크롤을 바꾸므로 레이아웃 탐지가 끝난 뒤에 호출하고, 끝나면 포커스와 스크롤을 되돌린다.
+ */
+export const scanTabStops = async (page: Page, detect: DetectOptions = {}): Promise<OverflowDefect[]> => {
+  const started = await page.evaluate((): boolean => {
+    const agent = window.__INSPECTOR_AGENT__
+    if (!agent) return false
+    agent.beginTabProbe()
+    return true
+  })
+  if (!started) return []
+  for (let press = 0; press < MAX_TAB_STOPS; press++) {
+    await page.keyboard.press('Tab')
+    const { done } = await page.evaluate((): { done: boolean } => window.__INSPECTOR_AGENT__?.recordTabStop() ?? { done: true })
+    if (done) break
+  }
+  return page.evaluate((options): OverflowDefect[] => window.__INSPECTOR_AGENT__?.finishTabProbe(options) ?? [], { sourceAttribute: detect.sourceAttribute })
 }

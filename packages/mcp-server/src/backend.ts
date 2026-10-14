@@ -14,7 +14,7 @@ export type DefectContextResponse = DefectContext
 export type PatchResponse = Patch
 
 export interface Backend {
-  scan: (url: string, viewports?: Viewport[], scenario?: unknown) => Promise<{ defects: number; created: number; resolved: number }>
+  scan: (url: string, viewports?: Viewport[], scenario?: unknown, variants?: string[]) => Promise<{ defects: number; created: number; resolved: number }>
   listDefects: (status?: string) => Promise<DefectListItem[]>
   getContext: (defectId: string) => Promise<DefectContextResponse>
   proposePatch: (input: { defectId: string; file: string; edits: PatchEdit[]; rationale: string }) => Promise<PatchResponse>

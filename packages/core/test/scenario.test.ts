@@ -20,8 +20,8 @@ describe('parseScenario', () => {
   it.each([
     [null, '객체'],
     [[], '객체'],
-    [{}, 'seed 또는 steps'],
-    [{ steps: [] }, 'seed 또는 steps'],
+    [{}, 'seed, steps, environment'],
+    [{ steps: [] }, 'seed, steps, environment'],
     [{ stepz: [] }, '알 수 없는 필드 "stepz"'],
     [{ steps: [{ action: 'drag', selector: 'a' }] }, '"click", "hover", "fill", "wait"'],
     [{ steps: [{ action: 'hover' }] }, 'selector'],

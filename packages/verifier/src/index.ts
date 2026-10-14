@@ -1,12 +1,13 @@
 import { readFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
-import { chromium } from 'playwright-core'
+import { chromium, firefox, webkit } from 'playwright-core'
 import type { Browser, Page } from 'playwright-core'
 import { DEFAULT_MIN_COVERED_RATIO, defectMagnitude, qualifyDefectId, scenarioKey } from '@inspector-agent/core'
 import { exploreStates } from './explore'
 import type { ExploreOptions } from './explore'
-import { scanFocusEscapes } from './focus'
+import { scanFocusEscapes, scanTabStops } from './focus'
 import { runScenarioSteps, seedContext } from './scenario'
+import { contextOptionsFor, defectSignature, deviceViewport, needsPageEnvironment, parseVariants } from './variants'
 import type { Defect, DetectOptions, Scenario, ScanResult, Viewport } from '@inspector-agent/core'
 
 export interface VerifierOptions {
@@ -22,6 +23,11 @@ export interface VerifierOptions {
    * false 로 끄거나 시나리오를 직접 주면(시나리오가 우선) 탐색하지 않는다
    */
   explore?: boolean | ExploreOptions
+  /**
+   * 환경 변형 스캔(쉼표 목록 또는 배열): text-scale, long-text, dark, rtl, forced-colors, landscape, device:<이름>, engine:firefox|webkit, all.
+   * 기본 상태에서 보이지 않던 결함만 따로 돌려준다. 시간이 걸려 기본은 끈다
+   */
+  variants?: string | string[]
 }
 
 export interface DefectMeasurement {
@@ -62,13 +68,48 @@ const loadDetectorSource = async (): Promise<string> => {
   return detectorSource
 }
 
-const launch = async (options: VerifierOptions): Promise<Browser> =>
-  chromium.launch({
-    headless: true,
-    executablePath: options.executablePath ?? process.env.INSPECTOR_CHROMIUM_PATH ?? undefined
-  })
+/** 페이지 스크립트보다 먼저 심어 렌더 중 난 콘솔 에러·미처리 예외와 레이아웃 이동(CLS)을 모은다. 탐지기의 콘솔 에러·레이아웃 이동 규칙이 읽는다 */
+const ERROR_CAPTURE_SCRIPT = `(() => {
+  const errors = []
+  window.__IA_ERRORS__ = errors
+  const push = (message) => { if (errors.length < 20) errors.push(String(message).slice(0, 300)) }
+  const original = console.error
+  console.error = function (...args) {
+    try { push(args.map((arg) => (arg instanceof Error ? arg.message : typeof arg === 'string' ? arg : JSON.stringify(arg))).join(' ')) } catch { push('console.error') }
+    return original.apply(this, args)
+  }
+  window.__IA_SHIFTS__ = []
+  try {
+    new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) {
+        if (!entry.hadRecentInput) window.__IA_SHIFTS__.push({ value: entry.value, node: (entry.sources && entry.sources[0] && entry.sources[0].node) || null })
+      }
+    }).observe({ type: 'layout-shift', buffered: true })
+  } catch {}
+  window.addEventListener('error', (event) => push(event.message || 'error'))
+  window.addEventListener('unhandledrejection', (event) => push('unhandledrejection: ' + ((event.reason && event.reason.message) || event.reason)))
+})()`
 
-const detectOnPage = async (page: Page, viewport: Viewport, detect: DetectOptions | undefined, withFocus: boolean): Promise<ScanResult> => {
+const ENGINE_INSTALL_HINT = 'npx playwright-core install'
+
+const launch = async (options: VerifierOptions, engine?: 'firefox' | 'webkit'): Promise<Browser> => {
+  const type = engine === 'firefox' ? firefox : engine === 'webkit' ? webkit : chromium
+  try {
+    return await type.launch({
+      headless: true,
+      // 실행 파일 경로는 Chromium 용이다
+      executablePath: engine ? undefined : (options.executablePath ?? process.env.INSPECTOR_CHROMIUM_PATH ?? undefined)
+    })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    if (engine && /Executable doesn't exist|browserType\.launch/i.test(message)) {
+      throw new Error(`${engine} 브라우저가 설치되어 있지 않습니다. \`${ENGINE_INSTALL_HINT} ${engine}\` 로 설치한 뒤 다시 시도하세요.`)
+    }
+    throw error
+  }
+}
+
+const detectOnPage = async (page: Page, viewport: Viewport, detect: DetectOptions | undefined, withFocus: boolean, tabProbe = false): Promise<ScanResult> => {
   const result = await page.evaluate((detectOptions): ScanResult => {
     const agent = window.__INSPECTOR_AGENT__
     if (!agent) throw new Error('Inspector-Agent 탐지기 주입에 실패했습니다.')
@@ -76,14 +117,18 @@ const detectOnPage = async (page: Page, viewport: Viewport, detect: DetectOption
   }, detect ?? {})
   // 키 입력이 페이지 상태를 바꾸므로 레이아웃 탐지가 끝난 뒤에 포커스 검사를 한다
   const focusDefects = withFocus ? await scanFocusEscapes(page, result.url, viewport, detect) : []
-  return { ...result, defects: [...result.defects, ...focusDefects] }
+  // Tab 탐침은 문서를 한 바퀴 도는 비용이 커서 기본 상태에서만 돌린다(탐색으로 연 상태들은 제외)
+  const tabDefects = tabProbe ? await scanTabStops(page, detect) : []
+  return { ...result, defects: [...result.defects, ...focusDefects, ...tabDefects] }
 }
 
 /** 한 뷰포트를 스캔한다. 탐색이 켜져 있으면 [기본 상태, ...열어 본 상태들] 을 돌려준다 */
 const scanContext = async (browser: Browser, url: string, viewport: Viewport, options: VerifierOptions, explore: boolean): Promise<ScanResult[]> => {
   // 탐색 중 클릭이 내려받기·새 창·confirm 창으로 번지지 않게 막는다
-  const context = await browser.newContext({ viewport, acceptDownloads: false })
+  const environment = options.scenario?.environment
+  const context = await browser.newContext({ viewport, acceptDownloads: false, ...contextOptionsFor(environment) })
   try {
+    await context.addInitScript(ERROR_CAPTURE_SCRIPT)
     const { scenario } = options
     if (scenario) await seedContext(context, url, scenario)
     const page = await context.newPage()
@@ -101,7 +146,12 @@ const scanContext = async (browser: Browser, url: string, viewport: Viewport, op
       await page.waitForTimeout(settleMs)
     }
     await page.addScriptTag({ content: await loadDetectorSource() })
-    const base = await detectOnPage(page, viewport, options.detect, true)
+    if (needsPageEnvironment(environment)) {
+      await page.evaluate((env): void => window.__INSPECTOR_AGENT__?.applyEnvironment(env), environment!)
+      // 글자·방향이 바뀐 뒤의 재배치가 끝나길 기다린다
+      await page.waitForTimeout(options.settleMs ?? 300)
+    }
+    const base = await detectOnPage(page, viewport, options.detect, true, true)
     if (scenario) {
       // 같은 URL 이라도 시나리오가 다르면 다른 결함이다: id 에 시나리오 키를 섞고 결함마다 키를 남긴다
       const key = scenarioKey(scenario)
@@ -147,21 +197,73 @@ const scanWithBrowser = async (browser: Browser, url: string, viewport: Viewport
   return result
 }
 
+/** 사용자가 준 시나리오(시드·단계) 위에 변형의 환경을 얹는다 */
+const layerVariant = (base: Scenario | undefined, variant: Scenario): Scenario => ({
+  ...base,
+  ...variant,
+  name: [base?.name, variant.name].filter((name): boolean => name !== undefined).join(' · '),
+  environment: { ...base?.environment, ...variant.environment }
+})
+
+/**
+ * 변형 하나를 스캔한다. 기본 상태에서 이미 나오던 결함(뷰포트 너비를 뺀 서명이 같은 것)은 빼고 "그 환경에서만 생기는 결함"만 남긴다.
+ * 결과가 비어 있어도 돌려준다: 저장소가 같은 환경에서 사라진 결함을 해소로 바꾸려면 빈 결과가 필요하다.
+ */
+const scanVariant = async (
+  mainBrowser: Browser,
+  url: string,
+  viewports: Viewport[],
+  baseline: ScanResult[],
+  variant: ReturnType<typeof parseVariants>[number],
+  options: VerifierOptions
+): Promise<ScanResult[]> => {
+  if (variant.landscape) {
+    // 가로 모드: 주어진 뷰포트의 가로·세로를 맞바꿔 일반 스캔한다(높이가 작아져 100vh, 고정 요소, 큰 모달이 달라진다)
+    const swapped = viewports.map((viewport): Viewport => ({ width: viewport.height, height: viewport.width }))
+    const results = await Promise.all(swapped.map((viewport): Promise<ScanResult[]> => scanContext(mainBrowser, url, viewport, options, false)))
+    return results.map(([result]): ScanResult => result as ScanResult)
+  }
+  const scenario = layerVariant(options.scenario, variant.scenario!)
+  const engine = scenario.environment?.engine
+  const browser = engine ? await launch(options, engine) : mainBrowser
+  try {
+    // 장치는 화면 크기가 장치마다 정해져 있어 주어진 뷰포트를 쓰지 않고 한 번만 돈다
+    const targets = scenario.environment?.device ? [deviceViewport(scenario.environment.device)] : viewports
+    const known = new Set(baseline.flatMap((result): string[] => result.defects.map((defect): string => defectSignature(defect.fingerprint))))
+    const sameViewport = (viewport: Viewport): Set<string> =>
+      new Set(baseline.filter((result): boolean => result.viewport.width === viewport.width).flatMap((result): string[] => result.defects.map((defect): string => defectSignature(defect.fingerprint))))
+    const results = await Promise.all(targets.map((viewport): Promise<ScanResult[]> => scanContext(browser, url, viewport, { ...options, scenario }, false)))
+    return results.map(([result], index): ScanResult => {
+      const scanned = result as ScanResult
+      const already = scenario.environment?.device || engine ? known : sameViewport(targets[index] as Viewport)
+      // 저장소가 이 결과를 같은 환경으로 재측정할 수 있도록 시나리오를 함께 싣는다
+      return { ...scanned, scenario, defects: scanned.defects.filter((defect): boolean => !already.has(defectSignature(defect.fingerprint))) }
+    })
+  } finally {
+    if (engine) await browser.close()
+  }
+}
+
 /**
  * 하나의 URL을 여러 뷰포트에서 스캔한다.
- * 결과 앞쪽은 뷰포트별 기본 상태(입력 순서 그대로), 뒤쪽은 자동 탐색으로 열어 본 상태들이다
+ * 결과 앞쪽은 뷰포트별 기본 상태(입력 순서 그대로), 그 뒤는 자동 탐색으로 열어 본 상태들, 마지막은 환경 변형(variants) 스캔 결과다
  */
 export const scanPage = async (
   url: string,
   viewports: Viewport[] = DEFAULT_VIEWPORTS,
   options: VerifierOptions = {}
 ): Promise<ScanResult[]> => {
-  const browser = await launch(options)
+  // 스캔(수 초) 전에 잘못된 변형 이름을 먼저 알린다
+  const variants = parseVariants(options.variants)
+  const browser = await launch(options, options.scenario?.environment?.engine)
   try {
     const explore = options.explore !== false && options.scenario === undefined
     // 뷰포트마다 독립된 컨텍스트라 병렬로 돌려도 서로 영향이 없다
     const perViewport = await Promise.all(viewports.map((viewport): Promise<ScanResult[]> => scanContext(browser, url, viewport, options, explore)))
-    return [...perViewport.map(([base]): ScanResult => base as ScanResult), ...perViewport.flatMap((results): ScanResult[] => results.slice(1))]
+    const bases = perViewport.map(([base]): ScanResult => base as ScanResult)
+    const variantResults: ScanResult[] = []
+    for (const variant of variants) variantResults.push(...(await scanVariant(browser, url, viewports, bases, variant, options)))
+    return [...bases, ...perViewport.flatMap((results): ScanResult[] => results.slice(1)), ...variantResults]
   } finally {
     await browser.close()
   }
@@ -190,7 +292,8 @@ export const measureDefect = async (
   baseline: Defect[],
   options: VerifierOptions = {}
 ): Promise<VerificationResult> => {
-  const browser = await launch(options)
+  // 다른 엔진에서 찾은 결함은 그 엔진으로 다시 재야 같은 화면을 잰다
+  const browser = await launch(options, options.scenario?.environment?.engine)
   try {
     const detect = target.kind === 'occluded' ? { ...options.detect, minCoveredRatio: 0.01 } : options.detect
     const result = await scanWithBrowser(browser, target.url, target.viewport, { ...options, detect })

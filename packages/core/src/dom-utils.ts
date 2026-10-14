@@ -26,6 +26,7 @@ export const ownText = (element: Element): string => {
 }
 
 export const buildSelector = (element: Element): string => {
+  if (element === document.body) return 'body'
   const parts: string[] = []
   let current: Element | null = element
   while (current && current !== document.body && parts.length < 4) {
