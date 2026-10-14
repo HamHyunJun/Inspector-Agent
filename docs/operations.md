@@ -66,13 +66,13 @@
 
 **자동 탐색(기본 켜짐).** 시나리오 없이 스캔해도 대시보드·MCP·CLI 가 작은 화면부터 큰 화면까지(320/375/414/768/1024/1280px) 재 보고, 페이지에서 눌러 볼 만한 것(`aria-expanded`/`aria-haspopup` 트리거, 툴팁, 탭, 아코디언, 일반 버튼, CSS `:hover` 로만 열리는 메뉴)을 **스스로 찾아 hover/click** 한 뒤 열린 상태까지 검사합니다. 열었을 때만 생기는 결함(툴팁·팝오버가 화면 밖으로 나감, 모달 가려짐·포커스 이탈 등)이 "자동 탐색: click …" 이름의 상태로 따로 기록되고, 각 상태는 그 상태를 다시 만드는 시나리오로 저장되어 패치 후 재측정도 같은 상태에서 합니다. 안전을 위해 삭제·결제·제출·로그아웃처럼 보이는 버튼과 제출 버튼은 누르지 않고, 탐색 중 `GET` 이 아닌 요청은 차단하며, 새 창·내려받기·`confirm` 창은 막습니다. 끄려면 CLI `--no-explore`, API `explore: false`. 직접 시나리오를 주면 그 시나리오가 우선이라 탐색하지 않습니다.
 
-**로그인이 필요하거나 데이터가 있어야 그려지는 화면은 시나리오로 스캔하세요.** 헤드리스 스캔은 URL 만 열기 때문에 데이터가 있어야 그려지는 화면은 빈 상태로 검사되고, 이때 "결함 0건"은 **안전하다는 뜻이 아닙니다.** 실제 앱(Camping-Joy)에서 데이터 없이 스캔했을 때 13개 URL 이 전부 0건이었습니다. 또 스캔 시점에 **이미 열려 있는** 모달·드롭다운만 가려짐·포커스 검사 대상입니다. **시나리오**는 스캔 전에 `localStorage`/`sessionStorage`/쿠키 시드를 심고 클릭·입력·대기 단계를 실행하는 JSON 이며, 위 네 가지 경로(대시보드, MCP, CLI, 패치 후 재측정)가 같은 파일을 그대로 씁니다.
+**로그인이 필요하거나 데이터가 있어야 그려지는 화면은 시나리오로 스캔하세요.** 헤드리스 스캔은 URL 만 열기 때문에 데이터가 있어야 그려지는 화면은 빈 상태로 검사되고, 이때 "결함 0건"은 **안전하다는 뜻이 아닙니다.** 또 스캔 시점에 **이미 열려 있는** 모달·드롭다운만 가려짐·포커스 검사 대상입니다. **시나리오**는 스캔 전에 `localStorage`/`sessionStorage`/쿠키 시드를 심고 클릭·입력·대기 단계를 실행하는 JSON 이며, 위 네 가지 경로(대시보드, MCP, CLI, 패치 후 재측정)가 같은 파일을 그대로 씁니다.
 
 ```bash
-node packages/verifier/dist/cli.js http://localhost:5174/camps/c1/distribute --viewports 1280 --scenario docs/scenarios/camping-joy.json
+node packages/verifier/dist/cli.js http://localhost:5173 --scenario docs/scenarios/example-seed.json
 ```
 
-- 형식, 한도, 경로별 사용법, 내 앱의 시나리오 만드는 법은 [`docs/scenarios/README.md`](scenarios/README.md), Camping-Joy 예시(캠핑 3개, 멤버 4명, 긴 이름 포함)는 `docs/scenarios/` 에 있습니다.
+- 형식, 한도, 경로별 사용법, 내 앱의 시나리오 만드는 법은 [`docs/scenarios/README.md`](scenarios/README.md), 예시는 `docs/scenarios/` 에 있습니다.
 - 시나리오 스캔의 결함은 시나리오 키가 id 에 섞여 같은 URL 의 일반 스캔과 별개로 기록됩니다(서로를 `resolved` 로 바꾸지 않음). 패치 후 재측정은 저장된 같은 시나리오로 합니다. 시나리오 없이 재측정하면 닫힌 메뉴를 재서 고치기 전에도 "통과"가 나오기 때문입니다.
 - **비밀번호, 토큰, 실제 세션 쿠키는 넣지 마세요.** 시나리오는 대시보드 저장소에 평문으로 저장됩니다.
 - 확장은 시나리오를 쓰지 않습니다(지금 보는 탭 그대로 검사). 폭만 바꾸려면 확장의 뷰포트 에뮬레이션 옵션을 쓰세요.
@@ -119,7 +119,7 @@ node packages/verifier/dist/cli.js http://localhost:5174/camps/c1/distribute --v
 ## 오탐·미탐 대응
 
 - **일시적으로 제외**: 검사에서 빼고 싶은 요소(또는 그 하위 전체)에 `data-ia-ignore` 속성을 붙입니다. 오버플로우, 가려짐, 모달 포커스 검사에 모두 적용됩니다. 의도한 겹침이나 스크롤이면 이유를 주석으로 남기세요.
-- **오탐을 발견했다면**: 재현 컴포넌트를 `apps/playground/src/components/` 에 **정상 대조군**으로 추가하고 `benchmarks/src/fixtures.ts` 의 `NEGATIVE_CONTROLS` 에 등록한 뒤, 탐지 규칙을 고치고 `pnpm bench` 에서 대조군 오탐 0건이 유지되는지 확인합니다(불변 조건이 깨지면 `pnpm bench` 가 종료 코드 1 로 끝나므로 CI 도 같은 기준으로 실패합니다). (회전한 아이콘 오탐을 이 순서로 고쳤습니다. 실서비스 사례는 `docs/real-world-report.md`.)
+- **오탐을 발견했다면**: 재현 컴포넌트를 `apps/playground/src/components/` 에 **정상 대조군**으로 추가하고 `benchmarks/src/fixtures.ts` 의 `NEGATIVE_CONTROLS` 에 등록한 뒤, 탐지 규칙을 고치고 `pnpm bench` 에서 대조군 오탐 0건이 유지되는지 확인합니다(불변 조건이 깨지면 `pnpm bench` 가 종료 코드 1 로 끝나므로 CI 도 같은 기준으로 실패합니다).
 - **탐지 규칙을 고칠 때의 최소 확인**: `pnpm test` → `pnpm typecheck` → `pnpm bench`. 토큰 수까지 재려면 `ANTHROPIC_API_KEY` 가 필요하고, 없으면 `INSPECTOR_BENCH_ESTIMATE=1` 로 근사 모드를 쓸 수 있습니다(결과에 `method: estimate` 표시).
 - **알려진 미탐 영역**: 세로 방향의 텍스트 잘림(고정 높이 + `overflow: hidden` 으로 글줄이 잘리는 경우), 텍스트 대비 등 접근성 일반, 시나리오에 단계로 정의하지 않은 인터랙션 후의 UI, `transform` 이 걸린 요소의 박스 오버플로우. [로드맵](overview.md#한계와-로드맵)을 참고하세요.
 

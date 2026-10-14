@@ -1,0 +1,8 @@
+{
+  "name": "예시: 드롭다운을 열고 스캔",
+  "description": "트리거를 클릭하고 메뉴가 보일 때까지 기다린 상태로 스캔하는 예시. 셀렉터는 내 앱에 맞게 바꾼다.",
+  "steps": [
+    { "action": "click", "selector": ".menu-trigger" },
+    { "action": "wait", "selector": ".menu-list" }
+  ]
+}

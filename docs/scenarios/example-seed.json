@@ -1,0 +1,12 @@
+{
+  "name": "예시: localStorage 데이터 채우기",
+  "description": "앱이 localStorage 의 items 를 읽어 목록을 그린다고 가정한 예시. 이름에 긴 문자열을 섞어 넘침을 유도한다. 키와 값 모양은 내 앱에 맞게 바꾼다.",
+  "seed": {
+    "localStorage": {
+      "items": [
+        { "id": "1", "name": "짧은 이름" },
+        { "id": "2", "name": "Alexandria-Montgomery-Wellington-the-Third-with-a-very-long-name" }
+      ]
+    }
+  }
+}
