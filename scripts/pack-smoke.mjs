@@ -55,7 +55,8 @@ const waitFor = async (check, what, timeoutMs = 30_000) => {
 
 /**
  * MCP 서버를 stdio 로 띄워 JSON-RPC 요청을 보내는 최소 클라이언트.
- * elicitation: 'accept' | 'decline' | undefined(승인 창을 지원하지 않는 클라이언트). 서버가 승인 창을 요청하면 그대로 응답한다.
+ * elicitation: 서버가 승인 창을 요청하면 이렇게 응답한다. 'accept'(체크박스 켜고 확인), 'accept-empty'(체크박스를 건드리지 않고 확인: 내용 없음),
+ * 'uncheck'(체크박스를 끄고 확인), 'decline'(취소), undefined(승인 창을 지원하지 않는 클라이언트)
  */
 const startMcp = (binPath, cwd, { elicitation, env } = {}) => {
   const child = spawn(process.execPath, [binPath], { cwd, stdio: ['pipe', 'pipe', 'ignore'], env: { ...process.env, INSPECTOR_SETTLE_MS: '300', ...env } })
@@ -69,7 +70,10 @@ const startMcp = (binPath, cwd, { elicitation, env } = {}) => {
     buffer = lines.pop() ?? ''
     for (const line of lines.filter(Boolean)) {
       const message = JSON.parse(line)
-      if (message.method === 'elicitation/create') send({ jsonrpc: '2.0', id: message.id, result: elicitation === 'accept' ? { action: 'accept', content: { approve: true } } : { action: 'decline' } })
+      if (message.method === 'elicitation/create') {
+        const answers = { accept: { action: 'accept', content: { approve: true } }, 'accept-empty': { action: 'accept', content: {} }, uncheck: { action: 'accept', content: { approve: false } }, decline: { action: 'decline' } }
+        send({ jsonrpc: '2.0', id: message.id, result: answers[elicitation] })
+      }
       else if (message.id !== undefined && pending.has(message.id)) {
         const { resolve, reject, timer } = pending.get(message.id)
         clearTimeout(timer)
@@ -186,7 +190,7 @@ const main = async () => {
   const mcpBin = join(app, 'node_modules/@inspector-agent/mcp-server/dist/index.js')
   const appVue = join(app, 'src/App.vue')
   const original = readFileSync(appVue, 'utf8')
-  const session = startMcp(mcpBin, app, { elicitation: 'accept' })
+  const session = startMcp(mcpBin, app, { elicitation: 'accept-empty' })
   try {
     await session.ready
     const tools = (await session.request('tools/list')).tools.map((tool) => tool.name)
@@ -210,6 +214,12 @@ const main = async () => {
     const refusal = await declined.tool('apply_patch', { patchId })
     declined.close()
     assert(refusal.text.includes('승인하지 않았') && readFileSync(appVue, 'utf8') === original, `거절했는데 파일이 바뀌었거나 안내가 없습니다: ${refusal.text}`)
+    // 체크박스를 직접 끄고 확인을 눌렀다면 승인하지 않은 것이다
+    const unchecked = startMcp(mcpBin, app, { elicitation: 'uncheck' })
+    await unchecked.ready
+    const notApproved = await unchecked.tool('apply_patch', { patchId })
+    unchecked.close()
+    assert(notApproved.text.includes('승인하지 않았') && readFileSync(appVue, 'utf8') === original, `체크박스를 껐는데 적용됐습니다: ${notApproved.text}`)
     // 승인 창을 지원하지 않는 클라이언트도 적용하지 않고 터미널 승인을 안내한다
     const plain = startMcp(mcpBin, app)
     await plain.ready
@@ -219,7 +229,7 @@ const main = async () => {
 
     const applied = await session.tool('apply_patch', { patchId })
     assert(/상태: verified/.test(applied.text) && readFileSync(appVue, 'utf8').includes('width: 100%'), `승인 후 적용·재측정이 통과하지 못했습니다: ${applied.text}`)
-    ok('@inspector-agent/mcp-server: 거절·승인 창 없음에서는 파일 그대로, 승인하면 적용 후 재측정 통과(verified)')
+    ok('@inspector-agent/mcp-server: 취소·체크 해제·승인 창 없음에서는 파일 그대로, 확인만 눌러도(체크박스를 건드리지 않아도) 승인으로 보고 적용 후 재측정 통과(verified)')
   } finally {
     session.close()
   }
