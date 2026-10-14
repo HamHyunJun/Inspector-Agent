@@ -1,15 +1,16 @@
 # 배포 가이드 (npm)
 
-배포 대상은 4개 패키지이고 **항상 같은 버전**으로 함께 올라갑니다(changesets `fixed` 그룹).
+배포 대상은 5개 패키지이고 **항상 같은 버전**으로 함께 올라갑니다(changesets `fixed` 그룹).
 
 | 패키지 | 설치 후 쓰는 것 |
 | --- | --- |
 | `@inspector-agent/core` | 탐지 엔진, 타입, 시나리오 검증 (라이브러리) |
 | `@inspector-agent/vite-plugin` | Vite/Nuxt 플러그인 (`data-ia-src` 주입) |
 | `@inspector-agent/verifier` | `inspector-scan` CLI 와 스캔·재측정 API |
+| `@inspector-agent/engine` | 패치 제안·적용·재측정·자동 롤백 엔진과 `inspector-agent` CLI |
 | `@inspector-agent/mcp-server` | `inspector-agent-mcp` (Claude Code 등 MCP 서버) |
 
-`source-locator`, `extension`, 대시보드, playground 는 배포하지 않습니다(`private`). 대시보드(`apps/dashboard`)는 npm 패키지가 아니라 저장소에서 실행합니다.
+`source-locator`(엔진 번들에 포함), playground 는 배포하지 않습니다(`private`).
 
 ## 1. 패키지 이름 확인 결과 (2026-10-13)
 
@@ -68,7 +69,7 @@ git push origin v0.1.0
 `.github/workflows/release.yml` 이 다음을 순서대로 합니다. 하나라도 실패하면 배포하지 않습니다.
 
 1. 태그가 **main 에 병합된 커밋**을 가리키는지 확인
-2. 타입체크, 전체 테스트(확장 E2E 포함), `release:check --tag v0.1.0`(태그와 패키지 버전 일치), tarball 스모크
+2. 타입체크, 전체 테스트, `release:check --tag v0.1.0`(태그와 패키지 버전 일치), tarball 스모크
 3. `NPM_TOKEN` 시크릿 존재 확인
 4. `changeset publish` (npm 에 없는 버전만 올림, provenance 켬)
 

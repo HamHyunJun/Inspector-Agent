@@ -13,6 +13,12 @@ describe('toPromptText', () => {
   })
 })
 
+describe('toPromptText 특수 문자', () => {
+  it('인자에 $& 같은 치환 패턴이 있어도 그대로 전달한다', async (): Promise<void> => {
+    expect(toPromptText(await readCommandSource(), 'scan http://a?b=$&c')).toContain('`scan http://a?b=$&c`')
+  })
+})
+
 describe('installCommands', () => {
   it('ia, insp 를 같은 내용으로 설치하고, 다시 실행하면 건드리지 않는다', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'ia-commands-'))

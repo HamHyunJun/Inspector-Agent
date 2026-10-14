@@ -19,7 +19,7 @@ export const readCommandSource = (): Promise<string> => readFile(SOURCE, 'utf8')
 export const toPromptText = (source: string, args: string): string =>
   source
     .replace(/^---\n[\s\S]*?\n---\n/, '')
-    .replaceAll('$ARGUMENTS', args)
+    .replaceAll('$ARGUMENTS', (): string => args)  // 함수로 넘겨야 인자 안의 $&, $1 이 치환 패턴으로 해석되지 않는다
     .trim()
 
 export interface InstallOptions {

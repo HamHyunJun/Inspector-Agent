@@ -2,15 +2,19 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod'
+import { createEngine, configFromEnv, projectRootProblem } from '@inspector-agent/engine'
 import { loadScenarioFile } from './scenario-file'
-import { createDashboardClient } from './dashboard-client'
+import type { Backend } from './backend'
+import { createEngineBackend } from './engine-backend'
 import { formatContext, formatDefectList, formatPatch } from './format'
 import { readCommandSource, runInstallCommands, toPromptText } from './commands'
 
 /**
  * Inspector-Agent MCP 서버 (stdio).
  * 에이전트는 "눈"이 아니라 이미 탐지·매핑·측정된 결함을 받아 패치만 제안한다.
- * 파일 반영은 기본적으로 대시보드에서 사람이 승인한다 (INSPECTOR_ALLOW_AGENT_APPLY=1 이면 에이전트 적용 허용).
+ * 이 프로세스 안의 엔진이 스캔·저장·적용·재측정·자동 롤백을 모두 한다(대시보드 없음).
+ * 파일 반영에는 항상 사람의 승인이 필요하다: apply_patch 호출 때 클라이언트의 승인 창(elicitation)을 띄우고,
+ * 승인 창을 지원하지 않는 클라이언트에서는 터미널(inspector-agent apply) 승인이나 INSPECTOR_ALLOW_AGENT_APPLY=1 이 필요하다.
  */
 
 interface ToolResult {
@@ -19,15 +23,22 @@ interface ToolResult {
   isError?: boolean
 }
 
-const dashboardUrl = process.env.INSPECTOR_DASHBOARD_URL ?? 'http://localhost:3000'
 const allowAgentApply = process.env.INSPECTOR_ALLOW_AGENT_APPLY === '1'
-const client = createDashboardClient(dashboardUrl)
+const engineConfig = configFromEnv()
+// 프로젝트가 아닌 폴더에서 시작됐으면 모든 도구가 이유를 알려 주고 멈춘다
+const setupProblem = projectRootProblem(engineConfig)
+const client: Backend = createEngineBackend(createEngine(engineConfig))
 const server = new McpServer({ name: 'inspector-agent', version: '0.1.0' })
+
+/** 제안 상태의 패치를 사람이 어디서 승인하는지 안내하는 한 줄 */
+const reviewHint =
+  '사람의 승인을 기다립니다: 위 diff 를 사용자에게 보여 주고, 승인하면 apply_patch 로 적용하세요(적용 후 같은 화면에서 재측정하고 실패하면 자동 롤백). 터미널에서는 `npx -y @inspector-agent/engine apply <패치 id>`.'
 
 const text = (value: string): ToolResult => ({ content: [{ type: 'text', text: value }] })
 
-/** 대시보드 오류를 예외 대신 도구 오류 응답으로 바꿔 에이전트가 스스로 복구하게 한다 */
+/** 엔진 오류를 예외 대신 도구 오류 응답으로 바꿔 에이전트가 스스로 복구하게 한다 */
 const run = async (task: () => Promise<string>): Promise<ToolResult> => {
+  if (setupProblem) return { ...text(setupProblem), isError: true }
   try {
     return text(await task())
   } catch (error) {
@@ -40,7 +51,7 @@ server.registerTool(
   {
     title: '페이지 스캔',
     description:
-      '헤드리스 Chromium 으로 URL 을 여러 뷰포트에서 스캔해 레이아웃 오버플로우와 모달·드롭다운 가려짐 결함을 결정론적으로 탐지하고 대시보드에 저장합니다. 데이터가 있어야 그려지는 화면이나 클릭해야 열리는 드롭다운·모달은 scenario(또는 scenarioFile)로 시드 데이터와 클릭·입력·대기 단계를 줘서 그 상태로 스캔하세요. 같은 시나리오가 패치 후 재측정에도 쓰입니다.',
+      '헤드리스 Chromium 으로 URL 을 여러 뷰포트에서 스캔해 레이아웃 오버플로우와 모달·드롭다운 가려짐 결함을 결정론적으로 탐지하고 저장소에 저장합니다. 데이터가 있어야 그려지는 화면이나 클릭해야 열리는 드롭다운·모달은 scenario(또는 scenarioFile)로 시드 데이터와 클릭·입력·대기 단계를 줘서 그 상태로 스캔하세요. 같은 시나리오가 패치 후 재측정에도 쓰입니다.',
     inputSchema: {
       url: z.string().url().describe('스캔할 개발 서버 URL (예: http://localhost:5173/)'),
       viewports: z.array(z.number().int().min(240).max(3840)).optional().describe('뷰포트 너비 목록. 기본 [375, 768, 1280]'),
@@ -65,7 +76,7 @@ server.registerTool(
   'list_defects',
   {
     title: '결함 목록',
-    description: '대시보드에 저장된 결함을 심각도 순으로 한 줄씩 요약합니다. 같은 소스 위치·뷰포트의 결함은 URL 이 달라도 한 줄로 묶고 발생 URL 을 urls= 로 보여 줍니다(한 곳만 고치면 됩니다).',
+    description: '저장된 결함을 심각도 순으로 한 줄씩 요약합니다. 같은 소스 위치·뷰포트의 결함은 URL 이 달라도 한 줄로 묶고 발생 URL 을 urls= 로 보여 줍니다(한 곳만 고치면 됩니다).',
     inputSchema: {
       status: z.enum(['open', 'patched', 'resolved']).optional().describe('상태 필터. 기본은 전체')
     }
@@ -81,7 +92,7 @@ server.registerTool(
     description:
       '결함 하나의 압축 런타임 페이로드(수치, 노드/부모 레이아웃 스타일), 템플릿 라인 스니펫, 노드·부모·자식 클래스를 대상으로 하는 SCSS 규칙과 라인 번호, 결정론적 진단 제안을 반환합니다. 패치 작성 전에 반드시 호출하세요.',
     inputSchema: {
-      defectId: z.string().describe('list_defects 가 반환한 결함 id (d_ 로 시작)')
+      defectId: z.string().regex(/^d_[a-z0-9]+$/).describe('list_defects 가 반환한 결함 id (d_ 로 시작)')
     }
   },
   ({ defectId }): Promise<ToolResult> => run(async (): Promise<string> => formatContext(await client.getContext(defectId)))
@@ -92,9 +103,9 @@ server.registerTool(
   {
     title: '패치 제안',
     description:
-      '결함을 고치는 소스 편집을 제안합니다. 파일은 바로 바뀌지 않고, 대시보드에서 사람이 Diff 를 검토한 뒤 적용합니다. 적용 시 같은 뷰포트에서 재측정해 오버플로우 또는 가려진 비율이 0이 아니거나 새 결함이 생기면 자동 롤백됩니다.',
+      '결함을 고치는 소스 편집을 제안합니다. 파일은 바로 바뀌지 않고, 사람이 Diff 를 검토·승인한 뒤 적용됩니다(적용은 apply_patch 또는 터미널). 적용 시 같은 뷰포트에서 재측정해 오버플로우 또는 가려진 비율이 0이 아니거나 새 결함이 생기면 자동 롤백됩니다.',
     inputSchema: {
-      defectId: z.string(),
+      defectId: z.string().regex(/^d_[a-z0-9]+$/),
       file: z.string().describe('대상 프로젝트 루트 기준 경로 (get_defect_context 의 소스 경로)'),
       edits: z
         .array(
@@ -109,7 +120,7 @@ server.registerTool(
   },
   ({ defectId, file, edits, rationale }): Promise<ToolResult> =>
     run(async (): Promise<string> =>
-      formatPatch(await client.proposePatch({ defectId, file, edits, rationale }), dashboardUrl)
+      formatPatch(await client.proposePatch({ defectId, file, edits, rationale }), reviewHint)
     )
 )
 
@@ -119,24 +130,45 @@ server.registerTool(
     title: '패치 상태',
     description: '패치의 검토/적용 상태와 재측정 결과(전후 px, 회귀 결함)를 확인합니다. 실패했다면 회귀 정보를 바탕으로 새 패치를 제안하세요.',
     inputSchema: {
-      patchId: z.string().describe('propose_patch 가 반환한 패치 id (p_ 로 시작)')
+      patchId: z.string().regex(/^p_[a-z0-9]+$/).describe('propose_patch 가 반환한 패치 id (p_ 로 시작)')
     }
   },
-  ({ patchId }): Promise<ToolResult> => run(async (): Promise<string> => formatPatch(await client.getPatch(patchId), dashboardUrl))
+  ({ patchId }): Promise<ToolResult> => run(async (): Promise<string> => formatPatch(await client.getPatch(patchId), reviewHint))
 )
 
-if (allowAgentApply) {
-  server.registerTool(
-    'apply_patch',
-    {
-      title: '패치 적용 (자율 모드)',
-      description: '사람 승인 없이 패치를 적용하고 재측정합니다. INSPECTOR_ALLOW_AGENT_APPLY=1 일 때만 노출됩니다.',
-      inputSchema: { patchId: z.string() }
-    },
-    ({ patchId }): Promise<ToolResult> =>
-      run(async (): Promise<string> => formatPatch(await client.applyPatch(patchId), dashboardUrl))
-  )
+/**
+ * 독립 모드의 적용 승인. 승인 창(elicitation)을 지원하는 클라이언트에서는 diff 를 보여 주고 사람에게 직접 묻는다.
+ * 지원하지 않으면, 사람이 터미널에서 승인하거나 자율 모드(INSPECTOR_ALLOW_AGENT_APPLY=1)를 명시했을 때만 적용한다.
+ */
+const requestApproval = async (patchId: string): Promise<string | undefined> => {
+  if (allowAgentApply) return undefined
+  if (!server.server.getClientCapabilities()?.elicitation) {
+    return `이 MCP 클라이언트는 승인 창을 띄울 수 없어 적용하지 않았습니다. 사용자에게 터미널에서 \`npx -y @inspector-agent/engine apply ${patchId}\` 를 실행해 승인하도록 안내하세요(자율 모드는 INSPECTOR_ALLOW_AGENT_APPLY=1).`
+  }
+  const patch = await client.getPatch(patchId)
+  const answer = await server.server.elicitInput({
+    message: `${patch.file} 에 패치 ${patchId} 를 적용하고 같은 화면에서 재측정할까요? 재측정에 실패하면 자동으로 원본으로 되돌립니다.\n\n${patch.diff}`,
+    requestedSchema: { type: 'object', properties: { approve: { type: 'boolean', title: '적용하고 재측정', default: false } }, required: ['approve'] }
+  })
+  return answer.action === 'accept' && answer.content?.approve === true ? undefined : '사용자가 적용을 승인하지 않았습니다. 파일은 바뀌지 않았습니다.'
 }
+
+server.registerTool(
+  'apply_patch',
+  {
+    title: '패치 적용',
+    description:
+      '제안한 패치를 사람의 승인을 받아 적용하고 같은 화면에서 재측정합니다. 재측정에 실패하거나 새 결함이 생기면 자동으로 원본으로 롤백됩니다. 사용자가 diff 를 보고 적용을 원할 때만 호출하세요.',
+    inputSchema: { patchId: z.string().regex(/^p_[a-z0-9]+$/).describe('propose_patch 가 반환한 패치 id (p_ 로 시작)') },
+    annotations: { destructiveHint: true }
+  },
+  ({ patchId }): Promise<ToolResult> =>
+    run(async (): Promise<string> => {
+      const refusal = await requestApproval(patchId)
+      if (refusal) return refusal
+      return formatPatch(await client.applyPatch(patchId), reviewHint)
+    })
+)
 
 // 설치 없이 쓰는 슬래시 명령. Claude Code 에서는 /mcp__inspector-agent__scan 으로 나타난다
 const commandSource = await readCommandSource()
@@ -163,7 +195,7 @@ server.registerPrompt(
 const main = async (): Promise<void> => {
   await server.connect(new StdioServerTransport())
   // stdout 은 MCP 프로토콜 전용이므로 로그는 stderr 로 남긴다
-  console.error(`[inspector-agent-mcp] 대시보드 ${dashboardUrl} 에 연결된 MCP 서버가 시작되었습니다.`)
+  console.error(`[inspector-agent-mcp] MCP 서버가 시작되었습니다. 프로젝트 루트: ${engineConfig.projectRoot}`)
 }
 
 // `npx @inspector-agent/mcp-server install-commands` 는 서버를 띄우지 않고 슬래시 명령 파일만 설치한다

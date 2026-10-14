@@ -20,7 +20,7 @@ export interface ExpectedDefect {
   cascadedCount?: number
   /** React 대상: 규칙 기반 패치가 수정해야 하는 스타일시트(CSS Modules/.css/.scss). 소스 매핑이 JSX 가 아니라 이 파일의 규칙을 찾았는지 검증한다 */
   styleFile?: string
-  /** 다른 URL(SECOND_PAGE_QUERY)에도 같은 컴포넌트가 나오는 결함. 대시보드에서는 URL 이 달라도 한 그룹으로 묶여야 한다 */
+  /** 다른 URL(SECOND_PAGE_QUERY)에도 같은 컴포넌트가 나오는 결함. 결과 목록에서는 URL 이 달라도 한 그룹으로 묶여야 한다 */
   alsoOnSecondPage?: boolean
 }
 

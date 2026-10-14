@@ -11,6 +11,15 @@ export type DeclarationPatchResult =
 
 const indentOf = (line: string): string => /^\s*/.exec(line)?.[0] ?? ''
 
+const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+/** 한 줄에 다른 선언이나 닫는 중괄호가 함께 있어도 그 속성의 값만 바꾼다 */
+const replaceValue = (line: string, property: string, value: string): string =>
+  line.replace(new RegExp(`(^|[{;\\s])${escapeRegExp(property)}(\\s*:\\s*)[^;}]*`), (_match, before: string): string => `${before}${property}: ${value}`)
+
+/** 마지막 선언이 세미콜론 없이 끝나면(`color: red }`, 마지막 줄 생략) 뒤에 선언을 붙일 수 있게 세미콜론을 보충한다 */
+const withTrailingSemicolon = (text: string): string => (/[^;{}\s]\s*$/.test(text) ? `${text.trimEnd()};` : text)
+
 /**
  * 규칙 기반 진단 결과(선언 묶음)를 SFC 소스 편집으로 바꾼다.
  * - 대상 클래스를 스타일링하는 기존 규칙이 있으면: 같은 속성은 값만 바꾸고, 없는 속성은 마지막 선언 뒤에 추가
@@ -47,12 +56,24 @@ export const buildDeclarationPatch = (
       const existing = rule.declarations.find((declaration): boolean => declaration.property === property)
       if (existing) {
         const index = existing.line - rule.line
-        updated[index] = `${indentOf(updated[index] ?? '')}${property}: ${value};`
+        updated[index] = replaceValue(updated[index] ?? '', property, value)
       } else {
-        appended.push(`${declarationIndent}${property}: ${value};`)
+        appended.push(`${property}: ${value};`)
       }
     }
-    const newText = [...updated, ...appended].join('\n')
+    if (appended.length > 0) {
+      const lastIndex = updated.length - 1
+      const lastLine = updated[lastIndex] ?? ''
+      const closing = rule.endLine === lastDeclarationLine ? lastLine.lastIndexOf('}') : -1
+      if (closing >= 0) {
+        // 한 줄 규칙(`.a { x: y; }`)이나 닫는 중괄호가 마지막 선언 줄에 붙은 규칙: 중괄호 앞에 끼워 넣는다
+        updated[lastIndex] = `${withTrailingSemicolon(lastLine.slice(0, closing).trimEnd())} ${appended.join(' ')} ${lastLine.slice(closing)}`
+      } else {
+        updated[lastIndex] = withTrailingSemicolon(lastLine)
+        updated.push(...appended.map((declaration): string => `${declarationIndent}${declaration}`))
+      }
+    }
+    const newText = updated.join('\n')
     if (newText === oldText) return { ok: false, error: '이미 같은 선언이 적용되어 있습니다.' }
     return { ok: true, edits: [{ oldText, newText }], summary: `${rule.selector} (L${rule.line}) 규칙 수정` }
   }

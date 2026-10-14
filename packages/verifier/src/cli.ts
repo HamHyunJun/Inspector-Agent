@@ -6,12 +6,11 @@ import { DEFAULT_VIEWPORTS, parseViewports, scanPage } from './index'
 import { defectsAtOrAbove, parseFailOn, renderMarkdown } from './report'
 
 /**
- * 사용법: inspector-scan <url> [--viewports 375,768x1024] [--report http://localhost:3000]
+ * 사용법: inspector-scan <url> [--viewports 375,768x1024]
  *                         [--fail-on high|medium|low] [--summary <파일>] [--scenario <파일.json>] [--no-explore]
  * --no-explore 시나리오 없이 스캔할 때 기본으로 켜지는 자동 탐색(툴팁·팝오버·드롭다운·모달을 눌러/올려 본 상태까지 검사)을 끈다
- * --report   결과를 대시보드 /api/scans 로 전송한다.
  * --fail-on  해당 심각도 이상의 결함이 하나라도 있으면 종료 코드 1 (high: high 만, low: 전부)
- * --scenario 스캔 전에 시드(localStorage/sessionStorage/쿠키)를 심고 단계(click/fill/wait)를 실행한다. 대시보드와 MCP 가 같은 JSON 을 쓴다
+ * --scenario 스캔 전에 시드(localStorage/sessionStorage/쿠키)를 심고 단계(click/hover/fill/wait)를 실행한다. MCP 와 `inspector-agent fix` 가 같은 JSON 을 쓴다
  * --summary  마크다운 요약을 파일에 덧붙인다. GitHub Actions 에서는 "$GITHUB_STEP_SUMMARY" 를 넘긴다
  * 종료 코드: 0 통과 · 1 기준 초과 · 2 사용법 오류 또는 스캔 실패
  */
@@ -24,12 +23,11 @@ const main = async (): Promise<void> => {
   const args = process.argv.slice(2)
   const url = args.find((arg): boolean => /^https?:\/\//.test(arg))
   if (!url) {
-    console.error('사용법: inspector-scan <url> [--viewports 375,768,1280] [--report <대시보드 URL>] [--fail-on high|medium|low] [--summary <파일>] [--scenario <파일.json>]')
+    console.error('사용법: inspector-scan <url> [--viewports 375,768,1280] [--fail-on high|medium|low] [--summary <파일>] [--scenario <파일.json>]')
     process.exitCode = 2
     return
   }
   const viewportFlag = readFlag(args, '--viewports')
-  const report = readFlag(args, '--report')
   const summaryFile = readFlag(args, '--summary')
   const scenarioFile = readFlag(args, '--scenario')
   // 스캔(수 초) 전에 잘못된 값을 먼저 알린다
@@ -57,15 +55,6 @@ const main = async (): Promise<void> => {
       const hints = defect.suggestions.map((suggestion): string => suggestion.hint).join(', ')
       console.log(`  - [${defect.severity}] ${source} ${formatMagnitude(defect)} (${hints})`)
     }
-  }
-
-  if (report) {
-    const response = await fetch(new URL('/api/scans', report), {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ results, scenario })
-    })
-    console.log(`\n대시보드 전송: ${response.status}`)
   }
 
   // 요약은 실패 판정과 무관하게 항상 남긴다 (실패한 job 에서 가장 필요하다)

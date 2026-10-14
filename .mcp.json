@@ -2,10 +2,7 @@
   "mcpServers": {
     "inspector-agent": {
       "command": "node",
-      "args": ["packages/mcp-server/dist/index.js"],
-      "env": {
-        "INSPECTOR_DASHBOARD_URL": "http://localhost:3000"
-      }
+      "args": ["packages/mcp-server/dist/index.js"]
     }
   }
 }

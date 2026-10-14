@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { NodeSnapshot } from '@inspector-agent/core'
-import type { DefectListItem, DefectSummary, PatchResponse } from '../src/dashboard-client'
+import type { DefectListItem, DefectSummary, PatchResponse } from '../src/backend'
 import { formatDefectList, formatPatch } from '../src/format'
 
 const snapshot = (selector: string): NodeSnapshot => ({
@@ -91,24 +91,29 @@ describe('formatDefectList (URL 그룹, 연쇄 결함)', () => {
 })
 
 describe('formatPatch', () => {
-  const patch = (verification: PatchResponse['verification']): PatchResponse => ({
+  /** 이 테스트가 보는 필드만 채우고 나머지는 엔진 타입에 맞춰 채운다 */
+  const patch = (verification: Partial<NonNullable<PatchResponse['verification']>>): PatchResponse => ({
     id: 'p_1',
     defectId: 'd_1',
     file: 'src/components/Menu.vue',
+    edits: [],
+    author: 'agent',
+    originalHash: 'h',
+    createdAt: '2026-10-14T00:00:00.000Z',
     status: 'failed',
     diff: '',
     rationale: '',
-    verification
+    verification: { passed: false, verdict: '', unit: 'px', beforePx: 0, afterPx: 0, regressions: [], stillPresent: false, documentOverflowPx: 0, measuredAt: '2026-10-14T00:00:00.000Z', ...verification }
   })
 
   it('재측정 수치를 unit 에 맞게 표기한다', () => {
-    expect(formatPatch(patch({ passed: false, verdict: 'v', unit: 'ratio', beforePx: 1, afterPx: 0.4, regressions: [] }), 'http://localhost:3000')).toContain('100% → 40%')
-    expect(formatPatch(patch({ passed: false, verdict: 'v', unit: 'count', beforePx: 2, afterPx: 1, regressions: [] }), 'http://localhost:3000')).toContain('2방향 → 1방향')
-    expect(formatPatch(patch({ passed: true, verdict: 'v', beforePx: 230, afterPx: 0, regressions: [] }), 'http://localhost:3000')).toContain('230px → 0px')
+    expect(formatPatch(patch({ passed: false, verdict: 'v', unit: 'ratio', beforePx: 1, afterPx: 0.4, regressions: [] }), '검토 안내')).toContain('100% → 40%')
+    expect(formatPatch(patch({ passed: false, verdict: 'v', unit: 'count', beforePx: 2, afterPx: 1, regressions: [] }), '검토 안내')).toContain('2방향 → 1방향')
+    expect(formatPatch(patch({ passed: true, verdict: 'v', beforePx: 230, afterPx: 0, regressions: [] }), '검토 안내')).toContain('230px → 0px')
   })
 
   it('회귀 결함도 종류에 맞게 표기한다', () => {
-    const text = formatPatch(patch({ passed: false, verdict: 'v', unit: 'px', beforePx: 10, afterPx: 0, regressions: [occluded] }), 'http://localhost:3000')
+    const text = formatPatch(patch({ passed: false, verdict: 'v', unit: 'px', beforePx: 10, afterPx: 0, regressions: [occluded] }), '검토 안내')
     expect(text).toContain('회귀: src/components/Menu.vue:6 가려짐 100%')
   })
 })

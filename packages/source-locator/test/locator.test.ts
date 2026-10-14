@@ -83,6 +83,30 @@ describe('buildDeclarationPatch', () => {
     expect(result.edits[0]?.newText).toBe('  &__title {\n    white-space: normal;\n    min-width: 0;')
   })
 
+  describe('한 줄로 쓴 규칙', () => {
+    const oneLine = '<template><div class="box" /></template>\n<style>\n.box { width: 420px; height: 40px; }\n</style>\n'
+    const patch = (declarations: Record<string, string>): string => {
+      const rules = locateStyleRules(oneLine, ['box'])
+      const result = buildDeclarationPatch(oneLine, rules, ['box'], declarations)
+      if (!result.ok) throw new Error(result.error)
+      return (result.edits[0]?.newText ?? '')
+    }
+
+    it('새 속성은 닫는 중괄호 앞에 끼워 넣는다(중괄호 밖에 쓰지 않는다)', () => {
+      expect(patch({ 'max-width': '100%' })).toBe('.box { width: 420px; height: 40px; max-width: 100%; }')
+    })
+
+    it('같은 속성은 그 값만 바꾸고 같은 줄의 다른 선언을 지우지 않는다', () => {
+      expect(patch({ width: '100%' })).toBe('.box { width: 100%; height: 40px; }')
+    })
+
+    it('마지막 선언에 세미콜론이 없어도 유효한 CSS 가 된다', () => {
+      const text = '<template><div class="box" /></template>\n<style>\n.box { width: 420px }\n</style>\n'
+      const result = buildDeclarationPatch(text, locateStyleRules(text, ['box']), ['box'], { 'max-width': '100%' })
+      expect(result.ok && result.edits[0]?.newText).toBe('.box { width: 420px; max-width: 100%; }')
+    })
+  })
+
   it('규칙이 없으면 스타일 블록 끝에 새 규칙을 만든다', () => {
     const result = buildDeclarationPatch(sfc, [], ['card__body'], { 'min-width': '0' })
     expect(result.ok && result.edits[0]?.newText).toBe('\n.card__body {\n  min-width: 0;\n}\n</style>')

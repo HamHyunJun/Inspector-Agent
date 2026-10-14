@@ -1,5 +1,5 @@
 import { formatMagnitude } from '@inspector-agent/core'
-import type { DefectContextResponse, DefectListItem, PatchResponse } from './dashboard-client'
+import type { DefectContextResponse, DefectListItem, PatchResponse } from './backend'
 
 /** MCP 응답 텍스트 포맷터. 에이전트가 읽기 쉬우면서 토큰을 아끼는 형태를 유지한다 */
 
@@ -86,7 +86,8 @@ export const formatContext = (context: DefectContextResponse): string => {
   return sections.join('\n')
 }
 
-export const formatPatch = (patch: PatchResponse, dashboardUrl: string): string => {
+/** reviewHint: 제안 상태(proposed)일 때 사람이 어디서 검토·승인하는지 안내하는 한 줄 */
+export const formatPatch = (patch: PatchResponse, reviewHint: string): string => {
   const lines = [`패치 ${patch.id} 상태: ${patch.status}`, `대상: ${patch.file}`]
   if (patch.verification) {
     const { beforePx, afterPx, unit } = patch.verification
@@ -105,7 +106,7 @@ export const formatPatch = (patch: PatchResponse, dashboardUrl: string): string 
   if (patch.autoRolledBack) lines.push('검증 실패로 자동 롤백되었습니다. 원인을 다시 분석해 새 패치를 제안하세요.')
   if (patch.error) lines.push(`오류: ${patch.error}`)
   if (patch.status === 'proposed') {
-    lines.push(`사람의 검토를 기다립니다: ${new URL(`/defects/${patch.defectId}`, dashboardUrl).toString()}`)
+    lines.push(reviewHint)
   }
   lines.push('', patch.diff)
   return lines.join('\n')

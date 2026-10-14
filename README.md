@@ -2,7 +2,9 @@
 
 브라우저에서 **깨진 레이아웃을 규칙으로 찾아내고**, 그 노드를 **소스 파일의 정확한 라인**에 연결하고, 고친 뒤에는 **같은 화면에서 다시 측정해 수치로 증명**하는 도구입니다. 툴팁·팝오버·모달처럼 눌러야 열리는 UI도 스스로 열어 검사합니다.
 
-![스캔 → 결함 상세 → 패치 적용 → 재측정 0px 데모](docs/assets/demo.gif)
+![터미널 데모: 스캔 → 규칙 기반 수정 → 재측정 → 통과, 새 결함이 생기면 자동 롤백](docs/assets/demo.gif)
+
+*실제 명령(`inspector-scan`, `inspector-agent fix`)의 출력을 재생한 데모입니다. 재측정을 통과한 패치(109px → 0px)는 남기고, 새 결함을 만든 패치는 원본으로 자동 롤백하며, 규칙으로 못 고치는 결함은 건너뜁니다. Claude Code에서는 `/ia scan` 한 줄로 같은 흐름을 AI와 함께 진행합니다. 재녹화: `pnpm --filter @inspector-agent/benchmarks demo`.*
 
 ```
 375px · src/components/ProductCard.vue:4
@@ -52,12 +54,12 @@ flowchart LR
 
 |  | **A. 터미널** | **B. Claude Code (MCP)** |
 | --- | --- | --- |
-| 이런 때 | 결함 목록만 빨리 보고 싶다 · PR마다 CI로 막고 싶다 | AI가 스캔부터 패치 제안까지 해 주길 원한다 |
-| 설치 | npm 패키지 1개 | MCP 서버(npm) + 대시보드(저장소 실행) |
-| 대시보드 | **필요 없음** | 필요 (결함 저장·Diff 검토·적용·롤백) |
-| 실행 | `npx inspector-scan <주소>` | `/ia scan` |
-| 고치는 방법 | 결과에 나온 `파일:라인`을 직접 수정 | AI가 제안 → 대시보드에서 승인 → 재측정, 실패하면 자동 롤백 |
-| 준비 시간 | 약 1분 | 약 5분 |
+| 이런 때 | 결함 목록을 빨리 보고 싶다 · PR마다 CI로 막고 싶다 · AI 없이 자동 수정 | AI가 스캔부터 패치 제안까지 해 주길 원한다 |
+| 설치 | npm 패키지 1~2개 | MCP 서버 설정 3줄 (npm) |
+| 실행 | `npx inspector-scan <주소>` · `npx @inspector-agent/engine fix <주소>` | `/ia scan` |
+| 고치는 방법 | 결과의 `파일:라인`을 직접 수정, 또는 `fix`로 규칙 기반 자동 수정 | AI가 제안 → 승인 창에서 diff 확인 → 적용 |
+| 안전장치 | `fix`: Diff 확인 → y/N → 재측정 → 실패하면 자동 롤백 | 같음 (사람 승인 없이는 적용 안 됨) |
+| 준비 시간 | 약 1분 | 약 3분 |
 
 **→ [A. 터미널로 쓰기](#a-터미널로-쓰기)** · **→ [B. Claude Code로 쓰기](#b-claude-code로-쓰기)**
 
@@ -109,8 +111,6 @@ npx inspector-scan http://localhost:5173     # 3. 스캔
   - [high] app/components/layout/SecurityBadge.vue:28 viewport +38px (keep-in-viewport)
 ```
 
-**대시보드는 필요 없습니다.** 스캔, 결과 출력, CI 통과/실패 판정이 이 명령만으로 끝납니다. 결과를 저장하고 Diff 검토·적용·롤백까지 하려면 [B의 대시보드](#1-대시보드-띄우기)를 띄우고 `--report http://localhost:3000`을 붙이세요.
-
 결과의 `파일:라인`을 열어 고친 뒤 같은 명령을 다시 실행하면 결함이 사라진 것을 확인할 수 있습니다.
 
 | 옵션 | 설명 |
@@ -120,9 +120,28 @@ npx inspector-scan http://localhost:5173     # 3. 스캔
 | `--summary 파일` | 마크다운 요약을 파일에 덧붙임 (GitHub Actions: `"$GITHUB_STEP_SUMMARY"`) |
 | `--no-explore` | 자동 탐색 끄기 |
 | `--scenario 파일.json` | 로그인·데이터가 필요한 화면용 시나리오 ([작성법](docs/scenarios/README.md)) |
-| `--report http://localhost:3000` | 결과를 대시보드에도 저장 |
 
 종료 코드: `0` 통과 · `1` 기준 초과 · `2` 사용법 오류 또는 스캔 실패.
+
+### 자동으로 고치기 (`fix`)
+
+스캔 → 규칙 기반 패치 제안 → **Diff 확인** → 승인 → 적용 → **같은 화면 재측정** → 실패하면 **자동 롤백**까지 한 번에 합니다.
+
+```bash
+npx -y @inspector-agent/engine fix http://localhost:5173
+```
+
+(예시)
+
+```
+src/components/ShareLink.vue:4 (375px, overflow-x)
+-  .share-link { white-space: nowrap; }
++  .share-link { white-space: nowrap; overflow-wrap: anywhere; }
+적용하고 재측정할까요? [y]예 / [N]건너뛰기 / [a]이후 모두 / [q]중단 y
+  통과: 오버플로우 253px → 0px, 새 결함 없음
+```
+
+프로젝트 루트는 **현재 폴더**이고, 롤백용 백업과 결함 기록은 `.inspector-agent/`에 저장됩니다(이 폴더는 스스로 git에서 제외됩니다). `--yes`는 묻지 않고 적용하며(재측정 실패는 그대로 자동 롤백), 대화형 터미널이 아니면 `--yes` 없이는 제안만 저장합니다. 규칙으로 고칠 수 있는 결함(오버플로우, 말줄임, z-index 등)만 대상이고, 구조 변경이 필요한 결함은 B의 AI 제안을 쓰세요.
 
 ### CI에 넣기 (GitHub Actions)
 
@@ -138,38 +157,23 @@ npx inspector-scan http://localhost:5173     # 3. 스캔
 
 ## B. Claude Code로 쓰기
 
-### 1. 대시보드 띄우기
+### 1. MCP 서버 등록
 
-대시보드는 npm 패키지가 아니라 이 저장소에서 실행합니다. 결함 저장, Diff 검토, 파일 반영, 재측정을 맡습니다.
-
-```bash
-git clone https://github.com/HamHyunJun/Inspector-Agent
-cd Inspector-Agent
-pnpm install
-INSPECTOR_PROJECT_ROOT=/내/프로젝트/절대경로 pnpm dev:dashboard     # http://localhost:3000
-```
-
-`INSPECTOR_PROJECT_ROOT`는 패치를 반영할 **내 프로젝트의 루트 폴더**(`package.json`이 있는 곳)입니다. 이 밖의 경로는 수정하지 않습니다.
-
-### 2. MCP 서버 등록
-
-내 프로젝트 루트의 `.mcp.json`:
+내 프로젝트 루트의 `.mcp.json`에 넣으면 끝입니다. 설정할 것이 더 없습니다.
 
 ```json
 {
   "mcpServers": {
-    "inspector-agent": {
-      "command": "npx",
-      "args": ["-y", "@inspector-agent/mcp-server"],
-      "env": { "INSPECTOR_DASHBOARD_URL": "http://localhost:3000" }
-    }
+    "inspector-agent": { "command": "npx", "args": ["-y", "@inspector-agent/mcp-server"] }
   }
 }
 ```
 
-### 3. 슬래시 명령 (둘 중 편한 쪽)
+프로젝트 루트는 Claude Code를 연 폴더이고, 결함 기록과 롤백용 백업은 `.inspector-agent/`에 저장됩니다(이 폴더는 스스로 git에서 제외됩니다).
 
-**설치 없이:** 2번에서 MCP만 연결하면 Claude Code에 `/mcp__inspector-agent__scan`과 `/mcp__inspector-agent__status`가 자동으로 나타납니다. 이름이 깁니다.
+### 2. 슬래시 명령 (둘 중 편한 쪽)
+
+**설치 없이:** 1번만 하면 Claude Code에 `/mcp__inspector-agent__scan`과 `/mcp__inspector-agent__status`가 자동으로 나타납니다. 이름이 깁니다.
 
 **짧은 이름(`/ia`, `/insp`)으로 쓰려면** 한 번만 실행하세요.
 
@@ -179,7 +183,7 @@ npx -y @inspector-agent/mcp-server install-commands
 
 모든 프로젝트에서 쓰이도록 `~/.claude/commands`에 설치합니다. 이 프로젝트에서만 쓰려면 `--project`, 같은 이름의 내 파일을 덮어쓰려면 `--force`를 붙입니다. 설치 후에는 Claude Code를 새 세션으로 여세요.
 
-### 4. 사용
+### 3. 사용
 
 내 프로젝트에서 개발 서버를 켜고 Claude Code를 열어 입력합니다.
 
@@ -190,9 +194,15 @@ npx -y @inspector-agent/mcp-server install-commands
 | `/ia status` (또는 `/mcp__inspector-agent__status`) | 스캔 없이 현재 결함과 패치 상태만 표시 |
 | `/insp scan` | `/ia scan`과 같음 |
 
-제안된 패치는 대시보드(`http://localhost:3000`)에서 결함을 열어 **Diff를 확인하고 「적용하고 검증」**을 누릅니다. 대시보드가 백업 → 반영 → 재측정까지 하고, 검증에 실패하면 자동으로 원본으로 되돌립니다. 통과한 패치도 언제든 **롤백**할 수 있습니다.
+제안된 패치는 **항상 사람이 승인해야 적용됩니다.** AI가 `apply_patch`를 호출하면, **승인 창을 지원하는 클라이언트**는 diff를 보여 주고 승인을 받습니다. 승인하면 파일을 바꾼 뒤 같은 화면에서 재측정합니다. 재측정에 실패하거나 새 결함이 생기면 자동으로 원본으로 되돌립니다. 통과한 패치도 나중에 롤백할 수 있습니다.
 
-명령은 파일을 직접 고치지 않습니다. 확인 없이 AI가 적용·검증까지 반복하게 하려면 [자율 모드](docs/operations.md#승인-모드와-자율-모드)를 보세요(전용 브랜치에서만 권장).
+승인 창을 지원하지 않는 클라이언트(Claude Code 버전에 따라 다를 수 있습니다)에서는 적용하지 않고, 터미널 승인을 안내합니다. 그래도 사람 승인 없이는 파일이 바뀌지 않습니다.
+
+```bash
+npx -y @inspector-agent/engine apply p_abc123     # diff 확인 → y/N → 적용·재측정(실패하면 자동 롤백)
+```
+
+적용한 패치를 되돌리려면 `npx -y @inspector-agent/engine rollback p_abc123`을 쓰세요. AI가 묻지 않고 적용·검증을 반복하게 하려면(자율 모드) MCP `env`에 `"INSPECTOR_ALLOW_AGENT_APPLY": "1"`을 넣으세요. 전용 브랜치에서만 권장합니다. 자세한 내용은 [운영 가이드](docs/operations.md#승인-모드와-자율-모드)에 있습니다.
 
 ---
 
@@ -217,14 +227,15 @@ npx -y @inspector-agent/mcp-server install-commands
 
 ## 설정 (환경 변수)
 
+대부분 설정할 필요가 없습니다.
+
 | 이름 | 기본값 | 설명 |
 | --- | --- | --- |
-| `INSPECTOR_PROJECT_ROOT` | `../playground` | (B) 패치를 반영할 내 프로젝트 루트 |
-| `INSPECTOR_DASHBOARD_URL` | `http://localhost:3000` | (B) MCP 서버가 호출할 대시보드 주소 |
-| `INSPECTOR_DATA_DIR` | `.inspector-agent` | (B) 결함·패치 저장소와 백업 위치 |
-| `INSPECTOR_SETTLE_MS` | `800` | (B) 파일 반영 후 재측정 전 HMR 대기(ms) |
+| `INSPECTOR_PROJECT_ROOT` | 현재 폴더 | 패치를 반영할 프로젝트 루트. 이 밖의 경로는 수정하지 않습니다 |
+| `INSPECTOR_DATA_DIR` | `<루트>/.inspector-agent` | 결함 기록과 롤백용 백업 위치 |
+| `INSPECTOR_SETTLE_MS` | `800` | 파일 반영 후 재측정 전 HMR 대기(ms) |
 | `INSPECTOR_CHROMIUM_PATH` | Playwright 기본 | Chromium 실행 파일 경로 |
-| `INSPECTOR_ALLOW_AGENT_APPLY` | 미설정 | (B) `1`이면 AI가 사람 승인 없이 적용(자율 모드) |
+| `INSPECTOR_ALLOW_AGENT_APPLY` | 미설정 | `1`이면 AI가 승인 없이 적용(자율 모드) |
 
 ---
 
@@ -234,12 +245,13 @@ npx -y @inspector-agent/mcp-server install-commands
 | --- | --- |
 | `Executable doesn't exist` | Chromium 설치: `npx playwright@1.56.1 install chromium` |
 | `/mcp`에서 연결 실패(`CONNECTION_CLOSED`) | Claude Code를 재시작. 계속되면 `npx clear-npx-cache` 후 재시작 |
+| 적용이 `승인 창을 띄울 수 없어` 로 거절됨 | 터미널에서 `npx -y @inspector-agent/engine apply <패치 id>` 로 승인하세요 |
 | `/ia`가 보이지 않음 | `npx -y @inspector-agent/mcp-server install-commands`를 실행하고 새 세션을 여세요. 설치 없이는 `/mcp__inspector-agent__scan`을 쓰면 됩니다 |
-| 스캔은 되는데 새 기능(자동 탐색 등)이 안 나옴 | 대시보드를 최신 코드로 `git pull && pnpm install && pnpm build` 후 재시작 |
+| 새 기능이 안 나옴 | `npx clear-npx-cache` 후 Claude Code 재시작 |
 | 결함에 `파일:라인` 대신 선택자만 나옴 | 공통 준비 3번의 플러그인이 켜진 **개발 서버**를 스캔하세요 (프로덕션 빌드에는 없음) |
 | 화면은 깨졌는데 결함 0건 | 빈 상태·로그인 필요 화면입니다. [시나리오](docs/scenarios/README.md)를 쓰세요 |
 | 재측정이 들쭉날쭉함 | `INSPECTOR_SETTLE_MS=2000`처럼 늘리고 개발 서버 상태를 확인 |
-| 포트 충돌 | 다른 포트로 띄우고 스캔 주소와 `INSPECTOR_DASHBOARD_URL`을 맞추세요 |
+| 포트 충돌 | 다른 포트로 개발 서버를 띄우고 스캔 주소를 맞추세요 |
 
 더 많은 증상은 [운영 가이드의 문제 해결](docs/operations.md#문제-해결)에 있습니다.
 
@@ -249,12 +261,10 @@ npx -y @inspector-agent/mcp-server install-commands
 
 | 문서 | 내용 |
 | --- | --- |
-| [시작 가이드](docs/getting-started.md) | 새 프로젝트로 설치부터 수정·롤백까지 따라 하기 |
 | [운영 가이드](docs/operations.md) | 일상 루프, 결함별 대응, 자율 모드, CI, 데이터 관리, 오탐 대응 |
 | [시나리오](docs/scenarios/README.md) | 로그인·데이터가 필요한 화면, 직접 클릭 단계 지정 |
 | [개요](docs/overview.md) | 왜 만들었나, 차별점, 아키텍처, 벤치마크, 로드맵, 개발 규칙 |
-| [Chrome 확장](docs/extension-testing.md) | 지금 보고 있는 탭 그대로 탐지 |
 | [릴리스](docs/releasing.md) | npm 배포 절차와 겪은 문제 |
 | [React 소스 매핑](docs/react-source-mapping.md) | React에서 소스 위치를 찾는 방식과 선택 이유 |
 
-패키지: [`@inspector-agent/verifier`](https://www.npmjs.com/package/@inspector-agent/verifier) · [`mcp-server`](https://www.npmjs.com/package/@inspector-agent/mcp-server) · [`vite-plugin`](https://www.npmjs.com/package/@inspector-agent/vite-plugin) · [`core`](https://www.npmjs.com/package/@inspector-agent/core)
+패키지: [`@inspector-agent/verifier`](https://www.npmjs.com/package/@inspector-agent/verifier) · [`engine`](https://www.npmjs.com/package/@inspector-agent/engine) · [`mcp-server`](https://www.npmjs.com/package/@inspector-agent/mcp-server) · [`vite-plugin`](https://www.npmjs.com/package/@inspector-agent/vite-plugin) · [`core`](https://www.npmjs.com/package/@inspector-agent/core)

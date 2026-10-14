@@ -53,35 +53,49 @@ const waitFor = async (check, what, timeoutMs = 30_000) => {
   fail(`${what} 을(를) ${timeoutMs / 1000}초 안에 확인하지 못했습니다${lastError ? `: ${lastError.message}` : ''}`)
 }
 
-/** MCP 서버를 stdio 로 띄워 initialize → tools/list 응답을 받는다 */
-const listMcpTools = (binPath, cwd) =>
-  new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, [binPath], { cwd, stdio: ['pipe', 'pipe', 'ignore'] })
-    const timer = setTimeout(() => {
-      child.kill()
-      reject(new Error('MCP 서버가 15초 안에 응답하지 않았습니다'))
-    }, 15_000)
-    let buffer = ''
-    const send = (message) => child.stdin.write(`${JSON.stringify(message)}\n`)
-    child.stdout.on('data', (chunk) => {
-      buffer += chunk.toString('utf8')
-      for (const line of buffer.split('\n').slice(0, -1)) {
-        const message = JSON.parse(line)
-        if (message.id === 1) {
-          send({ jsonrpc: '2.0', method: 'notifications/initialized' })
-          send({ jsonrpc: '2.0', id: 2, method: 'tools/list' })
-        }
-        if (message.id === 2) {
-          clearTimeout(timer)
-          child.kill()
-          resolve(message.result.tools.map((tool) => tool.name))
-        }
+/**
+ * MCP 서버를 stdio 로 띄워 JSON-RPC 요청을 보내는 최소 클라이언트.
+ * elicitation: 'accept' | 'decline' | undefined(승인 창을 지원하지 않는 클라이언트). 서버가 승인 창을 요청하면 그대로 응답한다.
+ */
+const startMcp = (binPath, cwd, { elicitation, env } = {}) => {
+  const child = spawn(process.execPath, [binPath], { cwd, stdio: ['pipe', 'pipe', 'ignore'], env: { ...process.env, INSPECTOR_SETTLE_MS: '300', ...env } })
+  const pending = new Map()
+  let nextId = 1
+  let buffer = ''
+  const send = (message) => child.stdin.write(`${JSON.stringify(message)}\n`)
+  child.stdout.on('data', (chunk) => {
+    buffer += chunk.toString('utf8')
+    const lines = buffer.split('\n')
+    buffer = lines.pop() ?? ''
+    for (const line of lines.filter(Boolean)) {
+      const message = JSON.parse(line)
+      if (message.method === 'elicitation/create') send({ jsonrpc: '2.0', id: message.id, result: elicitation === 'accept' ? { action: 'accept', content: { approve: true } } : { action: 'decline' } })
+      else if (message.id !== undefined && pending.has(message.id)) {
+        const { resolve, reject, timer } = pending.get(message.id)
+        clearTimeout(timer)
+        pending.delete(message.id)
+        message.error ? reject(new Error(message.error.message)) : resolve(message.result)
       }
-      buffer = buffer.slice(buffer.lastIndexOf('\n') + 1)
-    })
-    child.on('error', reject)
-    send({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2024-11-05', capabilities: {}, clientInfo: { name: 'pack-smoke', version: '0.0.0' } } })
+    }
   })
+  const request = (method, params, timeoutMs = 90_000) =>
+    new Promise((resolve, reject) => {
+      const id = nextId++
+      const timer = setTimeout(() => reject(new Error(`MCP ${method} 가 ${timeoutMs / 1000}초 안에 응답하지 않았습니다`)), timeoutMs)
+      pending.set(id, { resolve, reject, timer })
+      send({ jsonrpc: '2.0', id, method, params })
+    })
+  const ready = request('initialize', { protocolVersion: '2025-06-18', capabilities: elicitation ? { elicitation: {} } : {}, clientInfo: { name: 'pack-smoke', version: '0.0.0' } }, 15_000).then(() => send({ jsonrpc: '2.0', method: 'notifications/initialized' }))
+  return {
+    ready,
+    request,
+    tool: async (name, args) => {
+      const result = await request('tools/call', { name, arguments: args })
+      return { text: result.content.map((part) => part.text).join('\n'), isError: result.isError === true }
+    },
+    close: () => child.kill()
+  }
+}
 
 const main = async () => {
   // 1) pack
@@ -109,7 +123,7 @@ const main = async () => {
   assert(coreRange === `^${tarballs['@inspector-agent/core'].manifest.version}`, `verifier 의 core 의존 범위가 ^버전이 아닙니다: ${coreRange}`)
   ok(`tarball 내용 검사 통과 (workspace:^ → ${coreRange} 로 치환됨, 소스/테스트 미포함)`)
 
-  // 3) 임시 Vite + Vue 프로젝트에 tarball 만으로 설치 (레지스트리에 아직 없는 core 는 overrides 로 같은 tarball 을 가리킨다)
+  // 3) 임시 Vite + Vue 프로젝트에 tarball 만으로 설치 (레지스트리에 아직 없는 core, verifier, engine 은 overrides 로 같은 tarball 을 가리킨다)
   const playground = JSON.parse(readFileSync(join(root, 'apps/playground/package.json'), 'utf8'))
   const file = (name) => `file:${tarballs[name].path}`
   mkdirSync(join(app, 'src'), { recursive: true })
@@ -127,9 +141,10 @@ const main = async () => {
           '@inspector-agent/vite-plugin': file('@inspector-agent/vite-plugin'),
           '@inspector-agent/verifier': file('@inspector-agent/verifier'),
           '@inspector-agent/mcp-server': file('@inspector-agent/mcp-server'),
+          '@inspector-agent/engine': file('@inspector-agent/engine'),
           '@inspector-agent/core': file('@inspector-agent/core')
         },
-        pnpm: { overrides: { '@inspector-agent/core': file('@inspector-agent/core') }, onlyBuiltDependencies: ['esbuild'] }
+        pnpm: { overrides: Object.fromEntries(['core', 'verifier', 'engine'].map((name) => [`@inspector-agent/${name}`, file(`@inspector-agent/${name}`)])), onlyBuiltDependencies: ['esbuild'] }
       },
       null,
       2
@@ -140,7 +155,7 @@ const main = async () => {
   writeFileSync(join(app, 'src/App.vue'), '<template>\n  <main class="page">\n    <section class="card">\n      <div class="wide-box">고정 너비 420px (375px 에서만 넘침)</div>\n    </section>\n  </main>\n</template>\n\n<style>\nbody { margin: 0; padding: 16px; }\n.card { padding: 8px; }\n.wide-box { width: 420px; height: 40px; background: #8250df; }\n</style>\n')
   writeFileSync(join(app, 'vite.config.js'), "import vue from '@vitejs/plugin-vue'\nimport inspectorAgent from '@inspector-agent/vite-plugin'\nimport { defineConfig } from 'vite'\n\nexport default defineConfig({ plugins: [inspectorAgent(), vue()] })\n")
   run('pnpm', ['install', '--prefer-offline', '--ignore-workspace'], { cwd: app })
-  ok('임시 Vite+Vue 프로젝트에 tarball 4개 설치 완료')
+  ok(`임시 Vite+Vue 프로젝트에 tarball ${PUBLISH_DIRS.length}개 설치 완료`)
 
   // 4) vite-plugin: 개발 서버에서 data-ia-src 가 주입되는지
   const port = await freePort()
@@ -167,12 +182,59 @@ const main = async () => {
   run(scanBin, [base, '--viewports', '1280', '--fail-on', 'high'], { cwd: app })
   ok('@inspector-agent/verifier: inspector-scan 이 375px 에서 결함(src/App.vue)을 잡고 1280px 에서는 통과')
 
-  // 6) mcp-server: bin 이 실행되고 도구 목록을 돌려준다
-  const tools = await listMcpTools(join(app, 'node_modules/@inspector-agent/mcp-server/dist/index.js'), app)
-  for (const name of ['scan_page', 'list_defects', 'get_defect_context', 'propose_patch', 'get_patch_status']) assert(tools.includes(name), `MCP 도구 ${name} 가 없습니다: ${tools.join(', ')}`)
-  ok(`@inspector-agent/mcp-server: 도구 ${tools.length}개 노출 (${tools.join(', ')})`)
-  // 슬래시 명령 원본이 tarball 에 들어 있어 install-commands 가 /ia, /insp 파일을 만든다
-  run(process.execPath, [join(app, 'node_modules/@inspector-agent/mcp-server/dist/index.js'), 'install-commands', '--project'], { cwd: app })
+  // 6) mcp-server(독립 모드, 대시보드 없음): 도구 목록 → 스캔 → 컨텍스트 → 제안 → 승인 후 적용·재측정
+  const mcpBin = join(app, 'node_modules/@inspector-agent/mcp-server/dist/index.js')
+  const appVue = join(app, 'src/App.vue')
+  const original = readFileSync(appVue, 'utf8')
+  const session = startMcp(mcpBin, app, { elicitation: 'accept' })
+  try {
+    await session.ready
+    const tools = (await session.request('tools/list')).tools.map((tool) => tool.name)
+    for (const name of ['scan_page', 'list_defects', 'get_defect_context', 'propose_patch', 'get_patch_status', 'apply_patch']) assert(tools.includes(name), `MCP 도구 ${name} 가 없습니다: ${tools.join(', ')}`)
+    ok(`@inspector-agent/mcp-server: 도구 ${tools.length}개 노출 (${tools.join(', ')})`)
+
+    const scanned = await session.tool('scan_page', { url: base, viewports: [375] })
+    assert(!scanned.isError && scanned.text.includes('src/App.vue'), `scan_page 가 결함(src/App.vue)을 못 잡았습니다: ${scanned.text}`)
+    const defectId = /d_[0-9a-f]+/.exec(scanned.text)?.[0]
+    assert(defectId, `결함 id 를 찾지 못했습니다: ${scanned.text}`)
+    const context = await session.tool('get_defect_context', { defectId })
+    assert(context.text.includes('width: 420px'), `컨텍스트에 CSS 규칙이 없습니다: ${context.text}`)
+    const proposed = await session.tool('propose_patch', { defectId, file: 'src/App.vue', edits: [{ oldText: 'width: 420px;', newText: 'width: 100%;' }], rationale: '고정 너비를 부모 너비에 맞춘다' })
+    const patchId = /p_[0-9a-z]+/.exec(proposed.text)?.[0]
+    assert(patchId && readFileSync(appVue, 'utf8') === original, `제안 단계에서 파일이 바뀌었거나 패치 id 가 없습니다: ${proposed.text}`)
+    ok('@inspector-agent/mcp-server: 대시보드 없이 scan_page → get_defect_context → propose_patch (파일은 그대로)')
+
+    // 승인 창에서 사람이 거절하면 파일은 바뀌지 않는다
+    const declined = startMcp(mcpBin, app, { elicitation: 'decline' })
+    await declined.ready
+    const refusal = await declined.tool('apply_patch', { patchId })
+    declined.close()
+    assert(refusal.text.includes('승인하지 않았') && readFileSync(appVue, 'utf8') === original, `거절했는데 파일이 바뀌었거나 안내가 없습니다: ${refusal.text}`)
+    // 승인 창을 지원하지 않는 클라이언트도 적용하지 않고 터미널 승인을 안내한다
+    const plain = startMcp(mcpBin, app)
+    await plain.ready
+    const blocked = await plain.tool('apply_patch', { patchId })
+    plain.close()
+    assert(blocked.text.includes('inspector') && readFileSync(appVue, 'utf8') === original, `승인 창이 없는 클라이언트에서 적용됐거나 안내가 없습니다: ${blocked.text}`)
+
+    const applied = await session.tool('apply_patch', { patchId })
+    assert(/상태: verified/.test(applied.text) && readFileSync(appVue, 'utf8').includes('width: 100%'), `승인 후 적용·재측정이 통과하지 못했습니다: ${applied.text}`)
+    ok('@inspector-agent/mcp-server: 거절·승인 창 없음에서는 파일 그대로, 승인하면 적용 후 재측정 통과(verified)')
+  } finally {
+    session.close()
+  }
+  // inspector-agent CLI: 원본으로 되돌린 뒤 fix --yes 가 규칙 기반 패치를 적용하고 재측정을 통과한다
+  writeFileSync(appVue, original)
+  const engineBin = join(app, 'node_modules/@inspector-agent/engine/dist/cli.js')
+  let fixed
+  try {
+    fixed = run(process.execPath, [engineBin, 'fix', base, '--viewports', '375', '--yes'], { cwd: app })
+  } catch (error) {
+    fail(`inspector-agent fix 가 실패했습니다 (종료 코드 ${error.status}): ${error.stdout}${error.stderr}`)
+  }
+  assert(fixed.includes('통과') && readFileSync(appVue, 'utf8') !== original, `inspector-agent fix 가 결함을 고치지 못했습니다: ${fixed}`)
+  ok('@inspector-agent/engine: inspector-agent fix --yes 가 패치를 적용하고 재측정을 통과')
+  run(process.execPath, [mcpBin, 'install-commands', '--project'], { cwd: app })
   for (const name of ['ia', 'insp']) assert(readFileSync(join(app, '.claude/commands', `${name}.md`), 'utf8').includes('scan_page'), `install-commands 가 ${name}.md 를 만들지 못했습니다`)
   ok('@inspector-agent/mcp-server: install-commands 가 /ia, /insp 명령 파일을 설치')
 

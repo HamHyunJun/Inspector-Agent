@@ -25,7 +25,6 @@ npx inspector-scan http://localhost:5173 --viewports 375,768,1280 --fail-on high
 | `--fail-on high\|medium\|low` | 해당 심각도 이상 결함이 하나라도 있으면 종료 코드 1 |
 | `--summary 파일` | 마크다운 요약을 파일에 덧붙임. GitHub Actions 에서는 `"$GITHUB_STEP_SUMMARY"` |
 | `--scenario 파일.json` | 스캔 전에 시드(localStorage/sessionStorage/쿠키)를 심고 단계(click/fill/wait)를 실행 |
-| `--report http://localhost:3000` | 결과를 Inspector-Agent 대시보드로 전송 |
 
 종료 코드: `0` 통과 · `1` 기준 초과 · `2` 사용법 오류 또는 스캔 실패.
 
