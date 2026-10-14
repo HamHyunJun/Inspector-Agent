@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { AUTO_PRUNE_AFTER_MS, canDelete, isDisposable, selectDisposable } from '../src/patch-cleanup'
+import { AUTO_PRUNE_AFTER_MS, isDisposable, selectDisposable } from '../src/patch-cleanup'
 import type { Patch } from '../src/types'
 
 const patch = (overrides: Partial<Patch>): Patch => ({
@@ -17,7 +17,7 @@ const patch = (overrides: Partial<Patch>): Patch => ({
 })
 const now = Date.parse('2026-10-13T00:00:00.000Z')
 
-describe('isDisposable / canDelete', () => {
+describe('isDisposable', () => {
   it('소스에 영향이 없는 기록만 처리 끝남으로 본다', () => {
     expect(isDisposable(patch({ status: 'rejected' }))).toBe(true)
     expect(isDisposable(patch({ status: 'rolled-back' }))).toBe(true)
@@ -28,12 +28,6 @@ describe('isDisposable / canDelete', () => {
     expect(isDisposable(patch({ status: 'verified' }))).toBe(false)
     expect(isDisposable(patch({ status: 'failed', autoRolledBack: false }))).toBe(false)
     expect(isDisposable(patch({ status: 'proposed' }))).toBe(false)
-  })
-
-  it('직접 삭제는 대기 중 제안까지 허용하되 적용된 패치는 막는다', () => {
-    expect(canDelete(patch({ status: 'proposed' }))).toBe(true)
-    expect(canDelete(patch({ status: 'verified' }))).toBe(false)
-    expect(canDelete(patch({ status: 'failed' }))).toBe(false)
   })
 })
 

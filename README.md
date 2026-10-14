@@ -2,7 +2,9 @@
 
 브라우저에서 **깨진 레이아웃을 규칙으로 찾아내고**, 그 노드를 **소스 파일의 정확한 라인**에 연결하고, 고친 뒤에는 **같은 화면에서 다시 측정해 수치로 증명**하는 도구입니다. 툴팁·팝오버·모달처럼 눌러야 열리는 UI도 스스로 열어 검사합니다.
 
-![스캔 → 결함 상세 → 패치 적용 → 재측정 0px 데모](docs/assets/demo.gif)
+![터미널 데모: 스캔 → 규칙 기반 수정 → 재측정 → 통과, 새 결함이 생기면 자동 롤백](docs/assets/demo.gif)
+
+*실제 명령(`inspector-scan`, `inspector-agent fix`)의 출력을 재생한 데모입니다. 재측정을 통과한 패치(109px → 0px)는 남기고, 새 결함을 만든 패치는 원본으로 자동 롤백하며, 규칙으로 못 고치는 결함은 건너뜁니다. Claude Code에서는 `/ia scan` 한 줄로 같은 흐름을 AI와 함께 진행합니다. 재녹화: `pnpm --filter @inspector-agent/benchmarks demo`.*
 
 ```
 375px · src/components/ProductCard.vue:4
@@ -57,7 +59,6 @@ flowchart LR
 | 실행 | `npx inspector-scan <주소>` · `npx @inspector-agent/engine fix <주소>` | `/ia scan` |
 | 고치는 방법 | 결과의 `파일:라인`을 직접 수정, 또는 `fix`로 규칙 기반 자동 수정 | AI가 제안 → 승인 창에서 diff 확인 → 적용 |
 | 안전장치 | `fix`: Diff 확인 → y/N → 재측정 → 실패하면 자동 롤백 | 같음 (사람 승인 없이는 적용 안 됨) |
-| 대시보드 | 필요 없음 | 필요 없음 (화면으로 보고 싶을 때만, 선택) |
 | 준비 시간 | 약 1분 | 약 3분 |
 
 **→ [A. 터미널로 쓰기](#a-터미널로-쓰기)** · **→ [B. Claude Code로 쓰기](#b-claude-code로-쓰기)**
@@ -110,7 +111,7 @@ npx inspector-scan http://localhost:5173     # 3. 스캔
   - [high] app/components/layout/SecurityBadge.vue:28 viewport +38px (keep-in-viewport)
 ```
 
-**대시보드는 필요 없습니다.** 결과의 `파일:라인`을 열어 고친 뒤 같은 명령을 다시 실행하면 결함이 사라진 것을 확인할 수 있습니다.
+결과의 `파일:라인`을 열어 고친 뒤 같은 명령을 다시 실행하면 결함이 사라진 것을 확인할 수 있습니다.
 
 | 옵션 | 설명 |
 | --- | --- |
@@ -201,18 +202,7 @@ npx -y @inspector-agent/mcp-server install-commands
 npx -y @inspector-agent/engine apply p_abc123     # diff 확인 → y/N → 적용·재측정(실패하면 자동 롤백)
 ```
 
-AI가 묻지 않고 적용·검증을 반복하게 하려면(자율 모드) MCP `env`에 `"INSPECTOR_ALLOW_AGENT_APPLY": "1"`을 넣으세요. 전용 브랜치에서만 권장합니다. 자세한 내용은 [운영 가이드](docs/operations.md#승인-모드와-자율-모드)에 있습니다.
-
-### 대시보드 (선택)
-
-결함 목록, 소스 매핑, Diff를 **화면으로** 보고 싶을 때만 씁니다. 필수가 아닙니다. 이 저장소에서 실행하고, 같은 `.inspector-agent/` 저장소를 가리키게 합니다.
-
-```bash
-git clone https://github.com/HamHyunJun/Inspector-Agent && cd Inspector-Agent && pnpm install
-INSPECTOR_PROJECT_ROOT=/내/프로젝트/절대경로 INSPECTOR_DATA_DIR=/내/프로젝트/절대경로/.inspector-agent pnpm dev:dashboard     # http://localhost:3000
-```
-
-MCP가 대시보드를 거치게 하려면 `.mcp.json`의 `env`에 `"INSPECTOR_DASHBOARD_URL": "http://localhost:3000"`을 넣으세요(이 경우 적용 승인은 대시보드 화면에서 합니다).
+적용한 패치를 되돌리려면 `npx -y @inspector-agent/engine rollback p_abc123`을 쓰세요. AI가 묻지 않고 적용·검증을 반복하게 하려면(자율 모드) MCP `env`에 `"INSPECTOR_ALLOW_AGENT_APPLY": "1"`을 넣으세요. 전용 브랜치에서만 권장합니다. 자세한 내용은 [운영 가이드](docs/operations.md#승인-모드와-자율-모드)에 있습니다.
 
 ---
 
@@ -246,7 +236,6 @@ MCP가 대시보드를 거치게 하려면 `.mcp.json`의 `env`에 `"INSPECTOR_D
 | `INSPECTOR_SETTLE_MS` | `800` | 파일 반영 후 재측정 전 HMR 대기(ms) |
 | `INSPECTOR_CHROMIUM_PATH` | Playwright 기본 | Chromium 실행 파일 경로 |
 | `INSPECTOR_ALLOW_AGENT_APPLY` | 미설정 | `1`이면 AI가 승인 없이 적용(자율 모드) |
-| `INSPECTOR_DASHBOARD_URL` | 미설정 | 있으면 MCP가 대시보드를 거칩니다(대시보드 모드) |
 
 ---
 
@@ -258,7 +247,7 @@ MCP가 대시보드를 거치게 하려면 `.mcp.json`의 `env`에 `"INSPECTOR_D
 | `/mcp`에서 연결 실패(`CONNECTION_CLOSED`) | Claude Code를 재시작. 계속되면 `npx clear-npx-cache` 후 재시작 |
 | 적용이 `승인 창을 띄울 수 없어` 로 거절됨 | 터미널에서 `npx -y @inspector-agent/engine apply <패치 id>` 로 승인하세요 |
 | `/ia`가 보이지 않음 | `npx -y @inspector-agent/mcp-server install-commands`를 실행하고 새 세션을 여세요. 설치 없이는 `/mcp__inspector-agent__scan`을 쓰면 됩니다 |
-| 새 기능이 안 나옴 | `npx clear-npx-cache` 후 Claude Code 재시작. 대시보드를 쓴다면 `git pull && pnpm install && pnpm build` 후 재시작 |
+| 새 기능이 안 나옴 | `npx clear-npx-cache` 후 Claude Code 재시작 |
 | 결함에 `파일:라인` 대신 선택자만 나옴 | 공통 준비 3번의 플러그인이 켜진 **개발 서버**를 스캔하세요 (프로덕션 빌드에는 없음) |
 | 화면은 깨졌는데 결함 0건 | 빈 상태·로그인 필요 화면입니다. [시나리오](docs/scenarios/README.md)를 쓰세요 |
 | 재측정이 들쭉날쭉함 | `INSPECTOR_SETTLE_MS=2000`처럼 늘리고 개발 서버 상태를 확인 |
@@ -272,11 +261,9 @@ MCP가 대시보드를 거치게 하려면 `.mcp.json`의 `env`에 `"INSPECTOR_D
 
 | 문서 | 내용 |
 | --- | --- |
-| [시작 가이드](docs/getting-started.md) | 새 프로젝트로 설치부터 수정·롤백까지 따라 하기 |
 | [운영 가이드](docs/operations.md) | 일상 루프, 결함별 대응, 자율 모드, CI, 데이터 관리, 오탐 대응 |
 | [시나리오](docs/scenarios/README.md) | 로그인·데이터가 필요한 화면, 직접 클릭 단계 지정 |
 | [개요](docs/overview.md) | 왜 만들었나, 차별점, 아키텍처, 벤치마크, 로드맵, 개발 규칙 |
-| [Chrome 확장](docs/extension-testing.md) | 지금 보고 있는 탭 그대로 탐지 |
 | [릴리스](docs/releasing.md) | npm 배포 절차와 겪은 문제 |
 | [React 소스 매핑](docs/react-source-mapping.md) | React에서 소스 위치를 찾는 방식과 선택 이유 |
 

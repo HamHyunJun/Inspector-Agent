@@ -7,7 +7,7 @@ import { findDuplicatePatch } from './dedupe'
 import type { Env } from './env'
 import { EngineError } from './errors'
 import { assertDefectId, assertPatchId, createPatchId, own } from './ids'
-import { canDelete, selectDisposable } from './patch-cleanup'
+import { selectDisposable } from './patch-cleanup'
 import { hashContent } from './project-files'
 import { baselineKey } from './store'
 import type { Patch } from './types'
@@ -223,16 +223,6 @@ export const rejectPatch = async (env: Env, patchId: string): Promise<Patch> => 
     data.patches[next.id] = next
   })
   return next
-}
-
-/** 패치 기록과 백업을 삭제한다. 적용된 상태의 패치는 롤백 기준이 사라지므로 거부한다 */
-export const deletePatch = async (env: Env, patchId: string): Promise<void> => {
-  const patch = await getPatch(env, patchId)
-  if (!canDelete(patch)) throw new EngineError('소스에 적용된 패치는 삭제할 수 없습니다. 먼저 롤백하세요.', 409)
-  await env.store.update((data): void => {
-    delete data.patches[patchId]
-  })
-  await env.files.removeBackup(patchId)
 }
 
 /** 처리가 끝난 패치(거절·롤백·자동 롤백된 실패)를 일괄 삭제하고 지운 개수를 돌려준다 */

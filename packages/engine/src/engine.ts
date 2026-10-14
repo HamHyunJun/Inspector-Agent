@@ -6,9 +6,9 @@ import type { EngineConfig } from './config'
 import { EngineError } from './errors'
 import { assertDefectId, own } from './ids'
 import { ingestScanResults } from './ingest'
-import { applyPatch, deletePatch, getPatch, proposePatch, proposeRulePatch, pruneDisposablePatches, rejectPatch, rollbackPatch } from './patches'
+import { applyPatch, getPatch, proposePatch, proposeRulePatch, rejectPatch, rollbackPatch } from './patches'
 import type { ProposePatchInput } from './patches'
-import { getDefectDetail, getStats, listDefects, listGroups, listPatches } from './queries'
+import { listGroups } from './queries'
 import { scanAndIngest } from './scan'
 import type { DefectContext, DefectStatus, ScanIngestResult } from './types'
 
@@ -22,25 +22,19 @@ export const createEngine = (config: EngineConfig, deps: Partial<EngineDeps> = {
     config,
     scan: (url: string, viewports?: Viewport[], scenario?: Scenario): Promise<ScanIngestResult & { defects: number }> => scanAndIngest(env, url, viewports, scenario),
     ingest: (results: ScanResult[], scenario?: Scenario): Promise<ScanIngestResult> => ingestScanResults(env, results, scenario),
-    listDefects: (status?: DefectStatus) => listDefects(env, status),
     listGroups: (status?: DefectStatus) => listGroups(env, status),
-    getDefectDetail: (id: string) => getDefectDetail(env, id),
-    getStats: () => getStats(env),
     getContext: async (defectId: string): Promise<DefectContext> => {
       assertDefectId(defectId)
       const defect = own((await env.store.read()).defects, defectId)
       if (!defect) throw new EngineError(`결함을 찾을 수 없습니다: ${defectId}`, 404)
       return buildDefectContext(env, defect)
     },
-    listPatches: (defectId?: string) => listPatches(env, defectId),
     getPatch: (patchId: string) => getPatch(env, patchId),
     proposePatch: (input: ProposePatchInput) => proposePatch(env, input),
     proposeRulePatch: (defectId: string, suggestionIndex?: number) => proposeRulePatch(env, defectId, suggestionIndex),
     applyPatch: (patchId: string, options?: { autoRollback?: boolean }) => applyPatch(env, patchId, options),
     rollbackPatch: (patchId: string) => rollbackPatch(env, patchId),
-    rejectPatch: (patchId: string) => rejectPatch(env, patchId),
-    deletePatch: (patchId: string) => deletePatch(env, patchId),
-    prune: (options?: { olderThanMs?: number; defectId?: string }) => pruneDisposablePatches(env, options)
+    rejectPatch: (patchId: string) => rejectPatch(env, patchId)
   }
 }
 

@@ -10,9 +10,6 @@ export const AUTO_PRUNE_AFTER_MS = 7 * 24 * 60 * 60 * 1000
 export const isDisposable = (patch: Patch): boolean =>
   patch.status === 'rejected' || patch.status === 'rolled-back' || (patch.status === 'failed' && patch.autoRolledBack === true)
 
-/** 사용자가 직접 삭제할 수 있는 패치: 처리가 끝난 것과, 아직 적용 전인 제안 */
-export const canDelete = (patch: Patch): boolean => isDisposable(patch) || patch.status === 'proposed'
-
 /** 처리가 끝난 시각(ms). 거절/롤백 시각이 없으면 적용·생성 시각으로 대신한다 */
 export const finishedAt = (patch: Patch): number =>
   Date.parse(patch.rolledBackAt ?? patch.rejectedAt ?? patch.appliedAt ?? patch.createdAt)

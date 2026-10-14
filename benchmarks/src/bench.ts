@@ -113,7 +113,7 @@ const measureRawTokens = async (
   }
 }
 
-/** 대시보드 context API 와 같은 방식으로 에이전트용 컨텍스트를 만들고 토큰 수를 센다 */
+/** 엔진의 get_defect_context 와 같은 방식으로 에이전트용 컨텍스트를 만들고 토큰 수를 센다 */
 const buildContextTokens = async (root: string, defect: Defect, counter: TokenCounter): Promise<number> => {
   const payload = toAgentPayload(defect)
   const file = defect.node.source?.file

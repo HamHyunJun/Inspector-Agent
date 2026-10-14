@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { NodeSnapshot } from '@inspector-agent/core'
-import type { DefectListItem, DefectSummary, PatchResponse } from '../src/dashboard-client'
+import type { DefectListItem, DefectSummary, PatchResponse } from '../src/backend'
 import { formatDefectList, formatPatch } from '../src/format'
 
 const snapshot = (selector: string): NodeSnapshot => ({

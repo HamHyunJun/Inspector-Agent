@@ -36,13 +36,6 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    },
-    "./patch-cleanup": {
-      "types": "./dist/patch-cleanup.d.ts",
-      "import": "./dist/patch-cleanup.js"
-    },
-    "./types": {
-      "types": "./dist/types.d.ts"
     }
   },
   "files": [

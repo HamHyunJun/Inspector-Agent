@@ -77,14 +77,6 @@ export interface DefectContext {
   }
 }
 
-export interface Stats {
-  defects: Record<DefectStatus, number>
-  patches: Record<PatchStatus, number>
-  /** verified / (verified + failed). 시도가 없으면 undefined */
-  successRate?: number
-  lastScanAt?: string
-}
-
 export interface ScanIngestResult {
   received: number
   created: number

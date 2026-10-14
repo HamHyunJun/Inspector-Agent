@@ -4,7 +4,7 @@ import type { InjectResult } from './inject'
 
 /**
  * JSX/TSX 의 일반 HTML 요소(소문자 태그)에 소스 위치 속성을 주입한다. Vue 의 inject.ts 와 같은 속성·형식(파일:라인:컬럼)이라
- * 탐지기와 대시보드는 프레임워크를 구분하지 않는다.
+ * 탐지기와 엔진은 프레임워크를 구분하지 않는다.
  *
  * React 의 fiber._debugSource(JSX dev source)를 쓰지 않고 DOM 속성으로 주입하는 이유(실측):
  * React 19 에서는 _debugSource 가 null 이고, 확장의 content script(격리된 월드)는 fiber 를 읽을 수 없다. docs/react-source-mapping.md 참고.

@@ -11,11 +11,12 @@ import type { DefectGroupSummary } from './types'
 /**
  * 사용법: inspector-agent fix <url> [--viewports 375,768x1024] [--yes]
  *         inspector-agent apply <패치 id> [--yes]   (AI 가 MCP 로 제안한 패치를 사람이 승인해 적용)
+ *         inspector-agent rollback <패치 id>        (적용된 패치를 원본으로 되돌림)
  * 대시보드 없이 터미널에서 스캔 → 규칙 기반 패치 제안 → Diff 확인 → 승인 → 적용·재측정 → 실패하면 자동 롤백까지 한다.
  * 프로젝트 루트는 현재 폴더(INSPECTOR_PROJECT_ROOT 로 바꿈), 데이터는 <루트>/.inspector-agent 에 저장한다.
  * --yes 는 묻지 않고 모두 적용한다(재측정 실패는 그대로 자동 롤백). 대화형 터미널이 아니면 --yes 가 없을 때 제안만 저장하고 끝낸다.
  */
-const USAGE = '사용법: inspector-agent fix <url> [--viewports 375,768x1024] [--yes]\n        inspector-agent apply <패치 id> [--yes]'
+const USAGE = '사용법: inspector-agent fix <url> [--viewports 375,768x1024] [--yes]\n        inspector-agent apply <패치 id> [--yes]\n        inspector-agent rollback <패치 id>'
 
 const readFlag = (args: string[], name: string): string | undefined => {
   const index = args.indexOf(name)
@@ -114,6 +115,11 @@ const main = async (): Promise<number> => {
   if (command === 'fix' && url) return fix(engine, url, args)
   const target = args.find(isPatchId)
   if (command === 'apply' && target) return apply(engine, target, args)
+  if (command === 'rollback' && target) {
+    const rolledBack = await engine.rollbackPatch(target)
+    console.log(`${rolledBack.file} 을(를) 패치 적용 전으로 되돌렸습니다.`)
+    return 0
+  }
   console.error(USAGE)
   return 2
 }

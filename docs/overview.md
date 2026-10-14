@@ -37,38 +37,36 @@ Chrome DevTools MCP나 Playwright MCP를 붙이면 에이전트도 DOM과 스크
 
 ```mermaid
 flowchart LR
-  subgraph Browser["관측 (브라우저)"]
+  subgraph App["관측"]
     VP["Vite 플러그인<br/>data-ia-src 주입"] --> PAGE["개발 중인 Vue/Nuxt/React 앱"]
-    EXT["Chrome 확장<br/>현재 탭 탐지"] --> PAGE
-    VER["Verifier (Playwright)<br/>다중 뷰포트 스캔·재측정"] --> PAGE
+    VER["Verifier (Playwright)<br/>다중 뷰포트 스캔 · 자동 탐색 · 재측정"] --> PAGE
   end
 
-  subgraph Hub["허브 (Nuxt 4 대시보드)"]
-    API["Nitro server/api<br/>결함·패치 저장, 적용/롤백"]
-    UI["결함 목록 · 소스 매핑 · Diff 검토"]
-    LOC["source-locator<br/>템플릿 라인 · SCSS 규칙 라인"]
-    API --- UI
-    API --- LOC
+  subgraph Core["엔진 (@inspector-agent/engine)"]
+    STORE["결함·패치 저장<br/>(.inspector-agent/)"]
+    LOC["source-locator<br/>템플릿 라인 · CSS 규칙 라인"]
+    APPLY["적용 → 재측정 → 자동 롤백"]
   end
 
-  subgraph Agent["추론 (MCP)"]
-    MCP["inspector-agent MCP 서버"] --> CC["Claude Code / Cursor 등"]
+  subgraph Use["사용하는 곳"]
+    MCP["MCP 서버 (/ia scan)"] --> CC["Claude Code 등"]
+    CLI["inspector-agent CLI<br/>(fix · apply · rollback)"]
   end
 
-  EXT -- "POST /api/scans" --> API
-  VER -- "스캔 결과" --> API
-  CC -- "get_defect_context / propose_patch" --> MCP
-  MCP -- "HTTP" --> API
-  UI -- "사람이 승인: 적용하고 검증" --> API
-  API -- "파일 쓰기 + 재측정 요청" --> VER
+  VER -- "스캔 결과" --> STORE
+  STORE --- LOC
+  CC -- "get_defect_context / propose_patch / apply_patch" --> MCP
+  MCP --> APPLY
+  CLI --> APPLY
+  APPLY -- "파일 쓰기 + 재측정 요청" --> VER
 ```
 
 ### 4단계 파이프라인
 
-1. **관측**: Chrome 확장(현재 탭) 또는 Verifier(헤드리스, 320~1280px 6개 뷰포트와 자동 탐색)가 같은 탐지기 번들(`detector.global.js`)을 페이지에 주입해 결함을 찾습니다.
+1. **관측**: Verifier(헤드리스, 320~1280px 6개 뷰포트와 자동 탐색)가 탐지기 번들(`detector.global.js`)을 페이지에 주입해 결함을 찾습니다.
 2. **컨텍스트 압축**: 결함 노드와 직계 부모의 레이아웃 속성 중 **기본값이 아닌 것만** 남기고, 부모와 같은 상속 속성은 자식에서 제거합니다. 여기에 템플릿 해당 라인 ±6줄과 SCSS 규칙을 한 줄 요약으로 붙입니다.
 3. **패치 생성**: 에이전트가 MCP `get_defect_context`로 컨텍스트를 받고 `propose_patch`로 "정확히 한 번 등장하는 원문 → 새 내용" 편집을 제안합니다. 파일은 아직 바뀌지 않습니다.
-4. **시각적 검토 및 반영**: 대시보드에서 사람이 Diff를 보고 **적용하고 검증**을 누르면 백업 → 반영 → 재측정 → 통과/자동 롤백까지 한 번에 진행됩니다. 통과한 패치도 언제든 롤백할 수 있습니다.
+4. **검토 및 반영**: 사람이 diff 를 보고 승인(MCP 승인 창 또는 터미널 y/N)하면 백업 → 반영 → 재측정 → 통과/자동 롤백까지 한 번에 진행됩니다. 통과한 패치도 `inspector-agent rollback` 으로 되돌릴 수 있습니다.
 
 ### 패키지 구성 (pnpm 모노레포)
 
@@ -78,9 +76,8 @@ flowchart LR
 | `packages/vite-plugin` | `.vue` 템플릿 요소에 `data-ia-src` 주입 (`enforce: 'pre'`, 개발 서버 전용, 컴포넌트 태그 제외) |
 | `packages/source-locator` | 템플릿 스니펫, SCSS 중첩 해석과 규칙 라인 탐색, 규칙 기반 패치 생성 |
 | `packages/verifier` | Playwright 다중 뷰포트 스캔, 패치 전후 재측정과 회귀 판정, `inspector-scan` CLI |
-| `packages/mcp-server` | stdio MCP 서버: `scan_page`, `list_defects`, `get_defect_context`, `propose_patch`, `get_patch_status` (+ 자율 모드 `apply_patch`) |
-| `packages/extension` | Chrome 확장 (MV3). 현재 탭의 실제 뷰포트에서 탐지해 대시보드로 전송 |
-| `apps/dashboard` | Nuxt 4 대시보드. 결함 현황, 소스 매핑, 에이전트 컨텍스트, Diff 검토, 적용/롤백 |
+| `packages/engine` | 결함·패치 저장, 컨텍스트, 패치 제안·적용·재측정·자동 롤백, `inspector-agent` CLI (`fix`, `apply`, `rollback`) |
+| `packages/mcp-server` | stdio MCP 서버: `scan_page`, `list_defects`, `get_defect_context`, `propose_patch`, `get_patch_status`, `apply_patch`(사람 승인 필요), `/ia` 명령 |
 | `apps/playground` | 정답 결함 11건(가로 오버플로우 5, 세로 오버플로우 1, 텍스트 잘림 1, 가려짐 3, 포커스 이탈 1), 시나리오로만 보이는 정답 2건(클릭해야 열리는 메뉴, 시드가 있어야 그려지는 요소), 정상 대조군 8건을 심어 둔 Vue 3 데모 앱 (벤치마크 대상) |
 | `apps/playground-react` | React(Vite) 에서 JSX 소스 매핑과 CSS Modules·일반 `.css`/`.scss` 규칙 탐색을 검증하는 앱. 가로 오버플로우 정답 4건 + 정상 대조군 2건 (벤치마크 대상, `docs/react-source-mapping.md`) |
 | `apps/playground-nuxt` | Nuxt 4(`app/`, layouts, 자동 import 컴포넌트)에서 `data-ia-src` 매핑이 맞는지 확인하는 최소 앱 |
@@ -120,7 +117,7 @@ ProductCard.vue  +230px  flex-item-min-width ✗(회귀) → flex-nowrap ✗    
 PromoBanner.vue  +109px  fixed-width ✓
 ```
 
-`ProductCard`는 **flex item의 `min-width: auto`와 자식 제목의 `white-space: nowrap`이 함께 원인**입니다. `min-width: 0`만 넣으면 박스 오버플로우는 사라지지만 제목 텍스트가 박스를 넘치는 새 결함이 생깁니다. 검증 루프가 이 회귀를 잡아 자동 롤백했고, 이는 "고쳤다는 주장"과 "고쳐진 것이 측정됨"의 차이를 보여 줍니다. 같은 결함에 대해 에이전트가 자식 규칙 컨텍스트를 보고 `&__info { min-width: 0 }`과 제목 말줄임을 함께 제안한 패치는 **230px → 0px, 새 결함 없음**으로 검증을 통과했습니다 (MCP `propose_patch` → 대시보드 적용으로 확인).
+`ProductCard`는 **flex item의 `min-width: auto`와 자식 제목의 `white-space: nowrap`이 함께 원인**입니다. `min-width: 0`만 넣으면 박스 오버플로우는 사라지지만 제목 텍스트가 박스를 넘치는 새 결함이 생깁니다. 검증 루프가 이 회귀를 잡아 자동 롤백했고, 이는 "고쳤다는 주장"과 "고쳐진 것이 측정됨"의 차이를 보여 줍니다. 같은 결함에 대해 에이전트가 자식 규칙 컨텍스트를 보고 `&__info { min-width: 0 }`과 제목 말줄임을 함께 제안한 패치는 **230px → 0px, 새 결함 없음**으로 검증을 통과했습니다 (MCP `propose_patch` → 적용 후 재측정으로 확인).
 
 `pnpm bench` 는 위 Vue playground 뒤에 `apps/playground-react` 도 별도 서버로 띄워 같은 방식으로 검사합니다. 가로 오버플로우 정답 4건(CSS Modules `.module.scss`/`.module.css`, 일반 `.css`/`.scss` 를 섞음)과 정상 대조군 2건에서 재현율·정밀도 100%, 대조군 오탐 0건, 1280px 결함 0건, JSX 소스 매핑 4/4 이고, 규칙 기반 패치가 정답 스타일시트를 수정 대상으로 잡는지(4/4)를 게이트로 검사합니다. 설계 근거는 `docs/react-source-mapping.md`.
 
@@ -154,7 +151,7 @@ PromoBanner.vue  +109px  fixed-width ✓
 ### AI 에이전트 활용 측면에서
 - **토큰 비용 절감**: 페이지 전체를 넘기는 대신 결함당 수백 토큰의 압축 컨텍스트만 사용합니다. 데모 기준 전체 스타일 덤프 대비 99% 이상 줄었습니다.
 - **추측 대신 근거**: 에이전트는 탐지·매핑·원인 후보가 이미 정리된 상태에서 시작하므로 탐색에 쓰는 턴이 줄고, 패치가 최소 변경(기존 SCSS 규칙에 선언 추가)으로 수렴합니다.
-- **신뢰할 수 있는 성공률**: 성공 여부를 재측정 수치로 기록하므로 "LLM 패치가 실제로 몇 % 고쳤는가"를 대시보드 통계로 추적할 수 있습니다. 규칙 기반 기준선과 에이전트 패치를 같은 기준으로 비교할 수 있습니다.
+- **신뢰할 수 있는 성공률**: 성공 여부를 재측정 수치로 기록하므로 "LLM 패치가 실제로 몇 % 고쳤는가"를 패치 기록(`store.json`)의 재측정 결과로 추적할 수 있습니다. 규칙 기반 기준선과 에이전트 패치를 같은 기준으로 비교할 수 있습니다.
 - **에이전트 중립성**: MCP로 노출되므로 Claude Code, Cursor 등 MCP를 지원하는 어떤 에이전트에도 붙습니다.
 
 ### 팀과 제품 품질 측면에서
@@ -179,7 +176,6 @@ PromoBanner.vue  +109px  fixed-width ✓
 - [ ] 실제 서비스 페이지 벤치마크와 실제 토크나이저 기반 토큰 측정, LLM 패치 성공률 리포트
 - [x] CI용 `inspector-scan --fail-on` 과 job summary
 - [ ] PR 코멘트 게시, 기존 결함 기준선(허용 목록) 파일
-- [x] 확장에서 뷰포트 에뮬레이션(chrome.debugger) 지원, 실제 Chromium E2E 테스트 (`docs/extension-testing.md`)
 - 컴포넌트 태그(`<ItemCard>`)에는 속성을 주입하지 않습니다. fallthrough 속성이 자식 컴포넌트 루트의 위치를 덮어쓰기 때문입니다. 따라서 매핑은 각 컴포넌트 안의 일반 요소 기준입니다.
 
 ---
@@ -195,6 +191,6 @@ PromoBanner.vue  +109px  fixed-width ✓
 
 ```bash
 pnpm test        # core / source-locator / vite-plugin 단위 테스트
-pnpm typecheck   # 전 패키지 타입 검사 (대시보드는 nuxt typecheck)
+pnpm typecheck   # 전 패키지 타입 검사
 pnpm bench       # 엔드 투 엔드 벤치마크 (Chromium 필요)
 ```

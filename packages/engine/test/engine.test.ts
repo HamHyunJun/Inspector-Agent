@@ -70,7 +70,7 @@ describe('경로 안전장치', () => {
     ['node_modules 안', 'node_modules/pkg/index.css']
   ])('%s 는 제안 단계에서 거부한다', async (_name, path): Promise<void> => {
     await expect(propose({ file: path })).rejects.toMatchObject({ status: expect.any(Number) })
-    expect(await engine.listPatches()).toEqual([])
+    expect(Object.keys(JSON.parse(await readFile(join(dataDir, 'store.json'), 'utf8')).patches)).toEqual([])
   })
 
   it('루트 안의 심볼릭 링크가 루트 밖 파일을 가리키면 거부하고 그 파일을 건드리지 않는다', async (): Promise<void> => {
@@ -95,7 +95,7 @@ describe('제안 → 적용 → 재측정', () => {
     const applied = await engine.applyPatch(patch.id)
     expect(applied.status).toBe('verified')
     expect(await file()).toContain('width: 100%')
-    expect((await engine.listDefects())[0]?.status).toBe('resolved')
+    expect((await engine.listGroups())[0]?.status).toBe('resolved')
   })
 
   it('재측정에 실패하면 원본으로 자동 롤백하고 결함은 open 으로 남는다', async (): Promise<void> => {
@@ -103,7 +103,7 @@ describe('제안 → 적용 → 재측정', () => {
     const applied = await engine.applyPatch((await propose()).id)
     expect(applied).toMatchObject({ status: 'failed', autoRolledBack: true })
     expect(await file()).toBe(ORIGINAL)
-    expect((await engine.listDefects())[0]?.status).toBe('open')
+    expect((await engine.listGroups())[0]?.status).toBe('open')
   })
 
   it('측정 자체가 예외로 실패해도 원본으로 되돌린다', async (): Promise<void> => {
@@ -150,27 +150,33 @@ describe('제안 → 적용 → 재측정', () => {
   })
 })
 
-describe('롤백과 삭제', () => {
+describe('롤백과 자동 정리', () => {
   it('통과한 패치도 롤백하면 원본으로 돌아가고 결함이 다시 open 이 된다', async (): Promise<void> => {
     const patch = await propose()
     await engine.applyPatch(patch.id)
     const rolled = await engine.rollbackPatch(patch.id)
     expect(rolled.status).toBe('rolled-back')
     expect(await file()).toBe(ORIGINAL)
-    expect((await engine.listDefects())[0]?.status).toBe('open')
+    expect((await engine.listGroups())[0]?.status).toBe('open')
   })
 
   it('적용 전(proposed) 패치는 롤백할 수 없다', async (): Promise<void> => {
     await expect(engine.rollbackPatch((await propose()).id)).rejects.toMatchObject({ status: 409 })
   })
 
-  it('소스에 적용된 패치는 삭제할 수 없고(롤백 기준), 롤백한 뒤에는 삭제된다', async (): Promise<void> => {
-    const patch = await propose()
-    await engine.applyPatch(patch.id)
-    await expect(engine.deletePatch(patch.id)).rejects.toMatchObject({ status: 409 })
-    await engine.rollbackPatch(patch.id)
-    await engine.deletePatch(patch.id)
-    expect(await engine.listPatches()).toEqual([])
+  it('처리가 끝난 지 7일이 지난 패치 기록과 백업은 스캔할 때 자동으로 정리하고, 적용된 패치는 남긴다', async (): Promise<void> => {
+    const rejected = await propose()
+    await engine.rejectPatch(rejected.id)
+    const applied = await propose()
+    await engine.applyPatch(applied.id)
+    const store = JSON.parse(await readFile(join(dataDir, 'store.json'), 'utf8'))
+    const old = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString()
+    store.patches[rejected.id].rejectedAt = old
+    store.patches[applied.id].appliedAt = old
+    await writeFile(join(dataDir, 'store.json'), JSON.stringify(store), 'utf8')
+    await createEngine(resolveConfig({ projectRoot: root, dataDir, settleMs: 0 }), { scan: (async () => []) as never }).scan('http://localhost:5173')
+    const left = JSON.parse(await readFile(join(dataDir, 'store.json'), 'utf8')).patches
+    expect(Object.keys(left)).toEqual([applied.id])
   })
 })
 
@@ -249,7 +255,7 @@ describe('보안 검토 지적 사항 회귀 방지', () => {
 
   it('저장소 파일이 깨졌으면 빈 저장소로 덮어쓰지 않고 멈춘다', async (): Promise<void> => {
     await writeFile(join(dataDir, 'store.json'), '{ 깨진 json', 'utf8')
-    await expect(engine.listDefects()).rejects.toThrow('손상')
+    await expect(engine.listGroups()).rejects.toThrow('손상')
     await expect(engine.ingest([scanResult])).rejects.toThrow('손상')
     expect(await readFile(join(dataDir, 'store.json'), 'utf8')).toBe('{ 깨진 json')
   })

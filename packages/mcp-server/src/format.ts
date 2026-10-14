@@ -1,5 +1,5 @@
 import { formatMagnitude } from '@inspector-agent/core'
-import type { DefectContextResponse, DefectListItem, PatchResponse } from './dashboard-client'
+import type { DefectContextResponse, DefectListItem, PatchResponse } from './backend'
 
 /** MCP 응답 텍스트 포맷터. 에이전트가 읽기 쉬우면서 토큰을 아끼는 형태를 유지한다 */
 

@@ -7,5 +7,5 @@
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
-  "ignore": ["dashboard", "playground", "playground-nuxt", "playground-react", "@inspector-agent/benchmarks", "@inspector-agent/extension", "@inspector-agent/source-locator"]
+  "ignore": ["playground", "playground-nuxt", "playground-react", "@inspector-agent/benchmarks", "@inspector-agent/source-locator"]
 }

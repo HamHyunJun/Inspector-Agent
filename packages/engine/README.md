@@ -1,12 +1,13 @@
 # @inspector-agent/engine
 
-[Inspector-Agent](https://github.com/HamHyunJun/Inspector-Agent)의 **대시보드 없이 쓰는 엔진**입니다. 스캔 결과 저장, 소스 컨텍스트, 패치 **제안 → 사람 승인 → 적용 → 같은 화면 재측정 → 실패 시 자동 롤백**을 이 패키지가 맡고, MCP 서버(`@inspector-agent/mcp-server`)와 `inspector-agent` CLI, 대시보드가 같은 엔진을 씁니다.
+[Inspector-Agent](https://github.com/HamHyunJun/Inspector-Agent)의 **패치 엔진**입니다. 스캔 결과 저장, 소스 컨텍스트, 패치 **제안 → 사람 승인 → 적용 → 같은 화면 재측정 → 실패 시 자동 롤백**을 이 패키지가 맡고, MCP 서버(`@inspector-agent/mcp-server`)와 `inspector-agent` CLI 가 같은 엔진을 씁니다.
 
 ## CLI
 
 ```bash
 npx -y @inspector-agent/engine fix http://localhost:5173      # 스캔 → 규칙 기반 패치 제안 → Diff 확인 → y/N → 적용·재측정(실패하면 자동 롤백)
 npx -y @inspector-agent/engine apply p_abc123                 # AI 가 MCP 로 제안한 패치를 사람이 승인해 적용
+npx -y @inspector-agent/engine rollback p_abc123              # 적용된 패치를 원본으로 되돌림(적용 뒤 파일을 더 고쳤으면 거부)
 ```
 
 | 옵션 | 설명 |
