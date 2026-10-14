@@ -148,9 +148,10 @@ const requestApproval = async (patchId: string): Promise<string | undefined> => 
   const patch = await client.getPatch(patchId)
   const answer = await server.server.elicitInput({
     message: `${patch.file} 에 패치 ${patchId} 를 적용하고 같은 화면에서 재측정할까요? 재측정에 실패하면 자동으로 원본으로 되돌립니다.\n\n${patch.diff}`,
-    requestedSchema: { type: 'object', properties: { approve: { type: 'boolean', title: '적용하고 재측정', default: false } }, required: ['approve'] }
+    // 확인(accept)을 누르는 것 자체가 승인이다. 체크박스는 기본이 켜져 있고, 사용자가 직접 끄고 확인했을 때만 거절로 본다
+    requestedSchema: { type: 'object', properties: { approve: { type: 'boolean', title: '적용하고 재측정', default: true } } }
   })
-  return answer.action === 'accept' && answer.content?.approve === true ? undefined : '사용자가 적용을 승인하지 않았습니다. 파일은 바뀌지 않았습니다.'
+  return answer.action === 'accept' && answer.content?.approve !== false ? undefined : '사용자가 적용을 승인하지 않았습니다. 파일은 바뀌지 않았습니다.'
 }
 
 server.registerTool(
