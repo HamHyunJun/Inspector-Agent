@@ -54,7 +54,7 @@ server.registerTool(
       '헤드리스 Chromium 으로 URL 을 여러 뷰포트에서 스캔해 레이아웃 오버플로우와 모달·드롭다운 가려짐 결함을 결정론적으로 탐지하고 저장소에 저장합니다. 데이터가 있어야 그려지는 화면이나 클릭해야 열리는 드롭다운·모달은 scenario(또는 scenarioFile)로 시드 데이터와 클릭·입력·대기 단계를 줘서 그 상태로 스캔하세요. 같은 시나리오가 패치 후 재측정에도 쓰입니다.',
     inputSchema: {
       url: z.string().url().describe('스캔할 개발 서버 URL (예: http://localhost:5173/)'),
-      viewports: z.array(z.number().int().min(240).max(3840)).optional().describe('뷰포트 너비 목록. 기본 [375, 768, 1280]'),
+      viewports: z.array(z.number().int().min(100).max(3840)).optional().describe('뷰포트 너비 목록. 기본 [320, 375, 414, 768, 1024, 1280]. 아주 좁은 화면(예: 100)도 검사할 수 있다'),
       scenario: z
         .record(z.string(), z.unknown())
         .optional()

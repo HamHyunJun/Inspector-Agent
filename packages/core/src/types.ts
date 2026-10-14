@@ -17,8 +17,9 @@ export type DefectKind = 'overflow-x' | 'overflow-y' | 'clipped-text' | 'occlude
  * - box: 요소의 박스 자체가 부모 콘텐츠 영역 밖으로 밀려남 (예: flex item min-width:auto)
  * - content: 요소 박스는 맞지만 내부 텍스트/인라인 콘텐츠가 박스를 넘침 (예: nowrap, 긴 URL)
  * - viewport: 절대/고정 위치로 띄운 툴팁·팝오버가 화면 좌우 경계 밖으로 나감 (부모가 아니라 뷰포트가 기준)
+ * - squished: flex 줄 안의 아이콘·이미지가 공간이 모자라 한쪽 축으로만 줄어 비율이 깨짐 (overflowPx 는 줄어든 양)
  */
-export type OverflowMode = 'box' | 'content' | 'viewport'
+export type OverflowMode = 'box' | 'content' | 'viewport' | 'squished'
 
 export type Severity = 'low' | 'medium' | 'high'
 

@@ -32,6 +32,7 @@
 | 종류 | 무엇이 문제인가 | 자동(규칙) 패치 | 처리 요령 | 재측정 통과 기준 |
 | --- | --- | --- | --- | --- |
 | `overflow-x` | 박스·텍스트가 부모 콘텐츠 영역을 넘음 | 대부분 가능 | 진단 1순위(`flex-item-min-width`, `flex-shrink-disabled`, `fixed-width`, `unbreakable-text`…)를 먼저 시도. 자식이 원인이면 노드와 자식을 함께 수정 | 넘친 px 가 0, 새 결함 없음 |
+| `overflow-x` (`squished`) | flex 줄 안의 아이콘·이미지가 공간이 모자라 한쪽 축으로만 줄어 비율이 깨짐 (넘침·잘림은 없음) | 가능 | `flex-shrink-disabled`: 그 요소에 `flex-shrink: 0` | 찌그러진 px 가 0, 새 결함 없음 |
 | `overflow-y` | 높이가 고정된 컨테이너(`overflow-y: visible`) 밖으로 흐름 안 콘텐츠가 넘쳐 아래 요소와 겹침. 스크롤·잘림 컨테이너, 절대 위치 팝업, float 는 제외 | 대부분 가능 | `fixed-height`: `height: auto` + `min-height`(현재 높이를 유지). 높이를 유지해야 하면 `vertical-scroll`: `overflow-y: auto` | 넘친 px 가 0, 새 결함 없음 |
 | `clipped-text` | `overflow: hidden` 인데 `text-overflow: ellipsis` 가 없어 글자가 잘렸다는 표시 없이 사라짐. input, 말줄임, line-clamp, sr-only, 캐러셀 카드는 제외 | 가능 | `text-ellipsis`: 한 줄 라벨이면 말줄임(+ `white-space: nowrap`). 내용이 중요하면 `text-wrap`: `white-space: normal` + `overflow-wrap: anywhere` | 잘린 px 가 0 이거나 말줄임이 적용됨 |
 | `occluded` | 모달·드롭다운 같은 팝업이 다른 요소에 가려짐 | `z-index-too-low` 만 가능 | `stacking-context-trap` 은 z-index 를 올려도 소용없음. 갇힌 조상의 `transform`/`opacity`/`filter` 등을 없애거나 팝업을 `<Teleport to="body">` 로 옮김. `overflow-clipped-popup` 은 자르는 조상의 `overflow` 를 풀거나 팝업을 body 로 이동 | 가려진 비율이 **0%** (일부만 풀려도 실패) |
