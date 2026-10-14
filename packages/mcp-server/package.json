@@ -1,6 +1,6 @@
 {
   "name": "@inspector-agent/mcp-server",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Claude Code 등 MCP 클라이언트가 결함 조회·컨텍스트·패치 제안을 하도록 대시보드 API를 노출하는 stdio MCP 서버",
   "license": "MIT",
   "author": "HamHyunJun",
@@ -32,7 +32,8 @@
     "inspector-agent-mcp": "./dist/index.js"
   },
   "files": [
-    "dist"
+    "dist",
+    "commands"
   ],
   "scripts": {
     "build": "tsup src/index.ts --format esm --clean",

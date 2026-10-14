@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { loadScenarioFile } from './scenario-file'
 import { createDashboardClient } from './dashboard-client'
 import { formatContext, formatDefectList, formatPatch } from './format'
+import { readCommandSource, runInstallCommands, toPromptText } from './commands'
 
 /**
  * Inspector-Agent MCP 서버 (stdio).
@@ -137,13 +138,38 @@ if (allowAgentApply) {
   )
 }
 
+// 설치 없이 쓰는 슬래시 명령. Claude Code 에서는 /mcp__inspector-agent__scan 으로 나타난다
+const commandSource = await readCommandSource()
+const promptResult = (args: string): { messages: Array<{ role: 'user'; content: { type: 'text'; text: string } }> } => ({
+  messages: [{ role: 'user', content: { type: 'text', text: toPromptText(commandSource, args) } }]
+})
+
+server.registerPrompt(
+  'scan',
+  {
+    title: '스캔하고 패치 제안',
+    description: '개발 서버를 스캔하고 미해결 결함마다 패치를 제안합니다(파일은 직접 고치지 않음). url 을 생략하면 실행 중인 개발 서버를 찾습니다.',
+    argsSchema: { url: z.string().optional().describe('스캔할 주소 (예: http://localhost:5173)') }
+  },
+  ({ url }) => promptResult(url ? `scan ${url}` : 'scan')
+)
+
+server.registerPrompt(
+  'status',
+  { title: '결함·패치 현황', description: '스캔 없이 미해결 결함과 패치 상태를 보여 줍니다.' },
+  () => promptResult('status')
+)
+
 const main = async (): Promise<void> => {
   await server.connect(new StdioServerTransport())
   // stdout 은 MCP 프로토콜 전용이므로 로그는 stderr 로 남긴다
   console.error(`[inspector-agent-mcp] 대시보드 ${dashboardUrl} 에 연결된 MCP 서버가 시작되었습니다.`)
 }
 
-main().catch((error: unknown): void => {
+// `npx @inspector-agent/mcp-server install-commands` 는 서버를 띄우지 않고 슬래시 명령 파일만 설치한다
+const entry = process.argv[2] === 'install-commands' ? runInstallCommands(process.argv.slice(3)).then((code): void => void (process.exitCode = code)) : main()
+
+entry.catch((error: unknown): void => {
   console.error(error)
   process.exit(1)
 })

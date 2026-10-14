@@ -167,13 +167,17 @@ INSPECTOR_PROJECT_ROOT=/내/프로젝트/절대경로 pnpm dev:dashboard     # h
 }
 ```
 
-### 3. 슬래시 명령 설치 (한 번만, 모든 프로젝트에 적용)
+### 3. 슬래시 명령 (둘 중 편한 쪽)
+
+**설치 없이:** 2번에서 MCP만 연결하면 Claude Code에 `/mcp__inspector-agent__scan`과 `/mcp__inspector-agent__status`가 자동으로 나타납니다. 이름이 깁니다.
+
+**짧은 이름(`/ia`, `/insp`)으로 쓰려면** 한 번만 실행하세요.
 
 ```bash
-mkdir -p ~/.claude/commands
-curl -fsSL https://raw.githubusercontent.com/HamHyunJun/Inspector-Agent/main/docs/commands/ia.md -o ~/.claude/commands/ia.md
-cp ~/.claude/commands/ia.md ~/.claude/commands/insp.md
+npx -y @inspector-agent/mcp-server install-commands
 ```
+
+모든 프로젝트에서 쓰이도록 `~/.claude/commands`에 설치합니다. 이 프로젝트에서만 쓰려면 `--project`, 같은 이름의 내 파일을 덮어쓰려면 `--force`를 붙입니다. 설치 후에는 Claude Code를 새 세션으로 여세요.
 
 ### 4. 사용
 
@@ -181,9 +185,9 @@ cp ~/.claude/commands/ia.md ~/.claude/commands/insp.md
 
 | 입력 | 동작 |
 | --- | --- |
-| `/ia scan` | 실행 중인 개발 서버를 찾아 스캔하고, 미해결 결함마다 패치를 **제안** |
+| `/ia scan` (또는 `/mcp__inspector-agent__scan`) | 실행 중인 개발 서버를 찾아 스캔하고, 미해결 결함마다 패치를 **제안** |
 | `/ia scan http://localhost:3001` | 주소를 직접 지정 |
-| `/ia status` | 스캔 없이 현재 결함과 패치 상태만 표시 |
+| `/ia status` (또는 `/mcp__inspector-agent__status`) | 스캔 없이 현재 결함과 패치 상태만 표시 |
 | `/insp scan` | `/ia scan`과 같음 |
 
 제안된 패치는 대시보드(`http://localhost:3000`)에서 결함을 열어 **Diff를 확인하고 「적용하고 검증」**을 누릅니다. 대시보드가 백업 → 반영 → 재측정까지 하고, 검증에 실패하면 자동으로 원본으로 되돌립니다. 통과한 패치도 언제든 **롤백**할 수 있습니다.
@@ -230,7 +234,7 @@ cp ~/.claude/commands/ia.md ~/.claude/commands/insp.md
 | --- | --- |
 | `Executable doesn't exist` | Chromium 설치: `npx playwright@1.56.1 install chromium` |
 | `/mcp`에서 연결 실패(`CONNECTION_CLOSED`) | Claude Code를 재시작. 계속되면 `npx clear-npx-cache` 후 재시작 |
-| `/ia`가 보이지 않음 | `~/.claude/commands/ia.md`가 있는지 확인하고 새 세션에서 실행 |
+| `/ia`가 보이지 않음 | `npx -y @inspector-agent/mcp-server install-commands`를 실행하고 새 세션을 여세요. 설치 없이는 `/mcp__inspector-agent__scan`을 쓰면 됩니다 |
 | 스캔은 되는데 새 기능(자동 탐색 등)이 안 나옴 | 대시보드를 최신 코드로 `git pull && pnpm install && pnpm build` 후 재시작 |
 | 결함에 `파일:라인` 대신 선택자만 나옴 | 공통 준비 3번의 플러그인이 켜진 **개발 서버**를 스캔하세요 (프로덕션 빌드에는 없음) |
 | 화면은 깨졌는데 결함 0건 | 빈 상태·로그인 필요 화면입니다. [시나리오](docs/scenarios/README.md)를 쓰세요 |
