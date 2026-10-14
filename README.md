@@ -141,6 +141,16 @@ pnpm dev:dashboard         # http://localhost:3000  대시보드 (기본 패치 
 inspector-agent 로 http://localhost:5173 을 스캔하고, 미해결 결함마다 컨텍스트를 읽어 패치를 제안해줘.
 ```
 
+매번 문장을 쓰기 싫다면 **슬래시 명령**을 한 번만 설치하세요. 이후 어느 프로젝트에서든 `/ia scan`(또는 `/insp scan`) 한 줄이면 개발 서버를 찾아 스캔하고 미해결 결함마다 패치를 제안합니다(`/ia scan http://localhost:3001` 처럼 URL 지정 가능, `/ia status` 는 스캔 없이 현황만).
+
+```bash
+mkdir -p ~/.claude/commands
+curl -fsSL https://raw.githubusercontent.com/HamHyunJun/Inspector-Agent/main/docs/commands/ia.md -o ~/.claude/commands/ia.md
+cp ~/.claude/commands/ia.md ~/.claude/commands/insp.md   # 짧은 별칭이 더 필요하면 파일 이름만 바꿔 복사
+```
+
+명령은 파일을 직접 고치지 않고 `propose_patch` 로 제안만 합니다(MCP 서버가 연결된 프로젝트에서만 동작). 프로젝트 안에서만 쓰려면 `~/.claude/commands` 대신 그 프로젝트의 `.claude/commands/` 에 넣으세요.
+
 에이전트가 제안한 패치는 대시보드에서 사람이 승인합니다. 사람 없이 에이전트가 적용·검증까지 반복하게 하려면 `INSPECTOR_ALLOW_AGENT_APPLY=1`을 설정하세요. 이때 `apply_patch` 도구가 추가됩니다.
 
 ### 내 프로젝트에 붙이기
