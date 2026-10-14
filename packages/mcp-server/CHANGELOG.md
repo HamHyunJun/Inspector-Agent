@@ -1,5 +1,15 @@
 # @inspector-agent/mcp-server
 
+## 0.4.0
+
+### Minor Changes
+
+- MCP 서버가 슬래시 명령 프롬프트(`scan`, `status`)를 직접 노출해, 연결만 하면 Claude Code 에서 `/mcp__inspector-agent__scan` 으로 스캔부터 패치 제안까지 실행할 수 있습니다. 짧은 `/ia`, `/insp` 는 `npx -y @inspector-agent/mcp-server install-commands` 한 줄로 설치합니다(`--project`, `--force` 지원).
+
+### Patch Changes
+
+- @inspector-agent/core@0.4.0
+
 ## 0.3.0
 
 ### Minor Changes

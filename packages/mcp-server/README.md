@@ -22,6 +22,19 @@ Claude Code 의 `.mcp.json`:
 
 Node 20 이상. 전역 설치를 원하면 `npm install -g @inspector-agent/mcp-server` 후 `command` 를 `inspector-agent-mcp` 로 쓰세요.
 
+## 슬래시 명령
+
+MCP 서버가 프롬프트 `scan`, `status` 를 노출하므로 연결만 하면 Claude Code 에 `/mcp__inspector-agent__scan [url]` 과 `/mcp__inspector-agent__status` 가 나타납니다(스캔 → 미해결 결함마다 컨텍스트를 읽고 `propose_patch` 로 제안만 합니다).
+
+짧은 `/ia`, `/insp` 를 쓰려면 한 번 실행하세요.
+
+```bash
+npx -y @inspector-agent/mcp-server install-commands            # ~/.claude/commands (모든 프로젝트)
+npx -y @inspector-agent/mcp-server install-commands --project  # 현재 프로젝트의 .claude/commands
+```
+
+같은 이름의 다른 내용 파일이 있으면 건드리지 않고 알려 주며, 덮어쓰려면 `--force` 를 붙입니다.
+
 ## 환경 변수
 
 | 이름 | 기본값 | 설명 |

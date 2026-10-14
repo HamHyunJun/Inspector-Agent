@@ -171,6 +171,10 @@ const main = async () => {
   const tools = await listMcpTools(join(app, 'node_modules/@inspector-agent/mcp-server/dist/index.js'), app)
   for (const name of ['scan_page', 'list_defects', 'get_defect_context', 'propose_patch', 'get_patch_status']) assert(tools.includes(name), `MCP 도구 ${name} 가 없습니다: ${tools.join(', ')}`)
   ok(`@inspector-agent/mcp-server: 도구 ${tools.length}개 노출 (${tools.join(', ')})`)
+  // 슬래시 명령 원본이 tarball 에 들어 있어 install-commands 가 /ia, /insp 파일을 만든다
+  run(process.execPath, [join(app, 'node_modules/@inspector-agent/mcp-server/dist/index.js'), 'install-commands', '--project'], { cwd: app })
+  for (const name of ['ia', 'insp']) assert(readFileSync(join(app, '.claude/commands', `${name}.md`), 'utf8').includes('scan_page'), `install-commands 가 ${name}.md 를 만들지 못했습니다`)
+  ok('@inspector-agent/mcp-server: install-commands 가 /ia, /insp 명령 파일을 설치')
 
   // 7) core: 설치된 패키지에서 가져오기, 탐지기 번들 경로(exports) 확인
   const coreCheck = run(
