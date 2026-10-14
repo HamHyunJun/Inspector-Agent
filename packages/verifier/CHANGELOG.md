@@ -1,5 +1,16 @@
 # @inspector-agent/verifier
 
+## 0.7.0
+
+### Minor Changes
+
+- e5bd0ba: 탐지 규칙 대폭 추가(포커스 순서·고정 레이어·이미지·대비·탭 대상 등)와 환경 변형 스캔, 플레이그라운드 결함 케이스 확장
+
+### Patch Changes
+
+- Updated dependencies [e5bd0ba]
+  - @inspector-agent/core@0.7.0
+
 ## 0.6.0
 
 ### Patch Changes

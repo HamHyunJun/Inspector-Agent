@@ -1,6 +1,6 @@
 {
   "name": "@inspector-agent/core",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "결정론적 런타임 레이아웃 결함 탐지 엔진(오버플로우, 가려짐), 공용 타입, 시나리오 검증, 페이로드 압축 유틸",
   "license": "MIT",
   "author": "HamHyunJun",

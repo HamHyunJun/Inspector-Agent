@@ -1,6 +1,6 @@
 {
   "name": "@inspector-agent/vite-plugin",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": ".vue 템플릿 요소에 data-ia-src(파일:라인:컬럼)를 주입해 DOM 노드를 소스 라인에 연결하는 Vite 플러그인",
   "license": "MIT",
   "author": "HamHyunJun",

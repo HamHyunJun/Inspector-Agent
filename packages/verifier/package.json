@@ -1,6 +1,6 @@
 {
   "name": "@inspector-agent/verifier",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Playwright 로 여러 뷰포트를 스캔하고(inspector-scan CLI) 패치 전후를 재측정하는 레이아웃 결함 검증기",
   "license": "MIT",
   "author": "HamHyunJun",
