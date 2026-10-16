@@ -1,5 +1,13 @@
 # @inspector-agent/engine
 
+## 0.7.1
+
+### Patch Changes
+
+- Updated dependencies [2cf2c4c]
+  - @inspector-agent/verifier@0.7.1
+  - @inspector-agent/core@0.7.1
+
 ## 0.7.0
 
 ### Minor Changes

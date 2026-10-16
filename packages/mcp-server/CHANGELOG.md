@@ -1,5 +1,12 @@
 # @inspector-agent/mcp-server
 
+## 0.7.1
+
+### Patch Changes
+
+- @inspector-agent/core@0.7.1
+  - @inspector-agent/engine@0.7.1
+
 ## 0.7.0
 
 ### Minor Changes
