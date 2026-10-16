@@ -43,7 +43,8 @@ const DESTRUCTIVE_SOURCE =
 /** 페이지 안에서 실행되어 트리거 후보를 모은다. 직렬화되어 브라우저로 가므로 바깥 변수를 쓰지 않는다 */
 const collectTriggers = (args: { max: number; perSignature: number; destructive: string }): Trigger[] => {
   const destructive = new RegExp(args.destructive, 'i')
-  const stableId = (id: string): boolean => /^[A-Za-z][A-Za-z_-]*$/.test(id)
+  // 영문자로 시작하고 CSS.escape 가 필요 없는 id 만 쓴다. 숫자는 허용하지만 uuid·해시처럼 매번 바뀌는 id 는 제외한다
+  const stableId = (id: string): boolean => /^[A-Za-z][A-Za-z0-9_-]*$/.test(id) && !/\d{4,}|[A-Za-z0-9]{16,}/.test(id)
 
   const visible = (element: Element): boolean => {
     const rect = element.getBoundingClientRect()
@@ -52,7 +53,9 @@ const collectTriggers = (args: { max: number; perSignature: number; destructive:
     return style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity) > 0 && style.pointerEvents !== 'none'
   }
 
-  const cssPath = (element: Element): string => {
+  const MAX_SELECTOR = 300
+  /** 길이 상한 안에서 element 하나만 가리키는 선택자. 만들 수 없으면 undefined */
+  const cssPath = (element: Element): string | undefined => {
     const parts: string[] = []
     for (let current: Element | null = element; current && current !== document.documentElement; current = current.parentElement) {
       if (current === document.body) {
@@ -67,7 +70,15 @@ const collectTriggers = (args: { max: number; perSignature: number; destructive:
       const index = parent ? Array.from(parent.children).indexOf(current) + 1 : 1
       parts.unshift(`${current.tagName.toLowerCase()}:nth-child(${index})`)
     }
-    return parts.join(' > ')
+    const full = parts.join(' > ')
+    if (full.length <= MAX_SELECTOR) return full
+    // 뒤쪽 N단계만 남긴다. 짧을수록 일치 범위가 넓어지므로 상한 안의 가장 긴 꼬리만 시험하면 된다
+    let start = 0
+    while (start < parts.length - 1 && parts.slice(start).join(' > ').length > MAX_SELECTOR) start++
+    const tail = parts.slice(start).join(' > ')
+    if (tail.length > MAX_SELECTOR) return undefined
+    const matches = document.querySelectorAll(tail)
+    return matches.length === 1 && matches[0] === element ? tail : undefined
   }
 
   const labelOf = (element: Element): string =>
@@ -85,11 +96,13 @@ const collectTriggers = (args: { max: number; perSignature: number; destructive:
   const seen = new Set<Element>()
   const add = (element: Element, actions: ExploreAction[]): void => {
     if (found.length >= args.max || seen.has(element)) return
+    const selector = cssPath(element)
+    if (selector === undefined) return
     const signature = signatureOf(element)
     if ((counts.get(signature) ?? 0) >= args.perSignature) return
     counts.set(signature, (counts.get(signature) ?? 0) + 1)
     seen.add(element)
-    found.push({ selector: cssPath(element), label: labelOf(element), actions })
+    found.push({ selector, label: labelOf(element), actions })
   }
 
   // 1) 열림을 선언한 트리거: 눌러서도, 올려서도 열릴 수 있다
