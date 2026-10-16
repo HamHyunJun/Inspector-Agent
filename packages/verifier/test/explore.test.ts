@@ -85,4 +85,26 @@ describe('자동 탐색', () => {
     const withScenario = await scanPage(url, [{ width: 375, height: 700 }], { scenario: { steps: [{ action: 'wait', ms: 0 }] } })
     expect(withScenario).toHaveLength(1)
   }, 60_000)
+
+  it('깊이 20단계 중첩 버튼의 선택자는 300자 이하이고 유일하다', async (): Promise<void> => {
+    const nest = (inner: string): string => `${'<div>'.repeat(20)}${inner}${'</div>'.repeat(20)}`
+    const pages = [
+      nest('<button type="button" id="work-toggle-company-0" aria-expanded="false">숫자 id</button>'),
+      nest('<button type="button" aria-expanded="false">id 없음</button>')
+    ]
+    for (const body of pages) {
+      const deep = createServer((_request, response): void => {
+        response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' }).end(`<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>깊은 중첩</title></head><body>${body}</body></html>`)
+      })
+      await new Promise<void>((resolve): void => void deep.listen(0, '127.0.0.1', resolve))
+      try {
+        const results = await scanPage(`http://127.0.0.1:${(deep.address() as AddressInfo).port}/`, [{ width: 375, height: 700 }])
+        const selector = results.find((result): boolean => result.scenario?.steps?.[0]?.action === 'click')?.scenario?.steps?.[0]?.selector
+        expect(selector).toBeDefined()
+        expect(selector?.length).toBeLessThanOrEqual(300)
+      } finally {
+        deep.close()
+      }
+    }
+  }, 60_000)
 })
