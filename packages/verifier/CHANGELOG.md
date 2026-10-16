@@ -1,5 +1,12 @@
 # @inspector-agent/verifier
 
+## 0.7.1
+
+### Patch Changes
+
+- 2cf2c4c: 자동 탐색의 CSS 선택자가 300자를 넘어 스캔이 시작되지 못하던 문제 수정(숫자가 든 id 허용, 긴 선택자는 유일성을 확인하며 줄이고 실패하면 해당 트리거만 건너뜀)
+- @inspector-agent/core@0.7.1
+
 ## 0.7.0
 
 ### Minor Changes
